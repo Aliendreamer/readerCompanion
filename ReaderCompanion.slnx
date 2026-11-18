@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ReaderCompanion.Core/ReaderCompanion.Core.csproj" />
+    <Project Path="src/ReaderCompanion.Data/ReaderCompanion.Data.csproj" />
+    <Project Path="src/ReaderCompanion.Desktop/ReaderCompanion.Desktop.csproj" />
+    <Project Path="src/ReaderCompanion.UI/ReaderCompanion.UI.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ReaderCompanion.Data.Tests/ReaderCompanion.Data.Tests.csproj" />
+    <Project Path="tests/ReaderCompanion.UI.Tests/ReaderCompanion.UI.Tests.csproj" />
+  </Folder>
+</Solution>

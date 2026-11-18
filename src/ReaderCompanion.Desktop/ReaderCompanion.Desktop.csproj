@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <!-- WinExe: no console window on Windows; behaves like Exe on Linux. -->
+    <OutputType>WinExe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Explicit pin lifts Photino.Blazor's transitive WebView 9.0.1 to the .NET 10 version. -->
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView" />
+    <PackageReference Include="Photino.Blazor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ReaderCompanion.Data\ReaderCompanion.Data.csproj" />
+    <ProjectReference Include="..\ReaderCompanion.UI\ReaderCompanion.UI.csproj" />
+  </ItemGroup>
+
+</Project>

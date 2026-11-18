@@ -1,0 +1,24 @@
+# .NET build output
+bin/
+obj/
+TestResults/
+*.user
+.vs/
+
+# Local databases
+*.db
+*.db-shm
+*.db-wal
+
+# Superpowers plan workspaces (scratch)
+.superpowers/
+
+# Agent sandbox placeholder files in the repo root
+/.bashrc
+/.bash_profile
+/.profile
+/.zshrc
+/.zprofile
+/.gitconfig
+/.ripgreprc
+/.idea
