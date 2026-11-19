@@ -12,6 +12,7 @@
   "globs": [
     "CLAUDE.md",
     "README.md",
+    "ROADMAP.md",
     "docs/**/*.md",
     "openspec/**/*.md"
   ],

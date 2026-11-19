@@ -1,6 +1,6 @@
 # M0 — Foundation: design
 
-Roadmap: [docs/ROADMAP.md](../../ROADMAP.md), milestone M0.
+Roadmap: [ROADMAP.md](../../../ROADMAP.md), milestone M0.
 
 ## Intent
 
