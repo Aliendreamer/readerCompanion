@@ -195,8 +195,6 @@ disconnecting Drive leaves the catalog and reading history intact.
 1. **Goodreads (M6).** Is the CSV export import enough, or did you have something else in mind?
 2. **Organising files (M5).** Which naming patterns should be built in, and should anything beyond rename, move
    and trash be possible?
-3. **Google Drive priority (M7).** Last on purpose — it needs a Google Cloud app registration. Move it earlier
-   if that's where most of your books are.
 
 ## Decision log
 
@@ -209,3 +207,4 @@ disconnecting Drive leaves the catalog and reading history intact.
 - **2026-11-19** — Added genres (read in M1, browsed in M2), duplicate finding and merging (M2), organising
   files in OS folders and Drive (new M5; later milestones renumbered), Goodreads want-to-read as not-owned books
   so have/want/read are distinguishable (M6). Roadmap moved to the repo root.
+- **2026-11-19** — Milestone order confirmed as is (Google Drive stays M7).
