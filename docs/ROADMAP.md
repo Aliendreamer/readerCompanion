@@ -28,7 +28,7 @@ gates → your verification) before it is called done.
 | Desktop host | Photino.Blazor | Cross-platform; builds, tests, and runs inside WSL2 (WSLg + WebKitGTK present). |
 | Data | EF Core + SQLite, with migrations | Single file, schema evolves safely. |
 | Tests | xUnit + bUnit (components) | Standard for .NET/Blazor. |
-| Gates | `dotnet build -warnaserror`, `dotnet format --verify-no-changes`, `dotnet test`, in CI (GitHub Actions) | Discovered by `developer-flow`. |
+| Gates | `dotnet build`, `dotnet test`, `pnpm format:check`, `pnpm lint:md`, plus pre-commit and commit-msg git hooks | No CI by choice; local hooks enforce format, Markdown style and Conventional Commits. |
 
 Solution sketch:
 

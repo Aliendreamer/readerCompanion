@@ -8,6 +8,25 @@
   for breaking changes). Versions follow SemVer and are derived from these commits.
 - Stage files by explicit path; never `git add -A` (the agent sandbox shows placeholder dotfiles in the repo root).
 
+## Quality gates
+
+There is no CI. Run these before reporting a change done:
+
+- `dotnet build` (warnings are errors) and `dotnet test`
+- `pnpm format:check` (full `dotnet format` style check) and `pnpm lint:md`
+
+Git hooks (Husky) run on every commit: pre-commit formats staged C# with `dotnet format` and fixes staged
+Markdown with markdownlint-cli2; commit-msg rejects non-Conventional-Commit messages. After a fresh clone, run
+`pnpm install` once to activate them.
+
+### Agent sandbox notes
+
+- `dotnet test` and full `dotnet format` need Unix sockets the sandbox blocks: run tests with
+  `dotnet run --project tests/<project>` and builds with `-m:1`; the pre-commit hook falls back to
+  whitespace-only formatting when `CLAUDECODE=1`.
+- pnpm needs `XDG_RUNTIME_DIR=$TMPDIR` (it locks under `/run/user`, which is read-only in the sandbox).
+- The sandbox blocks writes to `.git/config`, so the user runs commands that change git config.
+
 <!-- setup-flow:start -->
 ## MANDATORY workflow
 

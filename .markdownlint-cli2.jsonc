@@ -1,0 +1,22 @@
+{
+  // MD013: line length — 120 cols; code blocks and tables are unwrappable, so exempt them.
+  "config": {
+    "default": true,
+    "MD013": {
+      "line_length": 120,
+      "code_blocks": false,
+      "tables": false
+    }
+  },
+  // Authored Markdown only; installed skills and tool output are not ours to lint.
+  "globs": [
+    "CLAUDE.md",
+    "README.md",
+    "docs/**/*.md",
+    "openspec/**/*.md"
+  ],
+  "ignores": [
+    "**/node_modules/**",
+    ".claude/**"
+  ]
+}

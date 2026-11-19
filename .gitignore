@@ -22,3 +22,6 @@ TestResults/
 /.gitconfig
 /.ripgreprc
 /.idea
+
+# Node dev tooling
+node_modules/
