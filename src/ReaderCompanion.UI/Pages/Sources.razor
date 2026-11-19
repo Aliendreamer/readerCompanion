@@ -1,0 +1,137 @@
+@page "/sources"
+@inject ILibraryFolders Folders
+@inject ILibraryScanner Scanner
+@inject IFolderPicker Picker
+
+<h1>Sources</h1>
+<p>Link the places your books come from. Google Drive and Goodreads will appear here later.</p>
+
+<section class="source">
+  <h2>Local folders</h2>
+
+  @if (_folders.Count == 0)
+  {
+    <p>No folders linked yet.</p>
+  }
+  else
+  {
+    <ul class="folder-list">
+      @foreach (var folder in _folders)
+      {
+        <li>
+          <span class="folder-path">@folder</span>
+          <button class="unlink" disabled="@_scanning" @onclick="() => UnlinkAsync(folder)">Unlink</button>
+        </li>
+      }
+    </ul>
+  }
+
+  <button id="link-folder" disabled="@_scanning" @onclick="LinkAsync">Link folder…</button>
+  <button id="scan" disabled="@(_scanning || _folders.Count == 0)" @onclick="ScanAsync">Scan</button>
+
+  @if (_message is not null)
+  {
+    <p class="message">@_message</p>
+  }
+
+  @if (_progress is not null)
+  {
+    <p class="progress">Scanning… @_progress.FilesProcessed of @_progress.FilesFound files</p>
+  }
+
+  @if (_summary is not null)
+  {
+    <div class="summary">
+      <p>
+        Scan finished: @_summary.Added added, @_summary.Moved moved, @_summary.Updated updated,
+        @_summary.MarkedMissing marked missing.
+      </p>
+      @if (_summary.Unreadable.Count > 0)
+      {
+        <p>Could not be read (kept, titled from the file name):</p>
+        <ul>
+          @foreach (var file in _summary.Unreadable)
+          {
+            <li>@file.Path</li>
+          }
+        </ul>
+      }
+      @if (_summary.UnavailableFolders.Count > 0)
+      {
+        <p>Not available, skipped (nothing was marked missing):</p>
+        <ul>
+          @foreach (var folder in _summary.UnavailableFolders)
+          {
+            <li>@folder</li>
+          }
+        </ul>
+      }
+    </div>
+  }
+</section>
+
+@code {
+  private IReadOnlyList<string> _folders = [];
+  private string? _message;
+  private bool _scanning;
+  private ScanProgress? _progress;
+  private ScanSummary? _summary;
+
+  protected override async Task OnInitializedAsync()
+  {
+    _scanning = Scanner.IsScanning;
+    _folders = await Folders.ListAsync();
+  }
+
+  private async Task LinkAsync()
+  {
+    var path = await Picker.PickFolderAsync();
+    if (path is null)
+    {
+      return;
+    }
+
+    var result = await Folders.LinkAsync(path);
+    _message = result.Linked
+      ? result.Replaced.Count > 0 ? $"Linked. It now also covers {string.Join(", ", result.Replaced)}." : null
+      : result.RefusedReason;
+    _folders = await Folders.ListAsync();
+  }
+
+  private async Task UnlinkAsync(string folder)
+  {
+    await Folders.UnlinkAsync(folder);
+    _message = $"Unlinked {folder}. Its books stay in the library, with their files marked missing.";
+    _folders = await Folders.ListAsync();
+  }
+
+  private async Task ScanAsync()
+  {
+    _scanning = true;
+    _message = null;
+    _summary = null;
+    _progress = new ScanProgress(0, 0);
+    try
+    {
+      _summary = await Scanner.ScanAsync(new UiProgress(this));
+    }
+    catch (Exception ex)
+    {
+      _message = $"The scan failed: {ex.Message}";
+    }
+    finally
+    {
+      _scanning = false;
+      _progress = null;
+    }
+  }
+
+  private sealed class UiProgress(Sources page) : IProgress<ScanProgress>
+  {
+    public void Report(ScanProgress value) => _ = page.InvokeAsync(() =>
+    {
+      page._progress = value;
+      page.StateHasChanged();
+    });
+  }
+}

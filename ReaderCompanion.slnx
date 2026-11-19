@@ -6,6 +6,7 @@
     <Project Path="src/ReaderCompanion.UI/ReaderCompanion.UI.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/ReaderCompanion.Core.Tests/ReaderCompanion.Core.Tests.csproj" />
     <Project Path="tests/ReaderCompanion.Data.Tests/ReaderCompanion.Data.Tests.csproj" />
     <Project Path="tests/ReaderCompanion.UI.Tests/ReaderCompanion.UI.Tests.csproj" />
   </Folder>

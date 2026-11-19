@@ -4,4 +4,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\ReaderCompanion.Core\ReaderCompanion.Core.csproj" />
+  </ItemGroup>
+
 </Project>

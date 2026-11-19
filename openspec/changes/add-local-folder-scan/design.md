@@ -106,6 +106,15 @@
 - [Network/NAS folders with coarse timestamps] → size + time check still works; worst case re-hash.
 - [Symlinked subfolders are not followed] → documented; add the target as its own library folder.
 
+## Review follow-ups (deferred)
+
+Found in review, judged minor for M1 and left for later milestones:
+
+- No progress is shown while new files' details and covers are read (after hashing); the UI shows "N of N".
+- Leaving the Sources page during a scan and coming back leaves its buttons disabled until the next visit.
+- Link/unlink errors (e.g. database locked) are not caught on the Sources page.
+- Cover files of replaced content are not deleted.
+
 ## Migration Plan
 
 New EF migration `AddLibrary` is applied automatically at startup (existing M0 behaviour). Empty database before

@@ -1,4 +1,47 @@
 @page "/"
+@using System.Globalization
+@using ReaderCompanion.Core.Library
+@inject ILibraryBooks Books
 
 <h1>readerCompanion</h1>
-<p>Your library is empty.</p>
+
+@if (_books is null)
+{
+  <p>Loading…</p>
+}
+else if (_books.Count == 0)
+{
+  <p>Your library is empty.</p>
+  <p>Link a folder of e-books on the <a href="sources">Sources</a> page and scan it.</p>
+}
+else
+{
+  <p>@_books.Count books</p>
+  <ul class="book-list">
+    @foreach (var book in _books)
+    {
+      <li>
+        <span class="book-title">@book.Title</span>
+        <span class="book-authors">@(book.Authors.Count > 0 ? string.Join(", ", book.Authors) : "Unknown author")</span>
+        @if (book.Series is not null)
+        {
+          <span class="book-series">@SeriesLabel(book)</span>
+        }
+        @if (book.FileMissing)
+        {
+          <span class="book-missing">missing file</span>
+        }
+      </li>
+    }
+  </ul>
+}
+
+@code {
+  private IReadOnlyList<BookListItem>? _books;
+
+  protected override async Task OnInitializedAsync() => _books = await Books.ListAsync();
+
+  private static string SeriesLabel(BookListItem book) => book.SeriesIndex is { } index
+    ? $"{book.Series} #{index.ToString("0.##", CultureInfo.InvariantCulture)}"
+    : book.Series!;
+}

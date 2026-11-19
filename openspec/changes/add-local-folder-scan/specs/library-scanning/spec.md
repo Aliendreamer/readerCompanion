@@ -93,14 +93,21 @@ file location as missing and keep the book. If the file reappears, it SHALL be m
 
 ### Requirement: Unavailable folders do not mark files missing
 
-If a library folder cannot be read during a scan (for example an unplugged drive), the scan SHALL skip it,
-SHALL leave the status of its files unchanged, and SHALL report the folder as unavailable.
+If a library folder cannot be read during a scan (for example an unplugged drive), or is completely empty although
+it held books at the last scan (what an unmounted drive's mount point looks like), the scan SHALL skip it, SHALL leave
+the status of its files unchanged, and SHALL report the folder as unavailable.
 
 #### Scenario: Drive unplugged
 
 - **GIVEN** a scanned library folder on a drive that is now disconnected
 - **WHEN** the user rescans
 - **THEN** none of that folder's files are marked missing and the scan summary says the folder was unavailable
+
+#### Scenario: Folder found completely empty
+
+- **GIVEN** a scanned library folder whose drive is unmounted, leaving an empty mount point
+- **WHEN** the user rescans
+- **THEN** its files are not marked missing and the summary says the folder was unavailable
 
 ### Requirement: Changed file content updates the book
 

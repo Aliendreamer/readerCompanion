@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Photino.Blazor;
 using ReaderCompanion.Data;
 using ReaderCompanion.UI;
@@ -11,6 +12,7 @@ internal static class Program
     {
         var builder = PhotinoBlazorAppBuilder.CreateDefault(args);
         builder.Services.AddLibraryData(AppPaths.DefaultDatabasePath());
+        builder.Services.AddSingleton<IFolderPicker, PhotinoFolderPicker>();
         builder.RootComponents.Add<Routes>("#app");
 
         var app = builder.Build();
@@ -18,7 +20,8 @@ internal static class Program
 
         app.MainWindow
             .SetTitle("readerCompanion")
-            .SetSize(1200, 800);
+            .SetSize(1200, 800)
+            .SetLogVerbosity(0);
 
         app.Run();
     }

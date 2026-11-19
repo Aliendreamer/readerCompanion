@@ -1,6 +1,8 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using ReaderCompanion.Core.Library;
+using ReaderCompanion.Core.Scanning;
 
 namespace ReaderCompanion.Data;
 
@@ -9,22 +11,20 @@ public static class DataServiceCollectionExtensions
     public static IServiceCollection AddLibraryData(this IServiceCollection services, string databasePath)
     {
         var connectionString = new SqliteConnectionStringBuilder { DataSource = databasePath }.ToString();
-        services.AddSingleton(new LibraryDatabaseLocation(databasePath));
-        return services.AddDbContext<LibraryDbContext>(options => options.UseSqlite(connectionString));
+        services.AddSingleton(new LibraryDataPaths(databasePath));
+        services.AddSingleton<ILibraryScanner, LibraryScanner>();
+        services.AddScoped<ILibraryFolders, LibraryFolders>();
+        services.AddScoped<ILibraryBooks, LibraryBooks>();
+        // The factory gives services a fresh context per operation (desktop scopes live as long as the app);
+        // it also registers LibraryDbContext itself as scoped.
+        return services.AddDbContextFactory<LibraryDbContext>(options => options.UseSqlite(connectionString));
     }
 
     public static void MigrateLibraryDatabase(this IServiceProvider services)
     {
-        var location = services.GetRequiredService<LibraryDatabaseLocation>();
-        var folder = Path.GetDirectoryName(Path.GetFullPath(location.Path));
-        if (!string.IsNullOrEmpty(folder))
-        {
-            Directory.CreateDirectory(folder);
-        }
+        Directory.CreateDirectory(services.GetRequiredService<LibraryDataPaths>().DataFolder);
 
         using var scope = services.CreateScope();
         scope.ServiceProvider.GetRequiredService<LibraryDbContext>().Database.Migrate();
     }
-
-    private sealed record LibraryDatabaseLocation(string Path);
 }

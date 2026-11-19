@@ -7,3 +7,53 @@ body {
 main {
   padding: 2rem;
 }
+
+.top-nav {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem 2rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.top-nav a.active {
+  font-weight: bold;
+}
+
+.folder-list {
+  padding-left: 0;
+  list-style: none;
+}
+
+.folder-list li {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.book-list {
+  padding-left: 0;
+  list-style: none;
+}
+
+.book-list li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.book-title {
+  font-weight: bold;
+}
+
+.book-authors,
+.book-series {
+  color: #555;
+}
+
+.book-missing {
+  color: #b00020;
+  font-size: 0.85em;
+}

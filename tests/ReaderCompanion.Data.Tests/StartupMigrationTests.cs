@@ -16,8 +16,7 @@ public sealed class StartupMigrationTests : IDisposable
         MigrateAt(path);
 
         Assert.True(File.Exists(path));
-        var migration = Assert.Single(AppliedMigrations(path));
-        Assert.EndsWith("_InitialCreate", migration);
+        Assert.Equal(DefinedMigrations(path), AppliedMigrations(path));
     }
 
     [Fact]
@@ -38,7 +37,7 @@ public sealed class StartupMigrationTests : IDisposable
         MigrateAt(path);
         MigrateAt(path);
 
-        Assert.Single(AppliedMigrations(path));
+        Assert.Equal(DefinedMigrations(path), AppliedMigrations(path));
     }
 
     private static ServiceProvider BuildProvider(string path) =>
@@ -55,6 +54,13 @@ public sealed class StartupMigrationTests : IDisposable
         using var provider = BuildProvider(path);
         using var scope = provider.CreateScope();
         return scope.ServiceProvider.GetRequiredService<LibraryDbContext>().Database.GetAppliedMigrations().ToList();
+    }
+
+    private static List<string> DefinedMigrations(string path)
+    {
+        using var provider = BuildProvider(path);
+        using var scope = provider.CreateScope();
+        return scope.ServiceProvider.GetRequiredService<LibraryDbContext>().Database.GetMigrations().ToList();
     }
 
     public void Dispose()
