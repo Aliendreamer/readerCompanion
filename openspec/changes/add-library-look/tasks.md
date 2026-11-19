@@ -14,8 +14,9 @@
   check the main text/background pairs reach 4.5:1 — verified by contrast check in the build notes
 - [ ] 2.2 `MainLayout` with sidebar (app name, Library, Sources, active link) and root `data-theme` — bUnit: links
   present, root carries the stored theme
-- [ ] 2.3 `ThemeSwitch` (System/Light/Dark) saving through `IAppPreferences` and updating the root immediately —
-  bUnit: choosing Dark sets `data-theme="dark"` and saves it
+- [ ] 2.3 `theme.js` + `ISystemTheme` and a `ThemeToggle` showing the effective theme, flipping and saving through
+  `IAppPreferences`, with "Use system theme" shown only while overridden — bUnit: on a light system the toggle
+  sets `data-theme="dark"` and saves it; "Use system theme" restores `system` and hides itself
 
 ## 3. Library views
 
@@ -37,7 +38,8 @@
 ## 5. Verification
 
 - [ ] 5.1 Run the quality gates from CLAUDE.md (`dotnet build`, `dotnet test`, `pnpm format:check`,
-  `pnpm lint:md`) and a manual check on Linux: covers show, grid/table toggle remembered, Dark/Light/System work
+  `pnpm lint:md`) and a manual check on Linux: covers show, grid/table toggle remembered, light/dark toggle
+  and "Use system theme" work
 
 ## Workflow follow-up
 

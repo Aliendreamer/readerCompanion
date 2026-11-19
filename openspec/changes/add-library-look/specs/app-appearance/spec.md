@@ -29,22 +29,24 @@ otherwise, and SHALL switch when the system preference changes while the app is 
 - **WHEN** the app opens
 - **THEN** it uses the dark theme
 
-### Requirement: Theme choice
+### Requirement: Light/dark toggle
 
-The sidebar SHALL offer a theme choice of System, Light and Dark. Light and Dark SHALL apply regardless of the
-system preference; System SHALL return to following it. The choice SHALL be remembered across restarts.
+The sidebar SHALL have a light/dark toggle showing the theme currently in use. Flipping it SHALL switch to the
+other theme immediately, regardless of the system preference, and the choice SHALL be remembered across
+restarts. While the user's choice is in effect, a "Use system theme" option SHALL be shown that returns to
+following the system and forgets the choice.
 
-#### Scenario: Forcing dark
+#### Scenario: Flipping to dark
 
-- **GIVEN** the system prefers light
-- **WHEN** the user chooses Dark
+- **GIVEN** the user has not chosen a theme and the system prefers light
+- **WHEN** the user flips the toggle
 - **THEN** the app uses the dark theme immediately, and still does after a restart
 
 #### Scenario: Back to system
 
-- **GIVEN** the user had chosen Dark and the system prefers light
-- **WHEN** the user chooses System
-- **THEN** the app uses the light theme
+- **GIVEN** the user flipped to dark and the system prefers light
+- **WHEN** the user picks "Use system theme"
+- **THEN** the app uses the light theme, follows the system from then on, and the option is hidden
 
 ### Requirement: Readable in both themes
 

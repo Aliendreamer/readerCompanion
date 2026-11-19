@@ -24,15 +24,21 @@ references Core only; anything host-specific goes behind an interface implemente
 
 ## Decisions
 
-### 1. Theme via CSS variables on the app root, set by Blazor — no JavaScript
+### 1. Theme via CSS variables on the app root, set by Blazor
 
 `MainLayout` renders `<div class="app" data-theme="system|light|dark">`. The stylesheet defines the light palette
 on `.app`, the dark palette under `.app[data-theme=dark]` and under
 `@media (prefers-color-scheme: dark) { .app[data-theme=system] }`, and sets `color-scheme` so native controls and
 scrollbars match. The root fills the viewport, so `body` needs no theming.
 
-*Alternatives:* setting `data-theme` on `<html>` needs JS interop and is awkward to test with bUnit; a
-class-per-theme stylesheet duplicates rules.
+The toggle has to show, and flip from, the theme in effect, which under `system` only the web view knows. A
+tiny `theme.js` module exposes `prefersDark()` and a change listener over
+`matchMedia('(prefers-color-scheme: dark)')`; the sidebar reads it through an `ISystemTheme` wrapper (faked in
+bUnit). Flipping stores `light` or `dark`; "Use system theme" stores `system`.
+
+*Alternatives:* setting `data-theme` on `<html>` would also need interop for every change and is awkward to test
+with bUnit; a class-per-theme stylesheet duplicates rules; a three-way System/Light/Dark switch — the user asked
+for a simple toggle.
 
 ### 2. Covers served by a custom URL scheme registered by the Desktop host
 
@@ -67,7 +73,7 @@ implements it with `preferences.json` in the data folder. A missing or unreadabl
 
 ### 6. Components
 
-- `Layout/MainLayout` + `Layout/Sidebar` (navigation and `ThemeSwitch`).
+- `Layout/MainLayout` + `Layout/Sidebar` (navigation and `ThemeToggle`).
 - `Library/BookGrid`, `Library/BookTable`, `Library/BookCover` (image or placeholder), `Library/ViewToggle`.
 - `Pages/Home` composes them; `Pages/Sources` keeps its markup and element ids, restyled through classes.
 
@@ -76,8 +82,8 @@ working.
 
 ## Risks / Trade-offs
 
-- [WebKitGTK reports the GTK theme, not Windows' dark mode, under WSLg] → the System/Light/Dark switch; the user
-  picks Dark once and it is remembered.
+- [WebKitGTK reports the GTK theme, not Windows' dark mode, under WSLg] → the toggle; the user flips to dark
+  once and it is remembered.
 - [Custom scheme images may be blocked from the `app://` page on one engine] → verify on Linux first in the
   manual check; fallback is to serve covers under the `app` scheme by wrapping Photino.Blazor's file provider, or
   small data-URI thumbnails as a last resort.

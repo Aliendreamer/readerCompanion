@@ -13,8 +13,8 @@ follows the system.
   cover, title, authors, series, status), with a **toggle** at the top. The choice is remembered.
 - Books without a cover get a generated placeholder (title and author on a coloured tile).
 - Book covers saved by the M1 scan are shown in the window.
-- **Light and dark themes**; by default the app follows the system theme. A **System / Light / Dark** switch in
-  the sidebar overrides it, and the choice is remembered.
+- **Light and dark themes**; by default the app follows the system theme. A **light/dark toggle** in the sidebar
+  overrides it and the choice is remembered; "Use system theme" goes back to following the system.
 - The Sources page gets the same styling (cards, buttons, progress, summary); its behaviour does not change.
 - A book count and the "missing file" marker stay visible in both views.
 
