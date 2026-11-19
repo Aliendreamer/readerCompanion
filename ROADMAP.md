@@ -137,8 +137,10 @@ Make it safe to undo before the app starts changing files or importing history.
 
 Manage the files themselves from the app, not only the catalog — starting with your OS folders.
 
-- Rename and move files from within the app, for one book or many, e.g. into `Author/Series/Title` or
-  `Genre/Author` folders using a naming pattern you choose.
+- Rename and move files from within the app, for one book or many, into folders built from the book's details.
+  Default layout: **`Genre/Author/Title`** (e.g. `Fantasy/Tolkien, J.R.R./The Hobbit.epub`); other layouts such
+  as `Author/Series/01 - Title` can be offered too. Finding books by author, series or genre does not depend on
+  the folder layout — that is what the M2 views and filters are for.
 - Always preview before applying; every change is recorded and can be undone.
 - The library follows the files (books are recognised by content since M1), so reading history is never lost.
 - Remove the extra file of a duplicate (found in M2) only after confirmation, to the system trash.
@@ -159,6 +161,8 @@ Link Goodreads from the Sources page. Goodreads closed its public API in 2020, s
 - When a scan later finds a file for a not-owned book, it becomes owned and keeps its Goodreads history.
 - Re-importing updates without duplicating and never overwrites manual edits; custom shelves can become
   collections (opt-in).
+- **Sync reminder**: since the export has to be downloaded by hand, the app reminds you to re-import when the last
+  import is older than a set interval (default 3 months, adjustable), with the steps to download a fresh export.
 
 **Done when:** after importing you can tell, in every view, what you have and read, have and haven't read,
 want, and read without owning — and a second import changes nothing.
@@ -192,9 +196,7 @@ disconnecting Drive leaves the catalog and reading history intact.
 
 ## Open decisions
 
-1. **Goodreads (M6).** Is the CSV export import enough, or did you have something else in mind?
-2. **Organising files (M5).** Which naming patterns should be built in, and should anything beyond rename, move
-   and trash be possible?
+None right now.
 
 ## Decision log
 
@@ -208,3 +210,6 @@ disconnecting Drive leaves the catalog and reading history intact.
   files in OS folders and Drive (new M5; later milestones renumbered), Goodreads want-to-read as not-owned books
   so have/want/read are distinguishable (M6). Roadmap moved to the repo root.
 - **2026-11-19** — Milestone order confirmed as is (Google Drive stays M7).
+- **2026-11-19** — Goodreads via its library export file (the only reliable way), with an in-app reminder to
+  re-import every few months (M6). File organising defaults to `Genre/Author/Title` (M5); browsing by author,
+  series and genre stays in the app's views and filters (M2).
