@@ -39,7 +39,7 @@
 
 ## 6. Integration check
 
-- [ ] 6.1 Commit this change through the real hooks with a Conventional Commit message and verify both
+- [x] 6.1 Commit this change through the real hooks with a Conventional Commit message and verify both
   hooks ran (pre-commit output from lint-staged, commit accepted); verify a commit attempt with the
   message `update stuff` is rejected by commit-msg (use an empty staged change or `--allow-empty`)
 
