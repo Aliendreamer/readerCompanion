@@ -25,7 +25,8 @@ All data lives in a local SQLite file you can back up by hand.
 | --------- | ----- | ----- |
 | M0 — Foundation | Done | commits `fe71894` and earlier |
 | Dev tooling — git hooks, formatting, Markdown lint | Done | `openspec/changes/archive/2026-11-19-add-git-hooks-tooling/` |
-| M1 — Local folder scan | Planned, ready to build | `openspec/changes/add-local-folder-scan/` |
+| M1 — Local folder scan | Done | `openspec/changes/archive/2026-11-19-add-local-folder-scan/` |
+| UI look — sidebar, cover grid / table toggle, dark theme | Next | this file |
 | M2–M8 | Not started | this file |
 
 ## Guiding principles
@@ -81,9 +82,10 @@ An empty app window with all the plumbing in place: solution and projects, share
 window with a placeholder page, and a SQLite database created and migrated on startup in the user's app-data
 folder. (A CI workflow was added and later removed by decision — no CI/CD.)
 
-### M1 — Local folder scan
+### M1 — Local folder scan (done)
 
-Fill the library from your e-book folders. Detailed plan: `openspec/changes/add-local-folder-scan/`.
+Fill the library from your e-book folders. Detailed plan:
+`openspec/changes/archive/2026-11-19-add-local-folder-scan/`; specs in `openspec/specs/`.
 
 - **Sources** page with a **Link folder** button that opens the system folder picker; unlink a folder; start a
   scan with live progress and a summary.
@@ -95,6 +97,15 @@ Fill the library from your e-book folders. Detailed plan: `openspec/changes/add-
 - Home shows a plain list of books (grouped views come in M2).
 
 **Done when:** linking your folder fills the library correctly, and a rescan is safe to run any time.
+
+### UI look (before M2)
+
+M1 works but looks bare. Give the app a proper look before adding more views.
+
+- A left **sidebar** for navigation (Library, Sources).
+- Books shown as a **cover grid** (cover, title, author, series) or a **compact table**, with a toggle at the top;
+  M2's grouped views reuse both.
+- **Light and dark themes that follow the system theme.**
 
 ### M2 — Library views and duplicates
 
@@ -213,3 +224,5 @@ None right now.
 - **2026-11-19** — Goodreads via its library export file (the only reliable way), with an in-app reminder to
   re-import every few months (M6). File organising defaults to `Genre/Author/Title` (M5); browsing by author,
   series and genre stays in the app's views and filters (M2).
+- **2026-11-19** — M1 built and verified on Linux. Next: a UI look pass (sidebar, cover grid and table with a
+  toggle, light/dark following the system) before M2.
