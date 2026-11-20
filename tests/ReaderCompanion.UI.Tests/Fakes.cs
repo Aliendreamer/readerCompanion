@@ -516,6 +516,18 @@ internal sealed class FakeGoodreads : ReaderCompanion.Core.Goodreads.IGoodreadsI
     }
 }
 
+internal sealed class FakeCoverFetcher : ICoverFetcher
+{
+    public int Runs { get; private set; }
+
+    public Task<CoverFetchResult> FetchMissingAsync(IProgress<(int Done, int Total)>? progress, CancellationToken cancellationToken = default)
+    {
+        Runs++;
+        progress?.Report((2, 2));
+        return Task.FromResult(new CoverFetchResult(2, 1, 0));
+    }
+}
+
 internal sealed class FakeLocation : ILibraryLocation
 {
     public string DataFolder => "/home/me/.local/share/ReaderCompanion";
@@ -565,7 +577,8 @@ internal static class TestServices
         FakeOrganiser? organiser = null,
         FakeTrash? trash = null,
         FakeGoodreads? goodreads = null,
-        FakeFilePicker? filePicker = null)
+        FakeFilePicker? filePicker = null,
+        FakeCoverFetcher? covers = null)
     {
         services.AddSingleton<ReaderCompanion.Core.Goodreads.IGoodreadsImport>(goodreads ?? new FakeGoodreads());
         services.AddSingleton<IFilePicker>(filePicker ?? new FakeFilePicker());
@@ -583,6 +596,7 @@ internal static class TestServices
         services.AddSingleton<ILibraryBooks>(libraryBooks ?? new FakeBooks(books));
         services.AddSingleton<IFileLauncher>(launcher ?? new FakeLauncher());
         services.AddSingleton<ILibraryLocation>(new FakeLocation());
+        services.AddSingleton<ICoverFetcher>(covers ?? new FakeCoverFetcher());
         services.AddSingleton<ILibraryFolders>(folders ?? new FakeFolders());
         services.AddSingleton<ILibraryScanner>(scanner ?? new FakeScanner());
         services.AddSingleton<IFolderPicker>(picker ?? new FakePicker());

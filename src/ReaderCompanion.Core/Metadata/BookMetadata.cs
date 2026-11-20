@@ -21,4 +21,13 @@ public sealed record BookMetadata
 }
 
 /// <summary>Cover image bytes and the file extension to store them with (for example ".jpg").</summary>
-public sealed record CoverImage(byte[] Bytes, string Extension);
+public sealed record CoverImage(byte[] Bytes, string Extension)
+{
+    /// <summary>The bytes as a cover when they are a JPEG or PNG image, judged by their first bytes; else null.</summary>
+    public static CoverImage? TryFrom(byte[] bytes) => bytes switch
+    {
+        [0xFF, 0xD8, 0xFF, ..] => new CoverImage(bytes, ".jpg"),
+        [0x89, 0x50, 0x4E, 0x47, ..] => new CoverImage(bytes, ".png"),
+        _ => null,
+    };
+}

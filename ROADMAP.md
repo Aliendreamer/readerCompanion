@@ -33,7 +33,7 @@ All data lives in a local SQLite file you can back up by hand.
 | M5 — Organise files | Done (OS folders) | `openspec/changes/archive/2026-11-20-add-{organise-files,trash-extra-files}/` |
 | M6 — Goodreads | Done | `openspec/changes/archive/2026-11-20-add-goodreads-*` |
 | M7 — Google Drive | Next — needs a Google Cloud OAuth client from the user | this file |
-| M8 — Polish and packaging | In progress — settings page and startup errors done | this file |
+| M8 — Polish and packaging | In progress — settings, startup errors, Open Library covers done | this file |
 
 ## Guiding principles
 
@@ -262,3 +262,4 @@ None right now.
   shelves can become collections (opt-in); a reminder to re-import after N months (default 3).
 - **2026-11-20** — M7 (Google Drive) skipped for now: it needs a Google Cloud OAuth desktop client from the user and
   a decision on read-only vs write access. M8 first slice: Settings page and startup errors shown in a dialog.
+- **2026-11-20** — M8: covers from Open Library by ISBN, opt-in on Settings, one request per second, only on Fetch.

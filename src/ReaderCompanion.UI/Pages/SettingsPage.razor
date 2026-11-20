@@ -7,6 +7,8 @@
 @inject IAppPreferences Preferences
 @inject ILibraryFolders Folders
 @inject IFileLauncher Launcher
+@inject ICoverFetcher Covers
+@implements IDisposable
 
 <h1 class="visually-hidden">Settings</h1>
 <p class="page-intro">Where your library lives and what it is linked to. Each part is changed on its own page.</p>
@@ -38,6 +40,32 @@
   <a href="backup">Change backups</a>
 </section>
 
+<section class="card settings-covers">
+  <h2>Covers</h2>
+  <label class="browse-check">
+    <input id="covers-online" type="checkbox" checked="@Preferences.Current.OnlineCovers"
+           @onchange="SetOnlineCovers" />
+    Get missing covers from Open Library (contacts openlibrary.org, only when you press Fetch)
+  </label>
+  @if (Preferences.Current.OnlineCovers || _fetching is not null)
+  {
+    <div class="backup-actions">
+      @if (_fetching is null)
+      {
+        <button id="covers-fetch" type="button" class="btn btn-small" @onclick="FetchCoversAsync">Fetch missing covers</button>
+      }
+      else
+      {
+        <button id="covers-stop" type="button" class="btn btn-small" @onclick="() => _fetching?.Cancel()">Stop</button>
+      }
+      @if (_coverStatus is not null)
+      {
+        <span class="muted">@_coverStatus</span>
+      }
+    </div>
+  }
+</section>
+
 <section class="card settings-sources">
   <h2>Linked sources</h2>
   <p>@(_folders is { } count ? $"{BookText.Plural(count, "local folder")} linked. " : "")Last Goodreads import: @(Preferences.Current.GoodreadsLastImportUtc is { } last ? BookText.Date(last) : "never").</p>
@@ -47,6 +75,8 @@
 
 @code {
   private int? _folders; // unknown until loaded (or if loading fails)
+  private CancellationTokenSource? _fetching;
+  private string? _coverStatus;
   private string? _error;
 
   protected override async Task OnInitializedAsync()
@@ -60,6 +90,50 @@
       _error = $"The linked folders could not be read: {e.Message}";
     }
   }
+
+  // One request per second; progress shows as it goes, and Stop cancels between books.
+  private async Task FetchCoversAsync()
+  {
+    using var fetching = _fetching = new CancellationTokenSource();
+    // Progress callbacks arrive later on the dispatcher; once the fetch is over, they must not overwrite the result.
+    var progress = new Progress<(int Done, int Total)>(p =>
+    {
+      if (_fetching == fetching)
+      {
+        _coverStatus = $"Looking up {p.Done} of {p.Total}…";
+        InvokeAsync(StateHasChanged);
+      }
+    });
+    try
+    {
+      var result = await Covers.FetchMissingAsync(progress, fetching.Token);
+      _coverStatus = result.Looked == 0 ? "Every book with an ISBN already has a cover."
+        : $"{BookText.Plural(result.Found, "cover")} found of {result.Looked}" +
+          (result.Failed > 0 ? $"; {result.Failed} could not be looked up." : ".");
+    }
+    catch (OperationCanceledException)
+    {
+      _coverStatus = "Stopped. Covers found so far are kept.";
+    }
+    finally
+    {
+      _fetching = null;
+    }
+  }
+
+  // Turning the switch off also stops a fetch that is running: off means no more requests.
+  private void SetOnlineCovers(ChangeEventArgs e)
+  {
+    var on = e.Value is true;
+    Preferences.Save(Preferences.Current with { OnlineCovers = on });
+    if (!on)
+    {
+      _fetching?.Cancel();
+    }
+  }
+
+  // Leaving the page stops the fetch: it never runs without the page showing it.
+  public void Dispose() => _fetching?.Cancel();
 
   // The launcher shows the folder that holds a file: the database sits in the data folder.
   private void ShowDataFolder() =>

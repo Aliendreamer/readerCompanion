@@ -26,6 +26,11 @@ public static class DataServiceCollectionExtensions
         services.AddScoped<IReading, Reading>();
         services.AddScoped<IReadingStats, ReadingStatsLoader>();
         services.AddSingleton<IBackups, Backups>();
+        services.AddSingleton<ICoverFetcher>(sp => new OpenLibraryCovers(
+            sp.GetRequiredService<IDbContextFactory<LibraryDbContext>>(),
+            sp.GetRequiredService<LibraryDataPaths>(),
+            CoverHttp.Value,
+            Task.Delay));
         services.AddScoped<ReaderCompanion.Core.Goodreads.IGoodreadsImport, GoodreadsImport>();
         services.TryAddSingleton(_ => PlatformTrash.ForThisMachine()); // tests register their own first
         services.AddSingleton<IAppPreferences, JsonAppPreferences>();
@@ -34,6 +39,14 @@ public static class DataServiceCollectionExtensions
         // it also registers LibraryDbContext itself as scoped.
         return services.AddDbContextFactory<LibraryDbContext>(options => options.UseSqlite(connectionString));
     }
+
+    // One client for the app's life; a generic agent name, nothing about the user.
+    private static readonly Lazy<HttpClient> CoverHttp = new(() =>
+    {
+        var client = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("readerCompanion");
+        return client;
+    });
 
     public static void MigrateLibraryDatabase(this IServiceProvider services)
     {

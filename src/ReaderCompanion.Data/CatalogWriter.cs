@@ -196,30 +196,8 @@ internal sealed class CatalogWriter
         return result.Unreadable;
     }
 
-    private string? SaveCover(CoverImage? cover, string contentHash)
-    {
-        if (cover is null)
-        {
-            return null;
-        }
-
-        var fileName = contentHash + cover.Extension;
-        var path = Path.Combine(_coversFolder, fileName);
-        try
-        {
-            if (!File.Exists(path))
-            {
-                Directory.CreateDirectory(_coversFolder);
-                File.WriteAllBytes(path, cover.Bytes);
-            }
-
-            return fileName;
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            return null; // a cover is nice to have; never fail the scan over it
-        }
-    }
+    private string? SaveCover(CoverImage? cover, string contentHash) =>
+        cover is null ? null : CoverFiles.Save(_coversFolder, contentHash, cover);
 
     private Book LoadBook(int bookId) => _db.Books
         .Include(b => b.Authors).ThenInclude(l => l.Author)

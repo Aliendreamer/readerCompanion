@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using ReaderCompanion.UI.Pages;
 
 namespace ReaderCompanion.UI.Tests;
@@ -7,8 +8,25 @@ public class SettingsPageTests : BunitContext
     private readonly FakePreferences _preferences = new();
     private readonly FakeFolders _folders = new();
     private readonly FakeLauncher _launcher = new();
+    private readonly FakeCoverFetcher _covers = new();
 
-    public SettingsPageTests() => Services.AddAppFakes(preferences: _preferences, folders: _folders, launcher: _launcher);
+    public SettingsPageTests() =>
+        Services.AddAppFakes(preferences: _preferences, folders: _folders, launcher: _launcher, covers: _covers);
+
+    [Fact]
+    public void Covers_AreFetchedOnlyWhenTurnedOn_AndAsked()
+    {
+        var cut = Render<SettingsPage>();
+        Assert.Empty(cut.FindAll("#covers-fetch"));
+
+        cut.Find("#covers-online").Change(true);
+        Assert.True(_preferences.Current.OnlineCovers);
+        Assert.Equal(0, _covers.Runs);
+        cut.Find("#covers-fetch").Click();
+
+        cut.WaitForAssertion(() => Assert.Contains("1 cover found of 2", cut.Find(".settings-covers").TextContent));
+        Assert.Equal(1, _covers.Runs);
+    }
 
     [Fact]
     public void ShowsTheDataFolder_AndOpensIt()
@@ -64,11 +82,38 @@ public class SettingsPageTests : BunitContext
     }
 
     [Fact]
+    public void TurningCoversOff_WhileFetching_StopsTheFetch()
+    {
+        _preferences.Save(_preferences.Current with { OnlineCovers = true });
+        var blocking = new BlockingCoverFetcher();
+        Services.AddSingleton<ReaderCompanion.Core.Library.ICoverFetcher>(blocking);
+        var cut = Render<SettingsPage>();
+
+        cut.Find("#covers-fetch").Click();
+        cut.Find("#covers-online").Change(false);
+
+        Assert.True(blocking.Token.IsCancellationRequested);
+    }
+
+    [Fact]
     public void NothingSetYet_SaysSo()
     {
         var cut = Render<SettingsPage>();
 
         cut.WaitForAssertion(() => Assert.Contains("No backup folder", cut.Find(".settings-backup").TextContent));
         Assert.Contains("never", cut.Find(".settings-sources").TextContent);
+    }
+
+    private sealed class BlockingCoverFetcher : ReaderCompanion.Core.Library.ICoverFetcher
+    {
+        public CancellationToken Token { get; private set; }
+
+        public async Task<ReaderCompanion.Core.Library.CoverFetchResult> FetchMissingAsync(
+            IProgress<(int Done, int Total)>? progress, CancellationToken cancellationToken = default)
+        {
+            Token = cancellationToken;
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+            return new(0, 0, 0);
+        }
     }
 }

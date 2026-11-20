@@ -43,7 +43,8 @@ public sealed record AppPreferences(
     int KeepBackups = 10,
     bool GoodreadsShelvesAsCollections = false,
     DateTime? GoodreadsLastImportUtc = null,
-    int GoodreadsReminderMonths = 3);
+    int GoodreadsReminderMonths = 3,
+    bool OnlineCovers = false);
 
 /// <summary>The user's remembered choices. Reads never fail: a missing or damaged store gives the defaults.</summary>
 public interface IAppPreferences
