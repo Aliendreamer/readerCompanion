@@ -10,4 +10,12 @@
   <PropertyGroup Condition="'$(CLAUDECODE)' == '1'">
     <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
   </PropertyGroup>
+  <!-- The version comes from git tags (vX.Y.Z); untagged builds read 0.1.0-alpha.N. Releases: pnpm release. -->
+  <PropertyGroup>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerMinimumMajorMinor>0.1</MinVerMinimumMajorMinor>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MinVer" PrivateAssets="all" />
+  </ItemGroup>
 </Project>

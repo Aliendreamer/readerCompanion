@@ -1,0 +1,7 @@
+{
+  "tagPrefix": "v",
+  "packageFiles": [],
+  "bumpFiles": [],
+  "infile": "CHANGELOG.md",
+  "releaseCommitMessageFormat": "chore(release): v{{currentTag}}"
+}

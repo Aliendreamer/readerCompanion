@@ -8,11 +8,16 @@
     "format": "dotnet format ReaderCompanion.slnx",
     "format:check": "dotnet format ReaderCompanion.slnx --verify-no-changes",
     "lint:md": "markdownlint-cli2",
-    "lint:md:fix": "markdownlint-cli2 --fix"
+    "lint:md:fix": "markdownlint-cli2 --fix",
+    "release": "commit-and-tag-version",
+    "release:dry": "commit-and-tag-version --dry-run",
+    "package:linux": "dotnet publish src/ReaderCompanion.Desktop -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o artifacts/linux-x64",
+    "package:windows": "dotnet publish src/ReaderCompanion.Desktop -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o artifacts/win-x64"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.4",
     "@commitlint/config-conventional": "21.2.4",
+    "commit-and-tag-version": "13.3.0",
     "husky": "9.1.7",
     "lint-staged": "17.6.1",
     "markdownlint-cli2": "0.24.1"

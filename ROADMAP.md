@@ -33,7 +33,7 @@ All data lives in a local SQLite file you can back up by hand.
 | M5 — Organise files | Done (OS folders) | `openspec/changes/archive/2026-11-20-add-{organise-files,trash-extra-files}/` |
 | M6 — Goodreads | Done | `openspec/changes/archive/2026-11-20-add-goodreads-*` |
 | M7 — Google Drive | Next — needs a Google Cloud OAuth client from the user | this file |
-| M8 — Polish and packaging | In progress — settings, startup errors, Open Library covers done | this file |
+| M8 — Polish and packaging | Done except installers (open decision) | `openspec/changes/archive/2026-11-20-add-{settings-and-startup-errors,online-covers,release-tooling}/` |
 
 ## Guiding principles
 
@@ -214,7 +214,11 @@ disconnecting Drive leaves the catalog and reading history intact.
 
 ## Open decisions
 
-None right now.
+- **M7 — Google Drive:** needs a Google Cloud project with an OAuth "desktop app" client ID (only the account owner
+  can create it), a choice of read-only or write access, and agreement on adding Google's .NET API library.
+- **Installers:** Windows (MSI or MSIX) and Linux (AppImage, .deb or Flatpak) — which, if any. Today the packages are
+  self-contained folders (`pnpm package:linux` / `pnpm package:windows`, see `docs/releasing.md`).
+- **First release:** when to tag `v0.1.0` (`pnpm release --release-as 0.1.0`).
 
 ## Decision log
 
@@ -263,3 +267,6 @@ None right now.
 - **2026-11-20** — M7 (Google Drive) skipped for now: it needs a Google Cloud OAuth desktop client from the user and
   a decision on read-only vs write access. M8 first slice: Settings page and startup errors shown in a dialog.
 - **2026-11-20** — M8: covers from Open Library by ISBN, opt-in on Settings, one request per second, only on Fetch.
+- **2026-11-20** — M8 done apart from installers: versions from git tags (MinVer), changelog and local tags from
+  Conventional Commits (commit-and-tag-version), self-contained Linux and Windows builds. M7 and installers wait on
+  the open decisions above.

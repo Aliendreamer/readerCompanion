@@ -25,3 +25,4 @@ TestResults/
 
 # Node dev tooling
 node_modules/
+artifacts/
