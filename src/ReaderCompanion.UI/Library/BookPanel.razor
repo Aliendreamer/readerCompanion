@@ -1,0 +1,180 @@
+@using System.Globalization
+@using ReaderCompanion.Core.Library
+@inject ILibraryBooks Books
+@inject IFileLauncher Launcher
+
+<aside class="book-panel" aria-label="Book details" tabindex="-1" @ref="_panel" @onkeydown="KeyDown">
+  <button id="panel-close" type="button" class="panel-close" aria-label="Close details" @onclick="OnClose">×</button>
+
+  @if (_gone)
+  {
+    <p class="panel-note">This book is no longer in the library.</p>
+  }
+  else if (_details is null)
+  {
+    <p class="muted">Loading…</p>
+  }
+  else if (_form is not null)
+  {
+    <BookEditForm Form="_form" Error="@_formError" OnSave="Save" OnCancel="CancelEdit" />
+  }
+  else
+  {
+    var book = _details.Book;
+    <div class="panel-cover"><BookCover Book="book" /></div>
+    <h2 class="panel-title">@book.Title</h2>
+    <p class="book-authors">@BookText.Authors(book)</p>
+
+    <dl class="panel-facts">
+      @if (BookText.Series(book) is { } series)
+      {
+        <dt>Series</dt><dd>@series</dd>
+      }
+      @if (book.Genres.Count > 0)
+      {
+        <dt>Genres</dt><dd>@string.Join(", ", book.Genres)</dd>
+      }
+      @if (_details.Language is { } language)
+      {
+        <dt>Language</dt><dd>@language</dd>
+      }
+      @if (_details.Isbn is { } isbn)
+      {
+        <dt>ISBN</dt><dd>@isbn</dd>
+      }
+      <dt>Added</dt><dd>@book.DateAddedUtc.ToLocalTime().ToString("d MMM yyyy", CultureInfo.InvariantCulture)</dd>
+    </dl>
+    @if (_details.Edited)
+    {
+      <p class="panel-note">Edited by you — scans keep these details.</p>
+    }
+
+    <button id="panel-edit" type="button" class="btn" @onclick="StartEdit">Edit details</button>
+
+    <h3 class="panel-heading">Files</h3>
+    <ul class="file-list">
+      @foreach (var file in _details.Files)
+      {
+        <li class="@(file.Present ? null : "file-missing")">
+          <span class="file-name">@Path.GetFileName(file.Path)</span>
+          <span class="file-folder-path">@Path.GetDirectoryName(file.Path)</span>
+          <span class="file-meta">
+            @file.Format.ToString().ToUpperInvariant() · @Size(file.SizeBytes)@(file.Present ? "" : " · missing")
+          </span>
+          @if (file.Present)
+          {
+            <span class="file-actions">
+              <button type="button" class="link-button file-open" @onclick="() => OpenFile(file.Path)">Open</button>
+              <button type="button" class="link-button file-folder" @onclick="() => ShowFolder(file.Path)">Show in folder</button>
+            </span>
+          }
+        </li>
+      }
+    </ul>
+    @if (_launchError is not null)
+    {
+      <p class="panel-error" role="alert">@_launchError</p>
+    }
+  }
+</aside>
+
+@code {
+  [Parameter, EditorRequired] public int BookId { get; set; }
+
+  [Parameter] public EventCallback OnClose { get; set; }
+
+  /// <summary>Raised after the book's details were saved, so the list can refresh.</summary>
+  [Parameter] public EventCallback OnSaved { get; set; }
+
+  private ElementReference _panel;
+  private BookDetails? _details;
+  private BookForm? _form;
+  private string? _formError;
+  private string? _launchError;
+  private bool _gone;
+  private bool _refocus = true;
+
+  // The page keys the panel on the book, so each pick gets a fresh panel.
+  protected override Task OnInitializedAsync() => LoadAsync();
+
+  private async Task LoadAsync()
+  {
+    _details = await Books.GetAsync(BookId);
+    _gone = _details is null;
+  }
+
+  // Keep focus in the panel (on open, and when switching between view and edit) so Escape keeps working.
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (_refocus)
+    {
+      _refocus = false;
+      await _panel.FocusAsync();
+    }
+  }
+
+  // Escape backs out one step: from the edit form to the details, then closes the panel.
+  private Task KeyDown(KeyboardEventArgs e)
+  {
+    if (e.Key != "Escape")
+    {
+      return Task.CompletedTask;
+    }
+
+    if (_form is not null)
+    {
+      CancelEdit();
+      return Task.CompletedTask;
+    }
+
+    return OnClose.InvokeAsync();
+  }
+
+  private void StartEdit()
+  {
+    _formError = null;
+    _form = BookForm.From(_details!);
+    _refocus = true;
+  }
+
+  private void CancelEdit()
+  {
+    _form = null;
+    _refocus = true;
+  }
+
+  private async Task Save()
+  {
+    if (!_form!.TryToEdit(out var edit, out _formError))
+    {
+      return;
+    }
+
+    try
+    {
+      await Books.UpdateAsync(BookId, edit);
+    }
+    catch (Exception e) when (e is not OperationCanceledException)
+    {
+      _formError = $"The details could not be saved: {e.Message}";
+      return;
+    }
+
+    await LoadAsync(); // also notices if the book is gone (UpdateAsync then returns false)
+    CancelEdit();
+    await OnSaved.InvokeAsync();
+  }
+
+  private void OpenFile(string path) =>
+    _launchError = Launcher.Open(path) ? null : $"Could not open {Path.GetFileName(path)}.";
+
+  private void ShowFolder(string path) =>
+    _launchError = Launcher.ShowInFolder(path) ? null : $"Could not show the folder of {Path.GetFileName(path)}.";
+
+  private static string Size(long bytes) => bytes switch
+  {
+    >= 1024 * 1024 => (bytes / (1024.0 * 1024)).ToString("0.0", CultureInfo.InvariantCulture) + " MB",
+    >= 1024 => (bytes / 1024.0).ToString("0", CultureInfo.InvariantCulture) + " KB",
+    _ => bytes + " B",
+  };
+}

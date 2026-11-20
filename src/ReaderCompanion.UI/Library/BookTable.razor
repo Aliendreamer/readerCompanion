@@ -15,7 +15,7 @@
     {
       <tr @key="book.Id">
         <td class="col-cover"><div class="table-cover"><BookCover Book="book" /></div></td>
-        <td><span class="book-title">@book.Title</span></td>
+        <td><button type="button" class="book-title" @onclick="() => OnSelect.InvokeAsync(book)">@book.Title</button></td>
         <td><span class="book-authors">@BookText.Authors(book)</span></td>
         <td>
           @if (BookText.Series(book) is { } series)
@@ -36,4 +36,7 @@
 
 @code {
   [Parameter, EditorRequired] public IReadOnlyList<BookListItem> Books { get; set; } = [];
+
+  /// <summary>Raised when the user picks a book to see its details.</summary>
+  [Parameter] public EventCallback<BookListItem> OnSelect { get; set; }
 }

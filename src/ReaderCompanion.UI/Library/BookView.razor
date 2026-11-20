@@ -3,15 +3,17 @@
 
 @if (View == LibraryView.Table)
 {
-  <BookTable Books="Books" />
+  <BookTable Books="Books" OnSelect="OnSelect" />
 }
 else
 {
-  <BookGrid Books="Books" />
+  <BookGrid Books="Books" OnSelect="OnSelect" />
 }
 
 @code {
   [Parameter, EditorRequired] public IReadOnlyList<BookListItem> Books { get; set; } = [];
 
   [Parameter] public LibraryView View { get; set; }
+
+  [Parameter] public EventCallback<BookListItem> OnSelect { get; set; }
 }

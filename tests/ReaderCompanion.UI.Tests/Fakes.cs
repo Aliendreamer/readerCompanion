@@ -135,8 +135,73 @@ internal sealed class FakeCoverUrls : ICoverUrls
 
 internal sealed class FakeBooks(List<BookListItem> books) : ILibraryBooks
 {
+    /// <summary>Files per book id; books without an entry have none.</summary>
+    public Dictionary<int, IReadOnlyList<BookFileInfo>> Files { get; } = [];
+
+    public List<(int Id, BookEdit Edit)> Updates { get; } = [];
+
+    /// <summary>When true, saving throws, as when the database is busy.</summary>
+    public bool FailUpdates { get; set; }
+
     public Task<IReadOnlyList<BookListItem>> ListAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<BookListItem>>([.. books]);
+
+    public Task<BookDetails?> GetAsync(int id, CancellationToken cancellationToken = default) =>
+        Task.FromResult(books.FirstOrDefault(b => b.Id == id) is { } book
+            ? new BookDetails(book, "en", "978-0", Updates.Any(u => u.Id == id), Files.GetValueOrDefault(id, []))
+            : null);
+
+    public Task<bool> UpdateAsync(int id, BookEdit edit, CancellationToken cancellationToken = default)
+    {
+        if (FailUpdates)
+        {
+            throw new InvalidOperationException("database is locked");
+        }
+
+        var index = books.FindIndex(b => b.Id == id);
+        if (index < 0)
+        {
+            return Task.FromResult(false);
+        }
+
+        Updates.Add((id, edit));
+        var series = string.IsNullOrWhiteSpace(edit.Series) ? null : edit.Series.Trim();
+        books[index] = books[index] with
+        {
+            Title = edit.Title.Trim(),
+            Authors = Clean(edit.Authors),
+            Series = series,
+            SeriesIndex = series is null ? null : edit.SeriesIndex,
+            Genres = Clean(edit.Genres),
+        };
+        return Task.FromResult(true);
+    }
+
+    // The real library cleans names; a rough stand-in is enough here.
+    private static string[] Clean(IEnumerable<string> names) =>
+        [.. names.Select(n => n.Trim()).Where(n => n.Length > 0)];
+}
+
+internal sealed class FakeLauncher : IFileLauncher
+{
+    public List<string> Opened { get; } = [];
+
+    public List<string> Shown { get; } = [];
+
+    /// <summary>When false, every launch fails, as when no app handles the file.</summary>
+    public bool Works { get; set; } = true;
+
+    public bool Open(string path)
+    {
+        Opened.Add(path);
+        return Works;
+    }
+
+    public bool ShowInFolder(string path)
+    {
+        Shown.Add(path);
+        return Works;
+    }
 }
 
 internal static class TestServices
@@ -146,9 +211,12 @@ internal static class TestServices
         this IServiceCollection services,
         List<BookListItem>? books = null,
         FakePreferences? preferences = null,
-        FakeSystemTheme? systemTheme = null)
+        FakeSystemTheme? systemTheme = null,
+        FakeBooks? libraryBooks = null,
+        FakeLauncher? launcher = null)
     {
-        services.AddSingleton<ILibraryBooks>(new FakeBooks(books ?? []));
+        services.AddSingleton<ILibraryBooks>(libraryBooks ?? new FakeBooks(books ?? []));
+        services.AddSingleton<IFileLauncher>(launcher ?? new FakeLauncher());
         services.AddSingleton<ILibraryFolders>(new FakeFolders());
         services.AddSingleton<ILibraryScanner>(new FakeScanner());
         services.AddSingleton<IFolderPicker>(new FakePicker());

@@ -11,7 +11,7 @@
           <span class="book-missing">missing file</span>
         }
       </div>
-      <span class="book-title" title="@book.Title">@book.Title</span>
+      <button type="button" class="book-title" title="@book.Title" @onclick="() => OnSelect.InvokeAsync(book)">@book.Title</button>
       <span class="book-authors">@BookText.Authors(book)</span>
       @if (BookText.Series(book) is { } series)
       {
@@ -23,4 +23,7 @@
 
 @code {
   [Parameter, EditorRequired] public IReadOnlyList<BookListItem> Books { get; set; } = [];
+
+  /// <summary>Raised when the user picks a book to see its details.</summary>
+  [Parameter] public EventCallback<BookListItem> OnSelect { get; set; }
 }

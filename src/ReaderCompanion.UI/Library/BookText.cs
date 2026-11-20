@@ -12,7 +12,9 @@ public static class BookText
         book.Authors.Count > 0 ? string.Join(", ", book.Authors) : UnknownAuthor;
 
     public static string? Series(BookListItem book) => book.Series is null ? null
-        : book.SeriesIndex is { } index
-            ? $"{book.Series} #{index.ToString("0.##", CultureInfo.InvariantCulture)}"
-            : book.Series;
+        : book.SeriesIndex is { } index ? $"{book.Series} #{SeriesNumber(index)}"
+        : book.Series;
+
+    /// <summary>A series position as people write it: 4, 2.5.</summary>
+    public static string SeriesNumber(decimal index) => index.ToString("0.##", CultureInfo.InvariantCulture);
 }

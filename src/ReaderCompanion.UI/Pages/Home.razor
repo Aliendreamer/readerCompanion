@@ -20,26 +20,33 @@ else if (_books.Count == 0)
 }
 else
 {
-  <BrowseBar Query="Query" QueryChanged="ChangeQuery" Options="_options" View="View" ViewChanged="ChangeView" />
-  <div class="browse-summary">
-    <p class="book-count">@Count()</p>
-    @if (Query.IsNarrowed)
+  <div class="library @(_selected is null ? null : "has-panel")">
+    <BrowseBar Query="Query" QueryChanged="ChangeQuery" Options="_options" View="View" ViewChanged="ChangeView" />
+    <div class="browse-summary">
+      <p class="book-count">@Count()</p>
+      @if (Query.IsNarrowed)
+      {
+        <button id="clear-filters" type="button" class="link-button" @onclick="ClearFilters">Clear filters</button>
+      }
+    </div>
+
+    @if (_result.Shown == 0)
     {
-      <button id="clear-filters" type="button" class="link-button" @onclick="ClearFilters">Clear filters</button>
+      <div class="empty-state card">
+        <p class="empty-title">No books match.</p>
+        <p>Try a different search, or clear the filters.</p>
+      </div>
+    }
+    else
+    {
+      @* Keyed on the grouping so a new grouping starts with every section open. *@
+      <BookSections @key="Query.Group" Sections="_result.Sections" View="View" OnSelect="b => _selected = b.Id" />
     }
   </div>
 
-  @if (_result.Shown == 0)
+  @if (_selected is { } id)
   {
-    <div class="empty-state card">
-      <p class="empty-title">No books match.</p>
-      <p>Try a different search, or clear the filters.</p>
-    </div>
-  }
-  else
-  {
-    @* Keyed on the grouping so a new grouping starts with every section open. *@
-    <BookSections @key="Query.Group" Sections="_result.Sections" View="View" />
+    <BookPanel @key="id" BookId="id" OnClose="() => _selected = null" OnSaved="ReloadAsync" />
   }
 }
 
@@ -50,6 +57,7 @@ else
   // Search and filters live only on this page; grouping and sort are always read from the preferences.
   private BrowseQuery _filters = new();
   private BrowseResult _result = new(0, 0, []);
+  private int? _selected;
 
   private LibraryView View => Preferences.Current.LibraryView;
 
@@ -59,7 +67,10 @@ else
     Sort = Preferences.Current.LibrarySort,
   };
 
-  protected override async Task OnInitializedAsync()
+  protected override Task OnInitializedAsync() => ReloadAsync();
+
+  // Reloads the books (after an edit, too) and re-applies the current search, filters, grouping and sort.
+  private async Task ReloadAsync()
   {
     _books = await Books.ListAsync();
     _options = LibraryBrowser.Options(_books);

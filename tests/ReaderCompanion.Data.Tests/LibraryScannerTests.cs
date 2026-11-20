@@ -197,6 +197,62 @@ public sealed class LibraryScannerTests : IDisposable
     }
 
     [Fact]
+    public async Task Rescan_ReplacedContent_KeepsAnEditedBooksDetails_ButUpdatesItsCover()
+    {
+        var path = WriteEpub("a.epub", "First Title", "<dc:creator>File Author</dc:creator><dc:subject>File Genre</dc:subject>");
+        await Scan();
+        using (var db = _library.NewContext())
+        {
+            var book = db.Books.Single();
+            book.Title = "The Real Title";
+            book.EditedUtc = DateTime.UtcNow;
+            db.SaveChanges();
+        }
+
+        using (var epub = TestEpub.Build(
+            "<dc:title>Corrected Title</dc:title><dc:creator>Other Author</dc:creator><dc:subject>Other Genre</dc:subject>",
+            """<item id="c" href="c.jpg" media-type="image/jpeg" properties="cover-image"/>""", ("OEBPS/c.jpg", [0xFF, 0xD8, 0xFF, 1])))
+        {
+            File.WriteAllBytes(path, epub.ToArray());
+        }
+
+        File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddMinutes(1));
+        await Scan();
+
+        var kept = Assert.Single(Books());
+        Assert.Equal("The Real Title", kept.Title);
+        Assert.Equal(["File Author"], kept.Authors.Select(a => a.Author.Name));
+        Assert.Equal(["File Genre"], kept.Genres.Select(g => g.Genre.Name));
+        Assert.NotNull(kept.CoverFileName);
+    }
+
+    [Fact]
+    public async Task Rescan_EditedBook_KeepsItsCover_WhenTheNewFileHasNone()
+    {
+        var path = Path.Combine(_books, "covered.epub");
+        using (var epub = TestEpub.Build("<dc:title>Covered</dc:title>",
+            """<item id="c" href="c.jpg" media-type="image/jpeg" properties="cover-image"/>""", ("OEBPS/c.jpg", [0xFF, 0xD8, 0xFF, 7])))
+        {
+            File.WriteAllBytes(path, epub.ToArray());
+        }
+
+        await Scan();
+        using (var db = _library.NewContext())
+        {
+            db.Books.Single().EditedUtc = DateTime.UtcNow;
+            db.SaveChanges();
+        }
+
+        var cover = Assert.Single(Books()).CoverFileName;
+        WriteEpub("covered.epub", "Covered, no cover");
+        File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddMinutes(1));
+        await Scan();
+
+        Assert.NotNull(cover);
+        Assert.Equal(cover, Assert.Single(Books()).CoverFileName);
+    }
+
+    [Fact]
     public async Task Scan_UnreadableFile_KeptAndListedInSummary()
     {
         WriteEpub("good.epub", "Good");

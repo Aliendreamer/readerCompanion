@@ -1,3 +1,4 @@
+@using ReaderCompanion.Core.Library
 @using ReaderCompanion.Core.Preferences
 
 @* Ungrouped books render as a plain grid or table; grouped ones get a collapsible section each. *@
@@ -6,7 +7,7 @@
 {
   if (part.Name is null)
   {
-    <BookView Books="part.Books" View="View" />
+    <BookView Books="part.Books" View="View" OnSelect="OnSelect" />
   }
   else
   {
@@ -14,7 +15,7 @@
       <summary>
         <span class="section-name">@part.Name</span> <span class="section-count">(@part.Books.Count)</span>
       </summary>
-      <BookView Books="part.Books" View="View" />
+      <BookView Books="part.Books" View="View" OnSelect="OnSelect" />
     </details>
   }
 }
@@ -23,4 +24,6 @@
   [Parameter, EditorRequired] public IReadOnlyList<BookSection> Sections { get; set; } = [];
 
   [Parameter] public LibraryView View { get; set; }
+
+  [Parameter] public EventCallback<BookListItem> OnSelect { get; set; }
 }

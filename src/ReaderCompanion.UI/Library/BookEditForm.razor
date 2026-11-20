@@ -1,0 +1,54 @@
+<form class="edit-form" @onsubmit="OnSave">
+  <h2 class="panel-heading">Edit details</h2>
+
+  <label for="edit-title">Title</label>
+  <input id="edit-title" @bind="Form.Title" />
+
+  <label for="edit-authors">Authors <span class="muted">(one per line)</span></label>
+  <textarea id="edit-authors" rows="3" @bind="Form.Authors"></textarea>
+
+  <div class="form-row">
+    <div>
+      <label for="edit-series">Series</label>
+      <input id="edit-series" @bind="Form.Series" />
+    </div>
+    <div class="form-narrow">
+      <label for="edit-series-index">Number</label>
+      <input id="edit-series-index" inputmode="decimal" @bind="Form.SeriesIndex" />
+    </div>
+  </div>
+
+  <label for="edit-genres">Genres <span class="muted">(one per line)</span></label>
+  <textarea id="edit-genres" rows="3" @bind="Form.Genres"></textarea>
+
+  <div class="form-row">
+    <div>
+      <label for="edit-language">Language</label>
+      <input id="edit-language" @bind="Form.Language" />
+    </div>
+    <div>
+      <label for="edit-isbn">ISBN</label>
+      <input id="edit-isbn" @bind="Form.Isbn" />
+    </div>
+  </div>
+
+  @if (Error is not null)
+  {
+    <p class="form-error" role="alert">@Error</p>
+  }
+
+  <div class="form-actions">
+    <button id="edit-save" type="submit" class="btn btn-primary">Save</button>
+    <button id="edit-cancel" type="button" class="btn" @onclick="OnCancel">Cancel</button>
+  </div>
+</form>
+
+@code {
+  [Parameter, EditorRequired] public BookForm Form { get; set; } = new();
+
+  [Parameter] public string? Error { get; set; }
+
+  [Parameter] public EventCallback OnSave { get; set; }
+
+  [Parameter] public EventCallback OnCancel { get; set; }
+}

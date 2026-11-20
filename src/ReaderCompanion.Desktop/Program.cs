@@ -16,6 +16,7 @@ internal static class Program
         builder.Services.AddReaderCompanionUI();
         builder.Services.AddSingleton<IFolderPicker, PhotinoFolderPicker>();
         builder.Services.AddSingleton<ICoverUrls, CoverUrls>();
+        builder.Services.AddSingleton<IFileLauncher, ShellFileLauncher>();
         AddCoversToAppFiles(builder.Services);
         builder.RootComponents.Add<Routes>("#app");
 

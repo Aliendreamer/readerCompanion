@@ -51,6 +51,9 @@ namespace ReaderCompanion.Data.Migrations
                     b.Property<DateTime>("DateAddedUtc")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("EditedUtc")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Isbn")
                         .HasColumnType("TEXT");
 

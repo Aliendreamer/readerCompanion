@@ -13,9 +13,7 @@ internal sealed class CatalogWriter
     private readonly DateTime _now;
     private readonly Dictionary<int, BookFile> _files;
     private readonly Dictionary<int, bool> _bookUnreadable;
-    private readonly Dictionary<string, Author> _authors;
-    private readonly Dictionary<string, Genre> _genres;
-    private readonly Dictionary<string, Collection> _series;
+    private readonly CatalogNames _names;
     private readonly List<UnreadableFile> _unreadable = [];
 
     public CatalogWriter(LibraryDbContext db, string coversFolder, DateTime now)
@@ -25,9 +23,7 @@ internal sealed class CatalogWriter
         _now = now;
         _files = db.BookFiles.ToDictionary(f => f.Id);
         _bookUnreadable = _files.Values.GroupBy(f => f.BookId).ToDictionary(g => g.Key, g => g.First().Unreadable);
-        _authors = db.Authors.ToDictionary(a => a.NormalizedName);
-        _genres = db.Genres.ToDictionary(g => g.NormalizedName);
-        _series = db.Collections.Where(c => c.Kind == CollectionKind.Series).ToDictionary(c => c.NormalizedName);
+        _names = new CatalogNames(db);
     }
 
     public IReadOnlyList<UnreadableFile> Unreadable => _unreadable;
@@ -117,49 +113,26 @@ internal sealed class CatalogWriter
         }
 
         var m = result.Metadata;
+        var cover = SaveCover(m.Cover, file.ContentHash);
+        if (book.EditedUtc is not null)
+        {
+            // The user's details win over the file's; a new cover is taken, but a missing one never wipes the old.
+            book.CoverFileName = cover ?? book.CoverFileName;
+            return result.Unreadable;
+        }
+
+        book.CoverFileName = cover;
+
         book.Title = m.Title!;
         book.Language = m.Language;
         book.Isbn = m.Isbn;
-        book.Series = m.Series is null ? null : Shared(_series, m.Series, (name, key) => new Collection { Name = name, NormalizedName = key, Kind = CollectionKind.Series });
-        book.SeriesIndex = m.Series is null ? null : m.SeriesIndex;
-        book.CoverFileName = SaveCover(m.Cover, file.ContentHash);
+        book.Series = _names.Series(m.Series);
+        book.SeriesIndex = book.Series is null ? null : m.SeriesIndex;
 
-        var authors = Distinct(m.Authors).Select(name => Shared(_authors, name, (n, key) => new Author { Name = n, NormalizedName = key })).ToList();
-        book.Authors.RemoveAll(link => !authors.Contains(link.Author));
-        for (var i = 0; i < authors.Count; i++)
-        {
-            var link = book.Authors.FirstOrDefault(l => l.Author == authors[i]);
-            if (link is null)
-            {
-                book.Authors.Add(link = new BookAuthor { Author = authors[i] });
-            }
-
-            link.Order = i;
-        }
-
-        var genres = Distinct(m.Genres).Select(name => Shared(_genres, name, (n, key) => new Genre { Name = n, NormalizedName = key })).ToList();
-        book.Genres.RemoveAll(link => !genres.Contains(link.Genre));
-        foreach (var genre in genres.Where(g => book.Genres.All(l => l.Genre != g)))
-        {
-            book.Genres.Add(new BookGenre { Genre = genre });
-        }
+        _names.SetAuthors(book, m.Authors);
+        _names.SetGenres(book, m.Genres);
 
         return result.Unreadable;
-    }
-
-    private static IEnumerable<string> Distinct(IEnumerable<string> names) =>
-        names.DistinctBy(NameNormalizer.Normalize);
-
-    /// <summary>The one entity for this name (matched by normalized key), created on first use.</summary>
-    private static T Shared<T>(Dictionary<string, T> cache, string name, Func<string, string, T> create)
-    {
-        var key = NameNormalizer.Normalize(name);
-        if (!cache.TryGetValue(key, out var entity))
-        {
-            cache[key] = entity = create(name, key);
-        }
-
-        return entity;
     }
 
     private string? SaveCover(CoverImage? cover, string contentHash)

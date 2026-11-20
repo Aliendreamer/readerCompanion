@@ -22,6 +22,10 @@ public sealed class Book
     /// <summary>When the book entered the library: the time of the scan that first found it.</summary>
     public DateTime DateAddedUtc { get; set; }
 
+    /// <summary>When the user last saved the book's details; null if never. Scans leave an edited book's details
+    /// (title, authors, series, genres, language, ISBN) alone.</summary>
+    public DateTime? EditedUtc { get; set; }
+
     public List<BookAuthor> Authors { get; set; } = [];
 
     public List<BookGenre> Genres { get; set; } = [];

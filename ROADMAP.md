@@ -27,7 +27,7 @@ All data lives in a local SQLite file you can back up by hand.
 | Dev tooling — git hooks, formatting, Markdown lint | Done | `openspec/changes/archive/2026-11-19-add-git-hooks-tooling/` |
 | M1 — Local folder scan | Done | `openspec/changes/archive/2026-11-19-add-local-folder-scan/` |
 | UI look — sidebar, cover grid / table toggle, dark theme | Done | `openspec/changes/archive/2026-11-20-add-library-look/` |
-| M2 — Library views and duplicates | In progress — browse done (`openspec/changes/archive/2026-11-20-add-library-browse/`) | this file |
+| M2 — Library views and duplicates | In progress — browse, details/edit done (see `openspec/changes/archive/`) | this file |
 | M3–M8 | Not started | this file |
 
 ## Guiding principles
@@ -232,3 +232,5 @@ None right now.
   page). Next: M2.
 - **2026-11-20** — M2 split into slices: browse (filters, search, grouping, sort — done), edit details + open file,
   duplicates, user collections. Date added backfilled from each book's oldest file.
+- **2026-11-20** — M2 details slice: a book panel with Open / Show in folder and editing; edited books keep their
+  details on rescans (whole-book flag, cover still follows the file).

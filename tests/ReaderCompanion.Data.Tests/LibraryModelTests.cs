@@ -18,8 +18,8 @@ public sealed class LibraryModelTests : IDisposable
             book.Authors.Add(new BookAuthor { Order = 1, Author = new Author { Name = "Neil Gaiman", NormalizedName = "NEIL GAIMAN" } });
             book.Genres.Add(new BookGenre { Genre = new Genre { Name = "Fantasy", NormalizedName = "FANTASY" } });
             book.Genres.Add(new BookGenre { Genre = new Genre { Name = "Humour", NormalizedName = "HUMOUR" } });
-            book.Files.Add(NewFile("/books/a.epub", BookFormat.Epub));
-            book.Files.Add(NewFile("/books/a.pdf", BookFormat.Pdf));
+            book.Files.Add(TestFiles.File("/books/a.epub", format: BookFormat.Epub, sizeBytes: 10));
+            book.Files.Add(TestFiles.File("/books/a.pdf", format: BookFormat.Pdf, sizeBytes: 10));
             db.Books.Add(book);
             db.SaveChanges();
         }
@@ -51,17 +51,6 @@ public sealed class LibraryModelTests : IDisposable
 
         Assert.Throws<DbUpdateException>(() => db.SaveChanges());
     }
-
-    private static BookFile NewFile(string path, BookFormat format) => new()
-    {
-        Path = path,
-        Format = format,
-        SizeBytes = 10,
-        LastWriteUtc = DateTime.UtcNow,
-        ContentHash = path,
-        Status = FileStatus.Present,
-        LastSeenUtc = DateTime.UtcNow,
-    };
 
     public void Dispose() => _library.Dispose();
 }

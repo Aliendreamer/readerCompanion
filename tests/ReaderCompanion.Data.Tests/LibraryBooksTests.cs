@@ -16,10 +16,10 @@ public sealed class LibraryBooksTests : IDisposable
             omens.Series = new Collection { Name = "Omens", NormalizedName = "OMENS", Kind = CollectionKind.Series };
             omens.Authors.Add(new BookAuthor { Order = 1, Author = new Author { Name = "Neil Gaiman", NormalizedName = "NG" } });
             omens.Authors.Add(new BookAuthor { Order = 0, Author = new Author { Name = "Terry Pratchett", NormalizedName = "TP" } });
-            omens.Files.Add(File("/a.epub", FileStatus.Missing));
+            omens.Files.Add(TestFiles.File("/a.epub", FileStatus.Missing));
             var anon = new Book { Title = "Anonymous" };
-            anon.Files.Add(File("/b.epub", FileStatus.Missing));
-            anon.Files.Add(File("/c.epub", FileStatus.Present));
+            anon.Files.Add(TestFiles.File("/b.epub", FileStatus.Missing));
+            anon.Files.Add(TestFiles.File("/c.epub", FileStatus.Present));
             db.Books.AddRange(omens, anon);
             db.SaveChanges();
         }
@@ -73,9 +73,9 @@ public sealed class LibraryBooksTests : IDisposable
             var dune = new Book { Title = "Dune", DateAddedUtc = added };
             dune.Genres.Add(new BookGenre { Genre = new Genre { Name = "Science Fiction", NormalizedName = "SF" } });
             dune.Genres.Add(new BookGenre { Genre = new Genre { Name = "Adventure", NormalizedName = "ADV" } });
-            dune.Files.Add(File("/dune.epub", FileStatus.Present));
-            dune.Files.Add(File("/copy/dune.epub", FileStatus.Present));
-            dune.Files.Add(File("/dune.pdf", FileStatus.Present, BookFormat.Pdf));
+            dune.Files.Add(TestFiles.File("/dune.epub", FileStatus.Present));
+            dune.Files.Add(TestFiles.File("/copy/dune.epub", FileStatus.Present));
+            dune.Files.Add(TestFiles.File("/dune.pdf", format: BookFormat.Pdf));
             db.Books.Add(dune);
             db.SaveChanges();
         }
@@ -86,16 +86,6 @@ public sealed class LibraryBooksTests : IDisposable
         Assert.Equal([BookFormat.Epub, BookFormat.Pdf], book.Formats);
         Assert.Equal(added, book.DateAddedUtc);
     }
-
-    private static BookFile File(string path, FileStatus status, BookFormat format = BookFormat.Epub) => new()
-    {
-        Path = path,
-        Format = format,
-        ContentHash = path,
-        Status = status,
-        LastWriteUtc = DateTime.UtcNow,
-        LastSeenUtc = DateTime.UtcNow,
-    };
 
     public void Dispose() => _library.Dispose();
 }
