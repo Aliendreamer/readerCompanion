@@ -253,6 +253,24 @@ public sealed class LibraryScannerTests : IDisposable
     }
 
     [Fact]
+    public async Task Rescan_AfterMerge_NewEditionOfOneFile_StaysInTheMergedBook()
+    {
+        var epub = WriteEpub("mort.epub", "Mort");
+        WriteEpub("mort-copy.epub", "Mort, other release");
+        await Scan();
+        var ids = Books().Select(b => b.Id).Order().ToList();
+        Assert.True(await _library.Services.CreateScope().ServiceProvider.GetRequiredService<IDuplicates>()
+            .MergeAsync(ids[0], [ids[1]], TestContext.Current.CancellationToken));
+
+        WriteEpub("mort.epub", "Mort, second edition");
+        File.SetLastWriteTimeUtc(epub, DateTime.UtcNow.AddMinutes(1));
+        await Scan();
+
+        var book = Assert.Single(Books());
+        Assert.Equal(2, book.Files.Count);
+    }
+
+    [Fact]
     public async Task Scan_UnreadableFile_KeptAndListedInSummary()
     {
         WriteEpub("good.epub", "Good");

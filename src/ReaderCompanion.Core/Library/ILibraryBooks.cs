@@ -50,6 +50,9 @@ public interface ILibraryBooks
     /// <summary>One book with its files, or null if there is no such book.</summary>
     Task<BookDetails?> GetAsync(int id, CancellationToken cancellationToken = default);
 
+    /// <summary>The books that exist among <paramref name="ids"/>, with their files, in id order.</summary>
+    Task<IReadOnlyList<BookDetails>> GetManyAsync(IReadOnlyCollection<int> ids, CancellationToken cancellationToken = default);
+
     /// <summary>Saves the user's details and marks the book edited, so scans keep them. Returns false if there is
     /// no such book.</summary>
     /// <exception cref="ArgumentException">The title is blank.</exception>

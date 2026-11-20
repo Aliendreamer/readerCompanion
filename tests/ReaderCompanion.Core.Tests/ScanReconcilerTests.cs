@@ -61,6 +61,33 @@ public class ScanReconcilerTests
     }
 
     [Fact]
+    public void MergedBook_OneFileChanged_UpdatesInPlace()
+    {
+        var epub = Known(1, 1, "/b/mort.epub", "h-epub");
+        var pdf = Known(2, 1, "/b/mort.pdf", "h-pdf");
+        var newEdition = Found("/b/mort.epub", "h-epub-2");
+
+        var plan = Plan([epub, pdf], [newEdition, Found("/b/mort.pdf", "h-pdf")]);
+
+        Assert.Contains(new UpdateContent(epub, newEdition), plan.Actions);
+        Assert.DoesNotContain(plan.Actions, a => a is SplitToNewBook);
+    }
+
+    [Fact]
+    public void MergedBook_DifferentContentJoinedThisScan_StillUpdatesInPlace()
+    {
+        var epub = Known(1, 1, "/b/mort.epub", "h-epub");
+        var pdf = Known(2, 1, "/b/mort.pdf", "h-pdf");
+        var pdfCopy = Found("/b/backup/mort.pdf", "h-pdf");
+        var newEdition = Found("/b/mort.epub", "h-epub-2");
+
+        var plan = Plan([epub, pdf], [newEdition, Found("/b/mort.pdf", "h-pdf"), pdfCopy]);
+
+        Assert.Contains(new JoinBook(1, pdfCopy), plan.Actions);
+        Assert.Contains(new UpdateContent(epub, newEdition), plan.Actions);
+    }
+
+    [Fact]
     public void OldVersionCopiedAway_OriginalReplaced_NewVersionBecomesNewBook()
     {
         var original = Known(1, 1, "/b/a.epub", "h1");

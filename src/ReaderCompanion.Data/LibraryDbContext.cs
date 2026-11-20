@@ -17,6 +17,8 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
 
     public DbSet<LibraryFolder> LibraryFolders => Set<LibraryFolder>();
 
+    public DbSet<DismissedDuplicate> DismissedDuplicates => Set<DismissedDuplicate>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Book>(book =>
@@ -57,5 +59,13 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
         });
 
         modelBuilder.Entity<LibraryFolder>().HasIndex(f => f.Path).IsUnique();
+
+        // Removing either book removes the dismissal.
+        modelBuilder.Entity<DismissedDuplicate>(pair =>
+        {
+            pair.HasKey(p => new { p.BookIdA, p.BookIdB });
+            pair.HasOne<Book>().WithMany().HasForeignKey(p => p.BookIdA).OnDelete(DeleteBehavior.Cascade);
+            pair.HasOne<Book>().WithMany().HasForeignKey(p => p.BookIdB).OnDelete(DeleteBehavior.Cascade);
+        });
     }
 }

@@ -35,7 +35,7 @@
     <FilterPicker TValue="string" Id="filter-collection" Label="Collection" Options="Options.Collections"
                   Picked="Query.Collections" PickedChanged="v => Change(Query with { Collections = v })" />
     <FilterPicker TValue="BookFormat" Id="filter-format" Label="Format" Options="Options.Formats" Picked="Query.Formats"
-                  Text="f => f.ToString().ToUpperInvariant()" PickedChanged="v => Change(Query with { Formats = v })" />
+                  Text="BookText.FormatLabel" PickedChanged="v => Change(Query with { Formats = v })" />
     <label class="browse-check">
       <input id="browse-missing" type="checkbox" checked="@Query.MissingOnly"
              @onchange="e => Change(Query with { MissingOnly = e.Value is true })" />

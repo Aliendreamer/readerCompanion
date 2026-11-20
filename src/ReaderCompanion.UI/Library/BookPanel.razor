@@ -42,7 +42,7 @@
       {
         <dt>ISBN</dt><dd>@isbn</dd>
       }
-      <dt>Added</dt><dd>@book.DateAddedUtc.ToLocalTime().ToString("d MMM yyyy", CultureInfo.InvariantCulture)</dd>
+      <dt>Added</dt><dd>@BookText.DateAdded(book)</dd>
     </dl>
     @if (_details.Edited)
     {
@@ -59,7 +59,7 @@
           <span class="file-name">@Path.GetFileName(file.Path)</span>
           <span class="file-folder-path">@Path.GetDirectoryName(file.Path)</span>
           <span class="file-meta">
-            @file.Format.ToString().ToUpperInvariant() · @Size(file.SizeBytes)@(file.Present ? "" : " · missing")
+            @BookText.FormatLabel(file.Format) · @Size(file.SizeBytes)@(file.Present ? "" : " · missing")
           </span>
           @if (file.Present)
           {

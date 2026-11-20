@@ -15,6 +15,13 @@ public static class BookText
         : book.SeriesIndex is { } index ? $"{book.Series} #{SeriesNumber(index)}"
         : book.Series;
 
+    /// <summary>A file format as shown on screen: EPUB, PDF.</summary>
+    public static string FormatLabel(BookFormat format) => format.ToString().ToUpperInvariant();
+
+    /// <summary>When a book was added, as shown on screen: 4 Mar 2026.</summary>
+    public static string DateAdded(BookListItem book) =>
+        book.DateAddedUtc.ToLocalTime().ToString("d MMM yyyy", CultureInfo.InvariantCulture);
+
     /// <summary>A series position as people write it: 4, 2.5.</summary>
     public static string SeriesNumber(decimal index) => index.ToString("0.##", CultureInfo.InvariantCulture);
 }

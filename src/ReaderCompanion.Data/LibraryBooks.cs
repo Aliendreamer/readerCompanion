@@ -31,19 +31,22 @@ internal sealed class LibraryBooks(IDbContextFactory<LibraryDbContext> contexts)
         return [.. books.Select(DistinctFormats)];
     }
 
-    public async Task<BookDetails?> GetAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<BookDetails?> GetAsync(int id, CancellationToken cancellationToken = default) =>
+        (await GetManyAsync([id], cancellationToken)).SingleOrDefault();
+
+    public async Task<IReadOnlyList<BookDetails>> GetManyAsync(IReadOnlyCollection<int> ids, CancellationToken cancellationToken = default)
     {
         await using var db = await contexts.CreateDbContextAsync(cancellationToken);
-        var item = await db.Books.AsNoTracking().Where(b => b.Id == id).Select(ToListItem).SingleOrDefaultAsync(cancellationToken);
-        if (item is null)
-        {
-            return null;
-        }
-
+        var items = await db.Books.AsNoTracking()
+            .Where(b => ids.Contains(b.Id))
+            .Select(ToListItem)
+            .ToDictionaryAsync(b => b.Id, cancellationToken);
         var rest = await db.Books.AsNoTracking()
-            .Where(b => b.Id == id)
+            .Where(b => ids.Contains(b.Id))
+            .OrderBy(b => b.Id)
             .Select(b => new
             {
+                b.Id,
                 b.Language,
                 b.Isbn,
                 Edited = b.EditedUtc != null,
@@ -51,8 +54,10 @@ internal sealed class LibraryBooks(IDbContextFactory<LibraryDbContext> contexts)
                     .Select(f => new BookFileInfo(f.Path, f.Format, f.SizeBytes, f.Status == FileStatus.Present))
                     .ToList(),
             })
-            .SingleAsync(cancellationToken);
-        return new BookDetails(DistinctFormats(item), rest.Language, rest.Isbn, rest.Edited, rest.Files);
+            .ToListAsync(cancellationToken);
+        return [.. rest
+            .Where(r => items.ContainsKey(r.Id))
+            .Select(r => new BookDetails(DistinctFormats(items[r.Id]), r.Language, r.Isbn, r.Edited, r.Files))];
     }
 
     public async Task<bool> UpdateAsync(int id, BookEdit edit, CancellationToken cancellationToken = default)

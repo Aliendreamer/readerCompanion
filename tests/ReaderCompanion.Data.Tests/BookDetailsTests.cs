@@ -68,6 +68,17 @@ public sealed class BookDetailsTests : IDisposable
     }
 
     [Fact]
+    public async Task GetMany_GivesKnownBooksInIdOrder()
+    {
+        var id = AddMort();
+
+        var many = await Books.GetManyAsync([999, id], Token);
+
+        Assert.Equal([id], many.Select(d => d.Book.Id));
+        Assert.Equal(2, many[0].Files.Count);
+    }
+
+    [Fact]
     public async Task Get_UnknownBook_GivesNull()
     {
         Assert.Null(await Books.GetAsync(999, Token));

@@ -12,14 +12,14 @@ public class ShellTests : BunitContext
     public ShellTests() => Services.AddAppFakes(preferences: _preferences, systemTheme: _system);
 
     [Fact]
-    public void Sidebar_LinksToLibraryAndSources_AndHighlightsCurrentPage()
+    public void Sidebar_LinksToEachPage_AndHighlightsCurrentPage()
     {
         Services.GetRequiredService<NavigationManager>().NavigateTo("sources");
 
         var cut = Render<Routes>();
 
         var links = cut.FindAll(".sidebar nav a");
-        Assert.Equal(["Library", "Sources"], links.Select(a => a.TextContent.Trim()));
+        Assert.Equal(["Library", "Duplicates", "Sources"], links.Select(a => a.TextContent.Trim()));
         Assert.Equal("Sources", cut.Find(".sidebar nav a.active").TextContent.Trim());
         Assert.Contains("readerCompanion", cut.Find(".sidebar .brand").TextContent);
     }

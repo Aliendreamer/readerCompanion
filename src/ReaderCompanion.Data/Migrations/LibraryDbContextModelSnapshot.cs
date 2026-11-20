@@ -185,6 +185,21 @@ namespace ReaderCompanion.Data.Migrations
                     b.ToTable("Collections");
                 });
 
+            modelBuilder.Entity("ReaderCompanion.Core.Library.DismissedDuplicate", b =>
+                {
+                    b.Property<int>("BookIdA")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BookIdB")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("BookIdA", "BookIdB");
+
+                    b.HasIndex("BookIdB");
+
+                    b.ToTable("DismissedDuplicates");
+                });
+
             modelBuilder.Entity("ReaderCompanion.Core.Library.Genre", b =>
                 {
                     b.Property<int>("Id")
@@ -285,6 +300,21 @@ namespace ReaderCompanion.Data.Migrations
                     b.Navigation("Book");
 
                     b.Navigation("Genre");
+                });
+
+            modelBuilder.Entity("ReaderCompanion.Core.Library.DismissedDuplicate", b =>
+                {
+                    b.HasOne("ReaderCompanion.Core.Library.Book", null)
+                        .WithMany()
+                        .HasForeignKey("BookIdA")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ReaderCompanion.Core.Library.Book", null)
+                        .WithMany()
+                        .HasForeignKey("BookIdB")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("ReaderCompanion.Core.Library.Book", b =>

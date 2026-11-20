@@ -151,6 +151,20 @@ internal sealed class FakeBooks(List<BookListItem> books) : ILibraryBooks
             ? new BookDetails(book, "en", "978-0", Updates.Any(u => u.Id == id), Files.GetValueOrDefault(id, []))
             : null);
 
+    public async Task<IReadOnlyList<BookDetails>> GetManyAsync(IReadOnlyCollection<int> ids, CancellationToken cancellationToken = default)
+    {
+        var found = new List<BookDetails>();
+        foreach (var id in ids.Order())
+        {
+            if (await GetAsync(id, cancellationToken) is { } details)
+            {
+                found.Add(details);
+            }
+        }
+
+        return found;
+    }
+
     public Task<bool> UpdateAsync(int id, BookEdit edit, CancellationToken cancellationToken = default)
     {
         if (FailUpdates)
@@ -180,6 +194,40 @@ internal sealed class FakeBooks(List<BookListItem> books) : ILibraryBooks
     // The real library cleans names; a rough stand-in is enough here.
     private static string[] Clean(IEnumerable<string> names) =>
         [.. names.Select(n => n.Trim()).Where(n => n.Length > 0)];
+}
+
+internal sealed class FakeDuplicates : IDuplicates
+{
+    public List<DuplicateGroup> Groups { get; } = [];
+
+    public List<(int Keep, IReadOnlyCollection<int> Others)> Merges { get; } = [];
+
+    public List<IReadOnlyCollection<int>> Dismissals { get; } = [];
+
+    /// <summary>When true, merging and dismissing throw, as when the database is busy.</summary>
+    public bool Fail { get; set; }
+
+    public Task<IReadOnlyList<DuplicateGroup>> FindAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<DuplicateGroup>>([.. Groups]);
+
+    public Task<bool> MergeAsync(int keepId, IReadOnlyCollection<int> otherIds, CancellationToken cancellationToken = default)
+    {
+        if (Fail)
+        {
+            throw new InvalidOperationException("database is locked");
+        }
+
+        Merges.Add((keepId, otherIds));
+        Groups.RemoveAll(g => g.Books.Any(b => b.Book.Id == keepId));
+        return Task.FromResult(true);
+    }
+
+    public Task DismissAsync(IReadOnlyCollection<int> bookIds, CancellationToken cancellationToken = default)
+    {
+        Dismissals.Add(bookIds);
+        Groups.RemoveAll(g => g.Books.Any(b => bookIds.Contains(b.Book.Id)));
+        return Task.CompletedTask;
+    }
 }
 
 internal sealed class FakeLauncher : IFileLauncher
@@ -213,8 +261,10 @@ internal static class TestServices
         FakePreferences? preferences = null,
         FakeSystemTheme? systemTheme = null,
         FakeBooks? libraryBooks = null,
-        FakeLauncher? launcher = null)
+        FakeLauncher? launcher = null,
+        FakeDuplicates? duplicates = null)
     {
+        services.AddSingleton<IDuplicates>(duplicates ?? new FakeDuplicates());
         services.AddSingleton<ILibraryBooks>(libraryBooks ?? new FakeBooks(books ?? []));
         services.AddSingleton<IFileLauncher>(launcher ?? new FakeLauncher());
         services.AddSingleton<ILibraryFolders>(new FakeFolders());

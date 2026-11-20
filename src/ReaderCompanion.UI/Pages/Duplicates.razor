@@ -1,0 +1,161 @@
+@page "/duplicates"
+@using ReaderCompanion.Core.Library
+@using ReaderCompanion.UI.Library
+@inject IDuplicates DuplicateBooks
+
+<h1 class="visually-hidden">Duplicates</h1>
+<p class="page-intro">Books that look like the same book. Pick whose details to keep and merge them into one book
+  with all their files, or mark them as not duplicates.</p>
+
+@if (_groups is null)
+{
+  <p class="muted loading">Looking for duplicates…</p>
+}
+else if (_groups.Count == 0)
+{
+  <div class="empty-state card">
+    <p class="empty-title">No likely duplicates found.</p>
+    <p>Books with the same ISBN, or the same title and author, show up here.</p>
+  </div>
+}
+else
+{
+  @foreach (var group in _groups)
+  {
+    var key = group.Key;
+    var keep = _keep[key];
+    <section class="dup-group card" @key="key">
+      <div class="dup-books">
+        @foreach (var details in group.Books)
+        {
+          var book = details.Book;
+          <label class="dup-book @(book.Id == keep ? "picked" : null)">
+            <span class="dup-pick">
+              <input type="radio" name="keep-@key" checked="@(book.Id == keep)" @onchange="() => _keep[key] = book.Id" />
+              Keep these details
+            </span>
+            <span class="dup-cover"><BookCover Book="book" /></span>
+            <span class="book-title">@book.Title</span>
+            <span class="book-authors">@BookText.Authors(book)</span>
+            @if (BookText.Series(book) is { } series)
+            {
+              <span class="book-series">@series</span>
+            }
+            <span class="dup-facts">
+              @string.Join(" · ", book.Formats.Select(BookText.FormatLabel))
+              @if (book.Genres.Count > 0)
+              {
+                <text> · @string.Join(", ", book.Genres)</text>
+              }
+              @if (details.Isbn is { } isbn)
+              {
+                <text> · ISBN @isbn</text>
+              }
+              · added @BookText.DateAdded(book)
+              @if (details.Edited)
+              {
+                <text> · edited by you</text>
+              }
+            </span>
+            <span class="dup-files">
+              @foreach (var file in details.Files)
+              {
+                <span class="@(file.Present ? null : "file-missing")">@file.Path@(file.Present ? "" : " (missing)")</span>
+              }
+            </span>
+          </label>
+        }
+      </div>
+
+      <div class="dup-actions">
+        @if (_confirming == key)
+        {
+          var kept = group.Books.First(b => b.Book.Id == keep).Book.Title;
+          <span class="dup-question">Merge into “@kept”? The other books are removed; their files move to it.</span>
+          <button type="button" class="btn btn-primary dup-confirm" disabled="@_busy" @onclick="() => MergeAsync(group, keep)">Yes, merge</button>
+          <button type="button" class="btn dup-cancel" disabled="@_busy" @onclick="() => _confirming = null">No</button>
+        }
+        else
+        {
+          <button type="button" class="btn btn-primary dup-merge" @onclick="() => _confirming = key">Merge…</button>
+          <button type="button" class="btn dup-dismiss" disabled="@_busy" @onclick="() => DismissAsync(group)">Not duplicates</button>
+        }
+      </div>
+      @if (_error is { } error && error.Key == key)
+      {
+        <p class="panel-error" role="alert">@error.Message</p>
+      }
+    </section>
+  }
+}
+
+@code {
+  private List<DuplicateGroup>? _groups;
+
+  // Per group (keyed by its first book): the book whose details to keep.
+  private readonly Dictionary<int, int> _keep = [];
+  private int? _confirming;
+  private bool _busy; // one merge or dismissal at a time (no double clicks)
+  private (int Key, string Message)? _error;
+
+  protected override Task OnInitializedAsync() => LoadAsync();
+
+  private async Task LoadAsync()
+  {
+    _confirming = null;
+    _groups = [.. await DuplicateBooks.FindAsync()];
+    foreach (var group in _groups)
+    {
+      _keep[group.Key] = DuplicatePick.Default(group.Books);
+    }
+  }
+
+  // Groups never share books, so a merged or dismissed group can simply leave the list; if the merge found a book
+  // gone, look again.
+  private Task MergeAsync(DuplicateGroup group, int keep) => RunAsync(group, "merged", async () =>
+  {
+    if (await DuplicateBooks.MergeAsync(keep, [.. group.Books.Select(b => b.Book.Id).Where(id => id != keep)]))
+    {
+      Remove(group);
+    }
+    else
+    {
+      await LoadAsync();
+    }
+  });
+
+  private Task DismissAsync(DuplicateGroup group) => RunAsync(group, "marked as not duplicates", async () =>
+  {
+    await DuplicateBooks.DismissAsync([.. group.Books.Select(b => b.Book.Id)]);
+    Remove(group);
+  });
+
+  private async Task RunAsync(DuplicateGroup group, string verb, Func<Task> action)
+  {
+    if (_busy)
+    {
+      return;
+    }
+
+    _busy = true;
+    _error = null;
+    try
+    {
+      await action();
+    }
+    catch (Exception e) when (e is not OperationCanceledException)
+    {
+      _error = (group.Key, $"These books could not be {verb}: {e.Message}");
+    }
+    finally
+    {
+      _busy = false;
+    }
+  }
+
+  private void Remove(DuplicateGroup group)
+  {
+    _groups!.Remove(group);
+    _confirming = null;
+  }
+}

@@ -49,7 +49,7 @@ public static class ScanReconciler
         var gone = known.Where(k => !foundPaths.Contains(k.Path) && !Offline(k)).ToList();
         var moveSources = gone.GroupBy(k => k.ContentHash).ToDictionary(g => g.Key, g => new Queue<KnownFile>(g));
         var moved = new HashSet<int>();
-        var gainedCopy = new HashSet<int>(); // books that got an extra file this scan
+        var gainedCopy = new HashSet<(int BookId, string Hash)>(); // copies that joined a book this scan
         var newContent = new Dictionary<string, List<FoundFile>>();
 
         foreach (var f in unknownPaths)
@@ -64,7 +64,7 @@ public static class ScanReconciler
             else if (bookByHash.TryGetValue(f.ContentHash, out var bookId))
             {
                 actions.Add(new JoinBook(bookId, f));
-                gainedCopy.Add(bookId);
+                gainedCopy.Add((bookId, f.ContentHash));
             }
             else
             {
@@ -78,8 +78,11 @@ public static class ScanReconciler
             {
                 actions.Add(new ReassignFile(k, otherBook, now));
             }
-            else if (gainedCopy.Contains(k.BookId)
-                || filesByBook[k.BookId].Any(o => o.FileId != k.FileId && presentAfterScan.Contains(o.FileId)))
+            // Split only if an identical copy of the old content stays with the book; a merged book's other files
+            // (different content, e.g. the PDF of an EPUB) do not count.
+            else if (gainedCopy.Contains((k.BookId, k.ContentHash))
+                || filesByBook[k.BookId].Any(o => o.FileId != k.FileId && o.ContentHash == k.ContentHash
+                    && presentAfterScan.Contains(o.FileId)))
             {
                 actions.Add(new SplitToNewBook(k, now));
             }
