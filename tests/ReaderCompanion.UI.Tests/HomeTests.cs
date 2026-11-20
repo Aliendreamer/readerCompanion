@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Components;
 using ReaderCompanion.Core.Library;
-using ReaderCompanion.Core.Scanning;
+using ReaderCompanion.Core.Preferences;
 using ReaderCompanion.UI.Pages;
 
 namespace ReaderCompanion.UI.Tests;
@@ -8,22 +9,20 @@ namespace ReaderCompanion.UI.Tests;
 public class HomeTests : BunitContext
 {
     private readonly List<BookListItem> _books = [];
+    private readonly FakePreferences _preferences = new();
 
-    public HomeTests()
-    {
-        Services.AddSingleton<ILibraryBooks>(new FakeBooks(_books));
-        Services.AddSingleton<ILibraryFolders>(new FakeFolders());
-        Services.AddSingleton<ILibraryScanner>(new FakeScanner());
-        Services.AddSingleton<IFolderPicker>(new FakePicker());
-    }
+    public HomeTests() => Services.AddAppFakes(_books, _preferences);
 
     [Fact]
-    public void EmptyLibrary_ShowsTitleAndEmptyMessage()
+    public void EmptyLibrary_ShowsEmptyMessage_LinkToSources_AndNoToggle()
     {
         var cut = Render<Home>();
 
-        Assert.Equal("readerCompanion", cut.Find("h1").TextContent);
+        Assert.Equal("Library", cut.Find("h1.visually-hidden").TextContent);
         cut.WaitForAssertion(() => Assert.Contains("Your library is empty.", cut.Markup));
+        Assert.NotNull(cut.Find("a[href='sources']"));
+        Assert.Empty(cut.FindAll(".view-toggle"));
+        Assert.Empty(cut.FindAll(".page-header"));
     }
 
     [Fact]
@@ -31,25 +30,85 @@ public class HomeTests : BunitContext
     {
         var cut = Render<Routes>();
 
-        Assert.Equal("readerCompanion", cut.Find("main h1").TextContent);
+        Assert.Equal("Library", cut.Find("main h1").TextContent);
     }
 
     [Fact]
-    public void Book_ShowsTitleAndAuthorsInOrder()
+    public void Header_ShowsBookCount()
     {
-        _books.Add(new BookListItem(1, "Good Omens", ["Terry Pratchett", "Neil Gaiman"], null, null, false));
+        _books.Add(Book(1, "A"));
+        _books.Add(Book(2, "B"));
 
         var cut = Render<Home>();
 
-        cut.WaitForAssertion(() => Assert.Equal("Good Omens", cut.Find(".book-title").TextContent));
-        Assert.Equal("Terry Pratchett, Neil Gaiman", cut.Find(".book-authors").TextContent);
-        Assert.DoesNotContain("Your library is empty.", cut.Markup);
+        cut.WaitForAssertion(() => Assert.Equal("2 books", cut.Find(".book-count").TextContent));
     }
 
     [Fact]
-    public void BookWithoutAuthors_ShowsUnknownAuthor()
+    public void DefaultsToGrid()
     {
-        _books.Add(new BookListItem(1, "Mystery", [], null, null, false));
+        _books.Add(Book(1, "Mort"));
+
+        var cut = Render<Home>();
+
+        cut.WaitForAssertion(() => Assert.Single(cut.FindAll(".book-grid .book-card")));
+        Assert.Empty(cut.FindAll(".book-table"));
+        Assert.Equal("true", cut.Find("#view-grid").GetAttribute("aria-pressed"));
+    }
+
+    [Fact]
+    public void StoredTableView_ShowsTable()
+    {
+        _preferences.Save(new AppPreferences(LibraryView: LibraryView.Table));
+        _books.Add(Book(1, "Mort"));
+
+        var cut = Render<Home>();
+
+        cut.WaitForAssertion(() => Assert.Single(cut.FindAll(".book-table tbody tr")));
+        Assert.Empty(cut.FindAll(".book-grid"));
+    }
+
+    [Fact]
+    public void Toggle_SwitchesView_AndRemembersIt()
+    {
+        _books.Add(Book(1, "Mort"));
+        var cut = Render<Home>();
+        cut.WaitForAssertion(() => Assert.Single(cut.FindAll(".book-card")));
+
+        cut.Find("#view-table").Click();
+
+        Assert.Single(cut.FindAll(".book-table tbody tr"));
+        Assert.Equal(LibraryView.Table, _preferences.Current.LibraryView);
+
+        cut.Find("#view-grid").Click();
+
+        Assert.Single(cut.FindAll(".book-card"));
+        Assert.Equal(LibraryView.Grid, _preferences.Current.LibraryView);
+    }
+
+    [Theory]
+    [InlineData(LibraryView.Grid)]
+    [InlineData(LibraryView.Table)]
+    public void Book_ShowsTitleAuthorsSeriesAndCover(LibraryView view)
+    {
+        _preferences.Save(new AppPreferences(LibraryView: view));
+        _books.Add(new BookListItem(1, "Mort", ["Terry Pratchett", "Neil Gaiman"], "Discworld", 4, false, "m.jpg"));
+
+        var cut = Render<Home>();
+
+        cut.WaitForAssertion(() => Assert.Equal("Mort", cut.Find(".book-title").TextContent));
+        Assert.Equal("Terry Pratchett, Neil Gaiman", cut.Find(".book-authors").TextContent);
+        Assert.Equal("Discworld #4", cut.Find(".book-series").TextContent);
+        Assert.Equal("test-cover://m.jpg", cut.Find("img.cover-image").GetAttribute("src"));
+    }
+
+    [Theory]
+    [InlineData(LibraryView.Grid)]
+    [InlineData(LibraryView.Table)]
+    public void BookWithoutAuthors_ShowsUnknownAuthor(LibraryView view)
+    {
+        _preferences.Save(new AppPreferences(LibraryView: view));
+        _books.Add(Book(1, "Mystery"));
 
         var cut = Render<Home>();
 
@@ -69,21 +128,20 @@ public class HomeTests : BunitContext
         cut.WaitForAssertion(() => Assert.Equal(expected, cut.Find(".book-series").TextContent));
     }
 
-    [Fact]
-    public void BookWithMissingFile_IsMarked()
+    [Theory]
+    [InlineData(LibraryView.Grid, ".book-card")]
+    [InlineData(LibraryView.Table, "tr")]
+    public void BookWithMissingFile_IsMarked(LibraryView view, string item)
     {
+        _preferences.Save(new AppPreferences(LibraryView: view));
         _books.Add(new BookListItem(1, "Gone", ["A"], null, null, true));
         _books.Add(new BookListItem(2, "Here", ["A"], null, null, false));
 
         var cut = Render<Home>();
 
         cut.WaitForAssertion(() => Assert.Single(cut.FindAll(".book-missing")));
-        Assert.Contains("Gone", cut.Find(".book-missing").Closest("li")!.TextContent);
+        Assert.Contains("Gone", cut.Find(".book-missing").Closest(item)!.TextContent);
     }
 
-    private sealed class FakeBooks(List<BookListItem> books) : ILibraryBooks
-    {
-        public Task<IReadOnlyList<BookListItem>> ListAsync(CancellationToken cancellationToken = default) =>
-            Task.FromResult<IReadOnlyList<BookListItem>>([.. books]);
-    }
+    private static BookListItem Book(int id, string title) => new(id, title, [], null, null, false);
 }

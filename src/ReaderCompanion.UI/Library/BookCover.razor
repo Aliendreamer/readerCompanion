@@ -1,0 +1,23 @@
+@using ReaderCompanion.Core.Library
+@inject ICoverUrls CoverUrls
+
+@if (Book.CoverFileName is { } file && _failedFile != file)
+{
+  <img class="cover-image" src="@CoverUrls.UrlFor(file)" alt="" loading="lazy" @onerror="() => _failedFile = file" />
+}
+else
+{
+  <div class="cover-placeholder" style="--cover-hue: @CoverColors.HueFor(Book.Title)" aria-hidden="true">
+    <span class="placeholder-title">@Book.Title</span>
+    @if (Book.Authors.Count > 0)
+    {
+      <span class="placeholder-author">@Book.Authors[0]</span>
+    }
+  </div>
+}
+
+@code {
+  [Parameter, EditorRequired] public BookListItem Book { get; set; } = default!;
+
+  private string? _failedFile;
+}

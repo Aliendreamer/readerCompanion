@@ -1,11 +1,11 @@
-# Spec Delta
+# library-browsing Specification
 
 ## Purpose
 
 Defines how readerCompanion shows the books in the library: a cover grid and a compact table, the toggle between
 them, and how covers and their placeholders appear.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Cover grid view
 
@@ -56,10 +56,11 @@ so the same book always gets the same colour.
 ### Requirement: Library header
 
 The Library page SHALL show the number of books above the books in both views, and its empty state SHALL still
-point the user to the Sources page.
+point the user to the Sources page. Pages SHALL NOT show a visible title; the active sidebar link names the page,
+and the title is kept for screen readers only.
 
 #### Scenario: Empty library
 
 - **GIVEN** no books
 - **WHEN** the Library page is shown
-- **THEN** it says the library is empty and links to Sources, and no view toggle is shown
+- **THEN** it says the library is empty and links to Sources, and no view toggle or header bar is shown

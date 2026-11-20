@@ -1,0 +1,66 @@
+@using ReaderCompanion.Core.Preferences
+@inject IAppPreferences Preferences
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject ISystemTheme SystemTheme
+
+<div class="theme-control">
+  <button id="theme-toggle" type="button" role="switch" class="theme-toggle" aria-checked="@(IsDark ? "true" : "false")"
+          @onclick="Flip">
+    <span class="theme-toggle-track" aria-hidden="true"><span class="theme-toggle-thumb"></span></span>
+    <span>Dark theme</span>
+  </button>
+  @if (Preferences.Current.Theme != ThemeChoice.System)
+  {
+    <button id="use-system-theme" type="button" class="link-button" @onclick="UseSystem">Use system theme</button>
+  }
+</div>
+
+@code {
+  private bool _systemDark;
+  private IAsyncDisposable? _subscription;
+
+  private bool IsDark => Preferences.Current.Theme switch
+  {
+    ThemeChoice.Dark => true,
+    ThemeChoice.Light => false,
+    _ => _systemDark,
+  };
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (!firstRender)
+    {
+      return;
+    }
+
+    try
+    {
+      _systemDark = await SystemTheme.PrefersDarkAsync();
+      _subscription = await SystemTheme.ListenAsync(dark => InvokeAsync(() =>
+      {
+        _systemDark = dark;
+        StateHasChanged();
+      }));
+      StateHasChanged();
+    }
+    catch (JSException)
+    {
+      // The system preference can't be read: the toggle treats the system as light. The CSS media query
+      // still themes the page correctly while following the system.
+    }
+  }
+
+  public async ValueTask DisposeAsync()
+  {
+    if (_subscription is not null)
+    {
+      await _subscription.DisposeAsync();
+    }
+  }
+
+  private void Flip() =>
+    Preferences.Save(Preferences.Current with { Theme = IsDark ? ThemeChoice.Light : ThemeChoice.Dark });
+
+  private void UseSystem() => Preferences.Save(Preferences.Current with { Theme = ThemeChoice.System });
+}

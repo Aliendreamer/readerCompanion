@@ -1,39 +1,38 @@
 @page "/"
-@using System.Globalization
 @using ReaderCompanion.Core.Library
+@using ReaderCompanion.Core.Preferences
+@using ReaderCompanion.UI.Library
 @inject ILibraryBooks Books
+@inject IAppPreferences Preferences
 
-<h1>readerCompanion</h1>
+<h1 class="visually-hidden">Library</h1>
+
+@if (_books is { Count: > 0 })
+{
+  <div class="library-bar">
+    <p class="book-count">@(_books.Count == 1 ? "1 book" : $"{_books.Count} books")</p>
+    <ViewToggle Value="Preferences.Current.LibraryView" ValueChanged="ChangeView" />
+  </div>
+}
 
 @if (_books is null)
 {
-  <p>Loading…</p>
+  <p class="muted">Loading…</p>
 }
 else if (_books.Count == 0)
 {
-  <p>Your library is empty.</p>
-  <p>Link a folder of e-books on the <a href="sources">Sources</a> page and scan it.</p>
+  <div class="empty-state card">
+    <p class="empty-title">Your library is empty.</p>
+    <p>Link a folder of e-books on the <a href="sources">Sources</a> page and scan it.</p>
+  </div>
+}
+else if (Preferences.Current.LibraryView == LibraryView.Table)
+{
+  <BookTable Books="_books" />
 }
 else
 {
-  <p>@_books.Count books</p>
-  <ul class="book-list">
-    @foreach (var book in _books)
-    {
-      <li>
-        <span class="book-title">@book.Title</span>
-        <span class="book-authors">@(book.Authors.Count > 0 ? string.Join(", ", book.Authors) : "Unknown author")</span>
-        @if (book.Series is not null)
-        {
-          <span class="book-series">@SeriesLabel(book)</span>
-        }
-        @if (book.FileMissing)
-        {
-          <span class="book-missing">missing file</span>
-        }
-      </li>
-    }
-  </ul>
+  <BookGrid Books="_books" />
 }
 
 @code {
@@ -41,7 +40,5 @@ else
 
   protected override async Task OnInitializedAsync() => _books = await Books.ListAsync();
 
-  private static string SeriesLabel(BookListItem book) => book.SeriesIndex is { } index
-    ? $"{book.Series} #{index.ToString("0.##", CultureInfo.InvariantCulture)}"
-    : book.Series!;
+  private void ChangeView(LibraryView view) => Preferences.Save(Preferences.Current with { LibraryView = view });
 }

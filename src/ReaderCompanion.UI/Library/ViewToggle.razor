@@ -1,0 +1,22 @@
+@using ReaderCompanion.Core.Preferences
+
+<div class="view-toggle" role="group" aria-label="Show books as">
+  <button id="view-grid" type="button" aria-pressed="@Pressed(LibraryView.Grid)" @onclick="() => Pick(LibraryView.Grid)">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z" /></svg>
+    Grid
+  </button>
+  <button id="view-table" type="button" aria-pressed="@Pressed(LibraryView.Table)" @onclick="() => Pick(LibraryView.Table)">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3h12v2H2zM2 7h12v2H2zM2 11h12v2H2z" /></svg>
+    Table
+  </button>
+</div>
+
+@code {
+  [Parameter] public LibraryView Value { get; set; }
+
+  [Parameter] public EventCallback<LibraryView> ValueChanged { get; set; }
+
+  private string Pressed(LibraryView view) => view == Value ? "true" : "false";
+
+  private Task Pick(LibraryView view) => view == Value ? Task.CompletedTask : ValueChanged.InvokeAsync(view);
+}

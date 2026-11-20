@@ -49,6 +49,21 @@ public sealed class LibraryBooksTests : IDisposable
         Assert.True(Assert.Single(books).FileMissing);
     }
 
+    [Fact]
+    public async Task List_GivesEachBooksCoverFileName()
+    {
+        using (var db = _library.NewContext())
+        {
+            db.Books.AddRange(new Book { Title = "Covered", CoverFileName = "abc.jpg" }, new Book { Title = "Plain" });
+            db.SaveChanges();
+        }
+
+        var books = await _library.Services.GetRequiredService<ILibraryBooks>().ListAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal("abc.jpg", books.Single(b => b.Title == "Covered").CoverFileName);
+        Assert.Null(books.Single(b => b.Title == "Plain").CoverFileName);
+    }
+
     private static BookFile File(string path, FileStatus status) => new()
     {
         Path = path,

@@ -1,10 +1,19 @@
 @inherits LayoutComponentBase
+@implements IDisposable
+@using ReaderCompanion.Core.Preferences
+@inject IAppPreferences Preferences
 
-<nav class="top-nav">
-  <NavLink href="" Match="NavLinkMatch.All">Library</NavLink>
-  <NavLink href="sources">Sources</NavLink>
-</nav>
+<div class="app" data-theme="@Preferences.Current.Theme.ToString().ToLowerInvariant()">
+  <Sidebar />
+  <main>
+    @Body
+  </main>
+</div>
 
-<main>
-  @Body
-</main>
+@code {
+  protected override void OnInitialized() => Preferences.Changed += OnChanged;
+
+  private void OnChanged() => InvokeAsync(StateHasChanged);
+
+  public void Dispose() => Preferences.Changed -= OnChanged;
+}

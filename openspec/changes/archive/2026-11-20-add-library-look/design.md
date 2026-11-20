@@ -40,17 +40,19 @@ bUnit). Flipping stores `light` or `dark`; "Use system theme" stores `system`.
 with bUnit; a class-per-theme stylesheet duplicates rules; a three-way System/Light/Dark switch — the user asked
 for a simple toggle.
 
-### 2. Covers served by a custom URL scheme registered by the Desktop host
+### 2. Covers served from the app's own origin
 
-Desktop registers a `cover` scheme on the Photino window (`RegisterCustomSchemeHandler`) that streams
-`<covers folder>/<file name>` with its image content type. It rejects names containing path separators or `..`,
-so only files in the covers folder can be read. The UI asks an `ICoverUrls` interface (UI project, like
-`IFolderPicker`) for a book's image URL; Desktop's implementation returns `cover://covers/<file name>`.
-`<img loading="lazy">` keeps large libraries cheap, and `onerror` falls back to the placeholder.
+Photino.Blazor serves the app's files through an `IFileProvider` it registers in DI. Desktop wraps it: paths
+under `_covers/` are answered from the covers folder through `CoverStore.PathFor`, which accepts only plain image
+file names (no separators, no `..`, image extensions only) that exist in the covers folder; every other path goes
+to Photino's provider. The UI asks an `ICoverUrls` interface (UI project, like `IFolderPicker`) for a book's image
+URL; Desktop returns `_covers/<file name>`. `<img loading="lazy">` keeps large libraries cheap, and `onerror` falls
+back to the placeholder.
 
-*Alternatives:* data URIs through Blazor — every render would carry the image bytes (the same base64 flood seen
-in M1's log), and they'd sit in memory; plugging the covers folder into Photino.Blazor's own `app` file provider —
-not a public extension point in 4.0.13.
+*Alternatives:* a custom `cover://` scheme registered on the Photino window — tried first, but on Windows
+Photino never registers custom schemes with WebView2, so images on such a scheme would not load there (this is
+why Photino.Blazor itself uses `http://localhost/` on Windows); data URIs through Blazor — every render would
+carry the image bytes (the same base64 flood seen in M1's log), and they'd sit in memory.
 
 ### 3. Placeholder colour from a stable hash of the title
 
@@ -84,12 +86,16 @@ working.
 
 - [WebKitGTK reports the GTK theme, not Windows' dark mode, under WSLg] → the toggle; the user flips to dark
   once and it is remembered.
-- [Custom scheme images may be blocked from the `app://` page on one engine] → verify on Linux first in the
-  manual check; fallback is to serve covers under the `app` scheme by wrapping Photino.Blazor's file provider, or
-  small data-URI thumbnails as a last resort.
+- [Photino.Blazor might stop taking its file provider from DI in a later version] → the package is pinned; the
+  wrapper fails loudly at startup if the registration is gone; covers checked by hand on Linux, and on Windows
+  when available.
 - [Thousands of `<img>` elements] → lazy loading now; virtualization in M2.
 - [Hand-picked palette could fail contrast] → check the main text/background pairs against 4.5:1 while building.
 
 ## Migration Plan
 
 No data migration. `preferences.json` is created on first change. Rollback is reverting the commit.
+
+## Review follow-ups (deferred)
+
+- On a dark system the toggle briefly shows "light" until the web view answers; the page itself is already dark.

@@ -26,8 +26,9 @@ All data lives in a local SQLite file you can back up by hand.
 | M0 — Foundation | Done | commits `fe71894` and earlier |
 | Dev tooling — git hooks, formatting, Markdown lint | Done | `openspec/changes/archive/2026-11-19-add-git-hooks-tooling/` |
 | M1 — Local folder scan | Done | `openspec/changes/archive/2026-11-19-add-local-folder-scan/` |
-| UI look — sidebar, cover grid / table toggle, dark theme | Next | this file |
-| M2–M8 | Not started | this file |
+| UI look — sidebar, cover grid / table toggle, dark theme | Done | `openspec/changes/archive/2026-11-20-add-library-look/` |
+| M2 — Library views and duplicates | Next | this file |
+| M3–M8 | Not started | this file |
 
 ## Guiding principles
 
@@ -98,14 +99,15 @@ Fill the library from your e-book folders. Detailed plan:
 
 **Done when:** linking your folder fills the library correctly, and a rescan is safe to run any time.
 
-### UI look (before M2)
+### UI look (done)
 
 M1 works but looks bare. Give the app a proper look before adding more views.
 
 - A left **sidebar** for navigation (Library, Sources).
 - Books shown as a **cover grid** (cover, title, author, series) or a **compact table**, with a toggle at the top;
   M2's grouped views reuse both.
-- **Light and dark themes that follow the system theme.**
+- **Light and dark themes that follow the system theme**, with a toggle to override it.
+- No visible page titles: the active sidebar link names the page.
 
 ### M2 — Library views and duplicates
 
@@ -226,3 +228,5 @@ None right now.
   series and genre stays in the app's views and filters (M2).
 - **2026-11-19** — M1 built and verified on Linux. Next: a UI look pass (sidebar, cover grid and table with a
   toggle, light/dark following the system) before M2.
+- **2026-11-20** — UI look built and verified on Linux. Visible page titles dropped (the sidebar names the
+  page). Next: M2.

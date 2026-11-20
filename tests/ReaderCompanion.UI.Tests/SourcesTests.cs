@@ -18,6 +18,15 @@ public class SourcesTests : BunitContext
     }
 
     [Fact]
+    public void Title_IsForScreenReadersOnly()
+    {
+        var cut = RenderWith(new FakePicker());
+
+        Assert.Equal("Sources", cut.Find("h1.visually-hidden").TextContent);
+        Assert.Empty(cut.FindAll(".page-header"));
+    }
+
+    [Fact]
     public void LinkedFolders_AreListed()
     {
         _folders.Linked.AddRange(["/books", "/more"]);

@@ -3,15 +3,15 @@
 @inject ILibraryScanner Scanner
 @inject IFolderPicker Picker
 
-<h1>Sources</h1>
-<p>Link the places your books come from. Google Drive and Goodreads will appear here later.</p>
+<h1 class="visually-hidden">Sources</h1>
+<p class="page-intro">Link the places your books come from. Google Drive and Goodreads will appear here later.</p>
 
-<section class="source">
+<section class="source card">
   <h2>Local folders</h2>
 
   @if (_folders.Count == 0)
   {
-    <p>No folders linked yet.</p>
+    <p class="muted">No folders linked yet.</p>
   }
   else
   {
@@ -20,14 +20,16 @@
       {
         <li>
           <span class="folder-path">@folder</span>
-          <button class="unlink" disabled="@_scanning" @onclick="() => UnlinkAsync(folder)">Unlink</button>
+          <button class="unlink btn btn-small" disabled="@_scanning" @onclick="() => UnlinkAsync(folder)">Unlink</button>
         </li>
       }
     </ul>
   }
 
-  <button id="link-folder" disabled="@_scanning" @onclick="LinkAsync">Link folder…</button>
-  <button id="scan" disabled="@(_scanning || _folders.Count == 0)" @onclick="ScanAsync">Scan</button>
+  <div class="source-actions">
+    <button id="link-folder" class="btn" disabled="@_scanning" @onclick="LinkAsync">Link folder…</button>
+    <button id="scan" class="btn btn-primary" disabled="@(_scanning || _folders.Count == 0)" @onclick="ScanAsync">Scan</button>
+  </div>
 
   @if (_message is not null)
   {

@@ -1,0 +1,39 @@
+@using ReaderCompanion.Core.Library
+
+<table class="book-table">
+  <thead>
+    <tr>
+      <th class="col-cover"><span class="visually-hidden">Cover</span></th>
+      <th>Title</th>
+      <th>Author</th>
+      <th>Series</th>
+      <th class="col-status"><span class="visually-hidden">Status</span></th>
+    </tr>
+  </thead>
+  <tbody>
+    @foreach (var book in Books)
+    {
+      <tr @key="book.Id">
+        <td class="col-cover"><div class="table-cover"><BookCover Book="book" /></div></td>
+        <td><span class="book-title">@book.Title</span></td>
+        <td><span class="book-authors">@BookText.Authors(book)</span></td>
+        <td>
+          @if (BookText.Series(book) is { } series)
+          {
+            <span class="book-series">@series</span>
+          }
+        </td>
+        <td class="col-status">
+          @if (book.FileMissing)
+          {
+            <span class="book-missing">missing file</span>
+          }
+        </td>
+      </tr>
+    }
+  </tbody>
+</table>
+
+@code {
+  [Parameter, EditorRequired] public IReadOnlyList<BookListItem> Books { get; set; } = [];
+}
