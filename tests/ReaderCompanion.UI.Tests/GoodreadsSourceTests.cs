@@ -5,11 +5,43 @@ namespace ReaderCompanion.UI.Tests;
 public class GoodreadsSourceTests : BunitContext
 {
     private readonly FakeGoodreads _goodreads = new();
+    private readonly FakePreferences _preferences = new();
 
     private IRenderedComponent<GoodreadsSource> RenderWith(params string?[] picked)
     {
-        Services.AddAppFakes(goodreads: _goodreads, filePicker: new FakeFilePicker(picked));
+        Services.AddAppFakes(preferences: _preferences, goodreads: _goodreads, filePicker: new FakeFilePicker(picked));
         return Render<GoodreadsSource>();
+    }
+
+    [Fact]
+    public void ReviewList_YesAndNo_Answer()
+    {
+        _goodreads.Pending.Add(new(1, "Mort", ["Terry Pratchett"], "9780061020681", 5, "Mort", "9780552131063"));
+        _goodreads.Pending.Add(new(2, "Dune", ["Frank Herbert"], "9780340960196", 6, "Dune", "9780441172719"));
+        var cut = RenderWith();
+        cut.WaitForAssertion(() => Assert.Equal(2, cut.FindAll(".goodreads-review li").Count));
+        Assert.Contains("9780552131063", cut.Find(".goodreads-review").TextContent);
+
+        cut.FindAll(".review-same")[0].Click();
+        cut.WaitForAssertion(() => Assert.Single(cut.FindAll(".goodreads-review li")));
+        cut.Find(".review-different").Click();
+
+        Assert.Equal([(1, true), (2, false)], _goodreads.Answers);
+        cut.WaitForAssertion(() => Assert.Empty(cut.FindAll(".goodreads-review")));
+    }
+
+    [Fact]
+    public void Options_AreSaved_AndTheLastImportIsShown()
+    {
+        _preferences.Save(_preferences.Current with { GoodreadsLastImportUtc = new DateTime(2026, 8, 1, 10, 0, 0, DateTimeKind.Utc) });
+        var cut = RenderWith();
+
+        cut.Find("#goodreads-shelves").Change(true);
+        cut.Find("#goodreads-reminder").Change("6");
+
+        Assert.True(_preferences.Current.GoodreadsShelvesAsCollections);
+        Assert.Equal(6, _preferences.Current.GoodreadsReminderMonths);
+        Assert.Contains("1 Aug 2026", cut.Find(".goodreads").TextContent);
     }
 
     [Fact]

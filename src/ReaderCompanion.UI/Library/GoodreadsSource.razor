@@ -1,6 +1,9 @@
+@using System.Globalization
 @using ReaderCompanion.Core.Goodreads
+@using ReaderCompanion.Core.Preferences
 @inject IGoodreadsImport Goodreads
 @inject IFilePicker Files
+@inject IAppPreferences Preferences
 
 <section class="source card goodreads">
   <h2>Goodreads</h2>
@@ -9,9 +12,29 @@
     Export library</strong>, download the file, then import it here. Import a newer export any time; nothing you set
     in this app is overwritten.
   </p>
-  <button id="goodreads-import" type="button" class="btn btn-primary" disabled="@_busy" @onclick="ImportAsync">
-    Import export file…
-  </button>
+  <div class="goodreads-actions">
+    <button id="goodreads-import" type="button" class="btn btn-primary" disabled="@_busy" @onclick="ImportAsync">
+      Import export file…
+    </button>
+    <span class="muted">
+      @(Preferences.Current.GoodreadsLastImportUtc is { } last
+        ? $"Last import: {last.ToLocalTime().ToString("d MMM yyyy", CultureInfo.InvariantCulture)}"
+        : "Not imported yet")
+    </span>
+  </div>
+  <div class="backup-settings">
+    <label class="browse-check">
+      <input id="goodreads-shelves" type="checkbox" checked="@Preferences.Current.GoodreadsShelvesAsCollections"
+             @onchange="e => Preferences.Save(Preferences.Current with { GoodreadsShelvesAsCollections = e.Value is true })" />
+      Turn my shelves into collections
+    </label>
+    <label class="browse-select">
+      <span>Remind me to re-import every</span>
+      <input id="goodreads-reminder" type="number" min="1" max="24" value="@Preferences.Current.GoodreadsReminderMonths"
+             @onchange="SetReminder" @key="_reminderVersion" />
+      <span>months</span>
+    </label>
+  </div>
 
   @if (_error is not null)
   {
@@ -21,7 +44,7 @@
   @if (_summary is { } summary)
   {
     <div class="goodreads-summary">
-      <p>@summary.Matched matched · @summary.AddedWanted added as wanted · @summary.Updated updated</p>
+      <p>@summary.Matched matched · @summary.AddedWanted added as wanted · @summary.Updated updated@(summary.ForReview > 0 ? $" · {summary.ForReview} to review" : "")</p>
       @if (summary.Skipped.Count > 0)
       {
         <p class="muted">Skipped:</p>
@@ -34,12 +57,63 @@
       }
     </div>
   }
+  @if (_pending.Count > 0)
+{
+  <div class="goodreads-review">
+    <h3 class="panel-heading">Same book?</h3>
+    <p class="muted">These match a book by title and author, but the ISBN differs (perhaps another edition).</p>
+    <ul>
+      @foreach (var match in _pending)
+      {
+        <li @key="match.Id">
+          <span>
+            <strong>@match.Title</strong> by @string.Join(", ", match.Authors) (ISBN @(match.Isbn ?? "none"))
+            — your <strong>@(match.BookTitle ?? "removed book")</strong> (ISBN @(match.BookIsbn ?? "none"))
+          </span>
+          @if (match.BookId is not null)
+          {
+            <button type="button" class="btn btn-small review-same" disabled="@_busy" @onclick="() => AnswerAsync(match.Id, true)">Yes, same book</button>
+          }
+          <button type="button" class="btn btn-small review-different" disabled="@_busy" @onclick="() => AnswerAsync(match.Id, false)">No, add as wanted</button>
+        </li>
+      }
+    </ul>
+  </div>
+}
 </section>
 
 @code {
+  private IReadOnlyList<PendingMatch> _pending = [];
+  private int _reminderVersion;
   private GoodreadsSummary? _summary;
   private string? _error;
   private bool _busy;
+
+  protected override Task OnInitializedAsync() => RefreshPendingAsync();
+
+  private async Task RefreshPendingAsync()
+  {
+    try
+    {
+      _pending = await Goodreads.PendingAsync();
+    }
+    catch (Exception e) when (e is not OperationCanceledException)
+    {
+      _error = $"The matches to review could not be loaded: {e.Message}";
+    }
+  }
+
+  private Task AnswerAsync(int id, bool same) => RunAsync(() => same ? Goodreads.ConfirmAsync(id) : Goodreads.RejectAsync(id));
+
+  private void SetReminder(ChangeEventArgs e)
+  {
+    if (int.TryParse(e.Value as string, NumberStyles.Integer, CultureInfo.InvariantCulture, out var months))
+    {
+      Preferences.Save(Preferences.Current with { GoodreadsReminderMonths = Math.Clamp(months, 1, 24) });
+    }
+
+    _reminderVersion++; // always show the stored number
+  }
 
   private async Task ImportAsync()
   {
@@ -48,12 +122,18 @@
       return;
     }
 
+    _summary = null;
+    await RunAsync(async () => _summary = await Goodreads.ImportFileAsync(path));
+  }
+
+  // One action at a time; failures are shown; the review list is refreshed afterwards.
+  private async Task RunAsync(Func<Task> action)
+  {
     _busy = true;
     _error = null;
-    _summary = null;
     try
     {
-      _summary = await Goodreads.ImportFileAsync(path);
+      await action();
     }
     catch (Exception e) when (e is not OperationCanceledException)
     {
@@ -63,5 +143,7 @@
     {
       _busy = false;
     }
+
+    await RefreshPendingAsync();
   }
 }

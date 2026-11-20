@@ -16,6 +16,7 @@ public class SourcesTests : BunitContext
         Services.AddSingleton<IFolderPicker>(picker);
         Services.AddSingleton<ReaderCompanion.Core.Goodreads.IGoodreadsImport>(new FakeGoodreads());
         Services.AddSingleton<IFilePicker>(new FakeFilePicker());
+        Services.AddSingleton<ReaderCompanion.Core.Preferences.IAppPreferences>(new FakePreferences());
         return Render<Sources>();
     }
 

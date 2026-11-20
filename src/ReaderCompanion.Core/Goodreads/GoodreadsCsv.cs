@@ -6,7 +6,7 @@ using ReaderCompanion.Core.Metadata;
 namespace ReaderCompanion.Core.Goodreads;
 
 /// <summary>One book of a Goodreads library export. <see cref="Status"/> is null for shelves that are not a reading
-/// status; <see cref="Rating"/> is null when not rated.</summary>
+/// status; <see cref="Rating"/> is null when not rated; <see cref="Shelves"/> are the user's own shelves only.</summary>
 public sealed record GoodreadsRow(
     string GoodreadsId,
     string Title,
@@ -28,6 +28,9 @@ public sealed record GoodreadsRow(
 public static partial class GoodreadsCsv
 {
     private static readonly string[] Required = ["Book Id", "Title", "Author", "Exclusive Shelf"];
+
+    // Goodreads' own shelves are reading statuses (see Exclusive Shelf), not the user's shelves.
+    private static readonly HashSet<string> StatusShelves = new(StringComparer.OrdinalIgnoreCase) { "read", "currently-reading", "to-read" };
 
     /// <exception cref="InvalidDataException">The text is not a Goodreads library export.</exception>
     public static IReadOnlyList<GoodreadsRow> Parse(TextReader reader)
@@ -76,7 +79,7 @@ public static partial class GoodreadsCsv
                     "to-read" => ReadStatus.WantToRead,
                     _ => null,
                 },
-                [.. (Field("Bookshelves") ?? "").Split(',').Select(NameNormalizer.Clean).OfType<string>()])
+                [.. (Field("Bookshelves") ?? "").Split(',').Select(NameNormalizer.Clean).OfType<string>().Where(s => !StatusShelves.Contains(s))])
             {
                 Series = series.Success ? series.Groups["series"].Value : null,
                 SeriesIndex = series.Success ? decimal.Parse(series.Groups["n"].Value, CultureInfo.InvariantCulture) : null,

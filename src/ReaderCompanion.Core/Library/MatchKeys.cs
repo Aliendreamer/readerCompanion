@@ -9,7 +9,18 @@ public static class MatchKeys
 {
     /// <summary>A book's keys in the order they are trusted: ISBN first, then title and first author.</summary>
     public static IReadOnlyList<string> For(string? isbn, string title, string? firstAuthor) =>
-        [.. new[] { Isbn(isbn) is { } i ? "isbn:" + i : null, TitleAuthor(title, firstAuthor) is { } t ? "title:" + t : null }.OfType<string>()];
+        [.. IsbnKeys(isbn), .. TitleKeys(title, firstAuthor)];
+
+    /// <summary>The ISBN key alone (none without a usable ISBN).</summary>
+    public static IReadOnlyList<string> IsbnKeys(string? isbn) => Isbn(isbn) is { } i ? ["isbn:" + i] : [];
+
+    /// <summary>The title-and-first-author key alone (none without an author).</summary>
+    public static IReadOnlyList<string> TitleKeys(string title, string? firstAuthor) =>
+        TitleAuthor(title, firstAuthor) is { } t ? ["title:" + t] : [];
+
+    /// <summary>Both have an ISBN and they differ: a title-and-author match is then probably another edition.</summary>
+    public static bool DifferentEditions(string? isbnA, string? isbnB) =>
+        Isbn(isbnA) is { } a && Isbn(isbnB) is { } b && a != b;
 
     /// <summary>The title-and-first-author key, or null without an author (a bare title says too little).</summary>
     public static string? TitleAuthor(string title, string? firstAuthor) =>

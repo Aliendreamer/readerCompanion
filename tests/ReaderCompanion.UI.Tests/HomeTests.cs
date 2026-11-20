@@ -143,5 +143,29 @@ public class HomeTests : BunitContext
         Assert.Contains("Gone", cut.Find(".book-missing").Closest(item)!.TextContent);
     }
 
+    [Fact]
+    public void GoodreadsReminder_ShowsWhenDue_AndCanBeDismissed()
+    {
+        _books.Add(Book(1, "Mort"));
+        _preferences.Save(_preferences.Current with { GoodreadsLastImportUtc = DateTime.UtcNow.AddMonths(-4) });
+
+        var cut = Render<Home>();
+
+        cut.WaitForAssertion(() => Assert.Contains("Goodreads", cut.Find(".goodreads-reminder").TextContent));
+        Assert.NotNull(cut.Find(".goodreads-reminder a[href='sources']"));
+        cut.Find(".goodreads-reminder button").Click();
+        Assert.Empty(cut.FindAll(".goodreads-reminder"));
+    }
+
+    [Fact]
+    public void GoodreadsReminder_NotShown_WhenRecentOrNeverImported()
+    {
+        _books.Add(Book(1, "Mort"));
+        var cut = Render<Home>();
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll(".book-title")));
+
+        Assert.Empty(cut.FindAll(".goodreads-reminder"));
+    }
+
     private static BookListItem Book(int id, string title) => new(id, title, [], null, null, false);
 }

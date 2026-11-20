@@ -24,6 +24,8 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
 
     public DbSet<FileOperation> FileOperations => Set<FileOperation>();
 
+    public DbSet<ReaderCompanion.Core.Goodreads.GoodreadsPending> GoodreadsPending => Set<ReaderCompanion.Core.Goodreads.GoodreadsPending>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Book>(book =>
@@ -75,6 +77,14 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
         });
 
         modelBuilder.Entity<LibraryFolder>().HasIndex(f => f.Path).IsUnique();
+
+        modelBuilder.Entity<ReaderCompanion.Core.Goodreads.GoodreadsPending>(pending =>
+        {
+            pending.HasIndex(p => p.GoodreadsId).IsUnique();
+            pending.Property(p => p.Status).HasConversion<string>();
+            pending.Property(p => p.SeriesIndex).HasConversion<double?>();
+            pending.HasOne<Book>().WithMany().HasForeignKey(p => p.BookId).OnDelete(DeleteBehavior.SetNull);
+        });
 
         modelBuilder.Entity<FileOperation>()
             .HasMany(o => o.Moves).WithOne().HasForeignKey(m => m.OperationId);

@@ -18,6 +18,23 @@ internal sealed class CatalogNames(LibraryDbContext db)
         ? Shared(_series, clean, (n, key) => new Collection { Name = n, NormalizedName = key, Kind = CollectionKind.Series })
         : null;
 
+    private Dictionary<string, Collection>? _userCollections;
+
+    /// <summary>Puts the book into the user collections called <paramref name="names"/> (created on first use); never
+    /// takes it out of any.</summary>
+    public void AddToCollections(Book book, IEnumerable<string> names)
+    {
+        _userCollections ??= db.Collections.Where(c => c.Kind == CollectionKind.User).ToDictionary(c => c.NormalizedName);
+        foreach (var name in Clean(names))
+        {
+            var collection = Shared(_userCollections, name, (n, key) => new Collection { Name = n, NormalizedName = key, Kind = CollectionKind.User });
+            if (book.Collections.All(l => l.Collection != collection))
+            {
+                book.Collections.Add(new BookCollection { Collection = collection });
+            }
+        }
+    }
+
     /// <summary>Makes the book's authors exactly <paramref name="names"/>, in that order.</summary>
     public void SetAuthors(Book book, IEnumerable<string> names)
     {

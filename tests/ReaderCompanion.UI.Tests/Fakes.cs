@@ -482,6 +482,24 @@ internal sealed class FakeGoodreads : ReaderCompanion.Core.Goodreads.IGoodreadsI
 
     public Exception? Failure { get; set; }
 
+    public List<ReaderCompanion.Core.Goodreads.PendingMatch> Pending { get; } = [];
+
+    public List<(int Id, bool Same)> Answers { get; } = [];
+
+    public Task<IReadOnlyList<ReaderCompanion.Core.Goodreads.PendingMatch>> PendingAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<ReaderCompanion.Core.Goodreads.PendingMatch>>([.. Pending]);
+
+    public Task ConfirmAsync(int pendingId, CancellationToken cancellationToken = default) => Answer(pendingId, true);
+
+    public Task RejectAsync(int pendingId, CancellationToken cancellationToken = default) => Answer(pendingId, false);
+
+    private Task Answer(int id, bool same)
+    {
+        Answers.Add((id, same));
+        Pending.RemoveAll(p => p.Id == id);
+        return Task.CompletedTask;
+    }
+
     public Task<ReaderCompanion.Core.Goodreads.GoodreadsSummary> ImportAsync(
         IReadOnlyList<ReaderCompanion.Core.Goodreads.GoodreadsRow> rows, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();

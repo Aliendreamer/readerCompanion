@@ -31,8 +31,9 @@ All data lives in a local SQLite file you can back up by hand.
 | M3 — Reading tracking | Done | `openspec/changes/archive/2026-11-20-add-reading-*` |
 | M4 — Backup and restore | Done | `openspec/changes/archive/2026-11-20-add-backup-restore/` |
 | M5 — Organise files | Done (OS folders) | `openspec/changes/archive/2026-11-20-add-{organise-files,trash-extra-files}/` |
-| M6 — Goodreads | In progress — import done | this file |
-| M7–M8 | Not started | this file |
+| M6 — Goodreads | Done | `openspec/changes/archive/2026-11-20-add-goodreads-*` |
+| M7 — Google Drive | Next — needs a Google Cloud OAuth client from the user | this file |
+| M8 | Not started | this file |
 
 ## Guiding principles
 
@@ -165,7 +166,7 @@ Manage the files themselves from the app, not only the catalog — starting with
 
 **Done when:** you can reorganise a library folder from the app, check the preview, apply it, and undo it.
 
-### M6 — Goodreads
+### M6 — Goodreads (done)
 
 Link Goodreads from the Sources page. Goodreads closed its public API in 2020, so linking means importing its
 **library export** (CSV); re-import a newer export any time to sync.
@@ -257,3 +258,5 @@ None right now.
 - **2026-11-20** — M6 first slice: Goodreads export import on Sources (status, reads, ratings, wanted books; safe
   re-import), series split off Goodreads titles, scans attach files to wanted books. Next: review of uncertain
   matches, shelves as collections, re-import reminder.
+- **2026-11-20** — M6 done: uncertain matches (same title and author, different ISBN) wait for review; custom
+  shelves can become collections (opt-in); a reminder to re-import after N months (default 3).

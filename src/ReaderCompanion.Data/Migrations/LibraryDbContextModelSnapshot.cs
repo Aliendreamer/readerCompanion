@@ -17,6 +17,62 @@ namespace ReaderCompanion.Data.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.15");
 
+            modelBuilder.Entity("ReaderCompanion.Core.Goodreads.GoodreadsPending", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Authors")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("BookId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly?>("DateAdded")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("DateRead")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GoodreadsId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Isbn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("Rating")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Series")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("SeriesIndex")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("Shelves")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookId");
+
+                    b.HasIndex("GoodreadsId")
+                        .IsUnique();
+
+                    b.ToTable("GoodreadsPending");
+                });
+
             modelBuilder.Entity("ReaderCompanion.Core.Library.Author", b =>
                 {
                     b.Property<int>("Id")
@@ -357,6 +413,14 @@ namespace ReaderCompanion.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("FileOperations");
+                });
+
+            modelBuilder.Entity("ReaderCompanion.Core.Goodreads.GoodreadsPending", b =>
+                {
+                    b.HasOne("ReaderCompanion.Core.Library.Book", null)
+                        .WithMany()
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("ReaderCompanion.Core.Library.Book", b =>

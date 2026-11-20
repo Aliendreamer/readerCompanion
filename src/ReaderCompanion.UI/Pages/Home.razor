@@ -1,11 +1,23 @@
 @page "/"
 @using ReaderCompanion.Core.Library
 @using ReaderCompanion.Core.Preferences
+@using ReaderCompanion.Core.Goodreads
 @using ReaderCompanion.UI.Library
 @inject ILibraryBooks Books
 @inject IAppPreferences Preferences
 
 <h1 class="visually-hidden">Library</h1>
+
+@if (!_reminderDismissed && GoodreadsReminder.IsDue(Preferences.Current.GoodreadsLastImportUtc, Preferences.Current.GoodreadsReminderMonths, DateTime.UtcNow))
+{
+  <div class="goodreads-reminder card" role="status">
+    <span>
+      Your Goodreads import is more than @BookText.Plural(Preferences.Current.GoodreadsReminderMonths, "month") old. On goodreads.com
+      open My Books → Import and export → Export library, then import the new file on <a href="sources">Sources</a>.
+    </span>
+    <button type="button" class="link-button" @onclick="() => _reminderDismissed = true">Dismiss</button>
+  </div>
+}
 
 @if (_books is null)
 {
@@ -59,6 +71,7 @@ else
   private BrowseQuery _filters = new();
   private BrowseResult _result = new(0, 0, []);
   private int? _selected;
+  private bool _reminderDismissed; // until the app restarts
 
   private LibraryView View => Preferences.Current.LibraryView;
 

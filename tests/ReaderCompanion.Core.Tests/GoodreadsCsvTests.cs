@@ -18,7 +18,7 @@ public class GoodreadsCsvTests
     {
         var row = Assert.Single(Parse(
             "386162,Mort,Terry Pratchett,\"Pratchett, Terry\",,\"=\"\"0552131067\"\"\",\"=\"\"9780552131063\"\"\",4,4.24,Corgi," +
-            "Paperback,272,1988,1987,2024/03/02,2023/12/25,\"discworld, favourites\",\"discworld (#3)\",read,,,,1,0"));
+            "Paperback,272,1988,1987,2024/03/02,2023/12/25,\"discworld, read, favourites\",\"discworld (#3)\",read,,,,1,0"));
 
         Assert.Equal("386162", row.GoodreadsId);
         Assert.Equal("Mort", row.Title);

@@ -177,5 +177,68 @@ public sealed class GoodreadsImportTests : IDisposable
         Assert.Single(book.Files);
     }
 
+    [Fact]
+    public async Task AnotherEdition_WaitsForReview_ThenConfirmOrRejectDecides()
+    {
+        AddOwned("Mort", "Terry Pratchett", "9780552131063");
+        AddOwned("Dune", "Frank Herbert", "9780441172719");
+        GoodreadsRow[] rows =
+            [Row("1", "Mort", "Terry Pratchett", ReadStatus.Read, isbn: "9780061020681", read: new DateOnly(2024, 3, 2)),
+             Row("2", "Dune", "Frank Herbert", ReadStatus.Read, isbn: "9780340960196")];
+
+        var summary = await Import.ImportAsync(rows, Token);
+        var again = await Import.ImportAsync(rows, Token);
+
+        Assert.Equal((0, 0, 2), (summary.Matched, summary.AddedWanted, summary.ForReview));
+        Assert.Equal(2, again.ForReview);
+        var pending = await Import.PendingAsync(Token);
+        Assert.Equal(["Dune", "Mort"], pending.Select(p => p.Title).Order());
+        Assert.Equal(ReadStatus.NotStarted, Load("Mort").ReadStatus);
+
+        await Import.ConfirmAsync(pending.Single(p => p.Title == "Mort").Id, Token);
+        await Import.RejectAsync(pending.Single(p => p.Title == "Dune").Id, Token);
+
+        Assert.Empty(await Import.PendingAsync(Token));
+        Assert.Equal(ReadStatus.Read, Load("Mort").ReadStatus);
+        Assert.Equal("1", Load("Mort").GoodreadsId);
+        using var db = _library.NewContext();
+        Assert.Equal(2, db.Books.Count(b => b.Title == "Dune"));
+        Assert.Equal(0, (await Import.ImportAsync(rows, Token)).ForReview); // answered rows now match by id
+    }
+
+    [Fact]
+    public async Task Shelves_BecomeCollections_OnlyWhenTurnedOn()
+    {
+        var preferences = _library.Services.GetRequiredService<ReaderCompanion.Core.Preferences.IAppPreferences>();
+        var row = Row("2", "Dune", "Frank Herbert", ReadStatus.WantToRead) with { Shelves = ["book-club"] };
+
+        await Import.ImportAsync([row], Token);
+        Assert.Empty(Collections("Dune"));
+
+        preferences.Save(preferences.Current with { GoodreadsShelvesAsCollections = true });
+        await Import.ImportAsync([row], Token);
+
+        Assert.Equal(["book-club"], Collections("Dune"));
+        Assert.NotNull(preferences.Current.GoodreadsLastImportUtc);
+    }
+
+    [Fact]
+    public async Task Confirming_KeepsTheBooksExistingGoodreadsId()
+    {
+        AddOwned("Mort", "Terry Pratchett", "9780552131063");
+        await Import.ImportAsync([Row("1", "Mort", "Terry Pratchett", ReadStatus.Read, isbn: "9780552131063")], Token);
+        await Import.ImportAsync([Row("2", "Mort", "Terry Pratchett", ReadStatus.Read, isbn: "9780061020681")], Token);
+
+        await Import.ConfirmAsync(Assert.Single(await Import.PendingAsync(Token)).Id, Token);
+
+        Assert.Equal("1", Load("Mort").GoodreadsId);
+    }
+
+    private List<string> Collections(string title)
+    {
+        using var db = _library.NewContext();
+        return [.. db.Books.AsNoTracking().Where(b => b.Title == title).SelectMany(b => b.Collections.Select(c => c.Collection.Name))];
+    }
+
     public void Dispose() => _library.Dispose();
 }
