@@ -468,6 +468,36 @@ internal sealed class FakeTrash : ITrash
     }
 }
 
+internal sealed class FakeFilePicker(params string?[] answers) : IFilePicker
+{
+    private readonly Queue<string?> _answers = new(answers);
+
+    public Task<string?> PickFileAsync(string title, params string[] extensions) =>
+        Task.FromResult(_answers.Count > 0 ? _answers.Dequeue() : null);
+}
+
+internal sealed class FakeGoodreads : ReaderCompanion.Core.Goodreads.IGoodreadsImport
+{
+    public List<string> Imported { get; } = [];
+
+    public Exception? Failure { get; set; }
+
+    public Task<ReaderCompanion.Core.Goodreads.GoodreadsSummary> ImportAsync(
+        IReadOnlyList<ReaderCompanion.Core.Goodreads.GoodreadsRow> rows, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task<ReaderCompanion.Core.Goodreads.GoodreadsSummary> ImportFileAsync(string path, CancellationToken cancellationToken = default)
+    {
+        if (Failure is { } failure)
+        {
+            throw failure;
+        }
+
+        Imported.Add(path);
+        return Task.FromResult(new ReaderCompanion.Core.Goodreads.GoodreadsSummary(12, 30, 4, ["\"Dune\" appears more than once in the export."]));
+    }
+}
+
 internal sealed class FakeLauncher : IFileLauncher
 {
     public List<string> Opened { get; } = [];
@@ -508,8 +538,12 @@ internal static class TestServices
         FakeScanner? scanner = null,
         FakeFolders? folders = null,
         FakeOrganiser? organiser = null,
-        FakeTrash? trash = null)
+        FakeTrash? trash = null,
+        FakeGoodreads? goodreads = null,
+        FakeFilePicker? filePicker = null)
     {
+        services.AddSingleton<ReaderCompanion.Core.Goodreads.IGoodreadsImport>(goodreads ?? new FakeGoodreads());
+        services.AddSingleton<IFilePicker>(filePicker ?? new FakeFilePicker());
         if (libraryBooks is not null && trash is not null)
         {
             libraryBooks.Trash = trash;

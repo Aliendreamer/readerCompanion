@@ -22,6 +22,9 @@ public sealed class ReadingSession
     public DateOnly? FinishedOn { get; set; }
 
     public bool Abandoned { get; set; }
+
+    /// <summary>Imported from Goodreads' "Date Read".</summary>
+    public bool FromGoodreads { get; set; }
 }
 
 /// <summary>Keeps a book's reading sessions in step with the status the user sets.</summary>

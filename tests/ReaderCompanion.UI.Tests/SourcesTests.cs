@@ -14,6 +14,8 @@ public class SourcesTests : BunitContext
         Services.AddSingleton<ILibraryFolders>(_folders);
         Services.AddSingleton<ILibraryScanner>(_scanner);
         Services.AddSingleton<IFolderPicker>(picker);
+        Services.AddSingleton<ReaderCompanion.Core.Goodreads.IGoodreadsImport>(new FakeGoodreads());
+        Services.AddSingleton<IFilePicker>(new FakeFilePicker());
         return Render<Sources>();
     }
 

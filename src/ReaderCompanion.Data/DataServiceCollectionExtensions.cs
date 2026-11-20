@@ -24,6 +24,7 @@ public static class DataServiceCollectionExtensions
         services.AddScoped<IReading, Reading>();
         services.AddScoped<IReadingStats, ReadingStatsLoader>();
         services.AddSingleton<IBackups, Backups>();
+        services.AddScoped<ReaderCompanion.Core.Goodreads.IGoodreadsImport, GoodreadsImport>();
         services.TryAddSingleton(_ => PlatformTrash.ForThisMachine()); // tests register their own first
         services.AddSingleton<IAppPreferences, JsonAppPreferences>();
         services.AddSingleton(sp => new CoverStore(sp.GetRequiredService<LibraryDataPaths>()));

@@ -1,0 +1,67 @@
+@using ReaderCompanion.Core.Goodreads
+@inject IGoodreadsImport Goodreads
+@inject IFilePicker Files
+
+<section class="source card goodreads">
+  <h2>Goodreads</h2>
+  <p class="muted">
+    Bring in what you have read and want to read. On goodreads.com open <strong>My Books → Import and export →
+    Export library</strong>, download the file, then import it here. Import a newer export any time; nothing you set
+    in this app is overwritten.
+  </p>
+  <button id="goodreads-import" type="button" class="btn btn-primary" disabled="@_busy" @onclick="ImportAsync">
+    Import export file…
+  </button>
+
+  @if (_error is not null)
+  {
+    <p class="panel-error" role="alert">@_error</p>
+  }
+
+  @if (_summary is { } summary)
+  {
+    <div class="goodreads-summary">
+      <p>@summary.Matched matched · @summary.AddedWanted added as wanted · @summary.Updated updated</p>
+      @if (summary.Skipped.Count > 0)
+      {
+        <p class="muted">Skipped:</p>
+        <ul>
+          @foreach (var reason in summary.Skipped)
+          {
+            <li>@reason</li>
+          }
+        </ul>
+      }
+    </div>
+  }
+</section>
+
+@code {
+  private GoodreadsSummary? _summary;
+  private string? _error;
+  private bool _busy;
+
+  private async Task ImportAsync()
+  {
+    if (await Files.PickFileAsync("Choose your Goodreads library export", "csv") is not { } path)
+    {
+      return;
+    }
+
+    _busy = true;
+    _error = null;
+    _summary = null;
+    try
+    {
+      _summary = await Goodreads.ImportFileAsync(path);
+    }
+    catch (Exception e) when (e is not OperationCanceledException)
+    {
+      _error = e.Message;
+    }
+    finally
+    {
+      _busy = false;
+    }
+  }
+}

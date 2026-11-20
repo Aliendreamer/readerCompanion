@@ -17,6 +17,7 @@ internal static class Program
         builder.Services.AddLibraryData(AppPaths.DefaultDatabasePath());
         builder.Services.AddReaderCompanionUI();
         builder.Services.AddSingleton<IFolderPicker, PhotinoFolderPicker>();
+        builder.Services.AddSingleton<IFilePicker, PhotinoFilePicker>();
         builder.Services.AddSingleton<ICoverUrls, CoverUrls>();
         builder.Services.AddSingleton<IFileLauncher, ShellFileLauncher>();
         AddCoversToAppFiles(builder.Services);

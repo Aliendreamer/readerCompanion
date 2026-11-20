@@ -31,6 +31,8 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             book.HasOne(b => b.Series).WithMany().HasForeignKey(b => b.SeriesId).OnDelete(DeleteBehavior.SetNull);
             book.Property(b => b.SeriesIndex).HasConversion<double?>();
             book.Property(b => b.ReadStatus).HasConversion<string>();
+            book.Property(b => b.GoodreadsStatus).HasConversion<string>();
+            book.HasIndex(b => b.GoodreadsId).IsUnique();
             book.HasMany(b => b.Sessions).WithOne().HasForeignKey(s => s.BookId);
         });
 

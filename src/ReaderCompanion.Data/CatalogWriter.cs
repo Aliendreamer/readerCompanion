@@ -14,6 +14,7 @@ internal sealed class CatalogWriter
     private readonly Dictionary<int, BookFile> _files;
     private readonly Dictionary<int, bool> _bookUnreadable;
     private readonly CatalogNames _names;
+    private readonly BookIndex<int> _wanted = new(); // ids of books without files (from an import), by match keys
     private readonly List<UnreadableFile> _unreadable = [];
 
     public CatalogWriter(LibraryDbContext db, string coversFolder, DateTime now)
@@ -24,6 +25,12 @@ internal sealed class CatalogWriter
         _files = db.BookFiles.ToDictionary(f => f.Id);
         _bookUnreadable = _files.Values.GroupBy(f => f.BookId).ToDictionary(g => g.Key, g => g.First().Unreadable);
         _names = new CatalogNames(db);
+        foreach (var w in db.Books.Where(b => !b.Files.Any())
+                     .Select(b => new { b.Id, b.Isbn, b.Title, Author = b.Authors.OrderBy(a => a.Order).Select(a => a.Author.Name).FirstOrDefault() })
+                     .ToList())
+        {
+            _wanted.Add(w.Id, MatchKeys.For(w.Isbn, w.Title, w.Author));
+        }
     }
 
     public IReadOnlyList<UnreadableFile> Unreadable => _unreadable;
@@ -71,8 +78,21 @@ internal sealed class CatalogWriter
                 break;
             case AddBook(var files):
                 {
-                    var book = new Book { DateAddedUtc = _now };
-                    var unreadable = Describe(book, files[0]);
+                    var found = new Book { DateAddedUtc = _now };
+                    var unreadable = Describe(found, files[0]);
+
+                    // A file for a wanted (not owned) book joins it: the book becomes owned and keeps its history.
+                    var wanted = WantedMatch(found);
+                    var book = wanted ?? found;
+                    if (wanted is null)
+                    {
+                        _db.Books.Add(book);
+                    }
+                    else
+                    {
+                        FillFromFile(wanted, found);
+                    }
+
                     foreach (var f in files)
                     {
                         var file = NewFile(f, 0, unreadable);
@@ -80,7 +100,6 @@ internal sealed class CatalogWriter
                         book.Files.Add(file);
                     }
 
-                    _db.Books.Add(book);
                     break;
                 }
             case MarkMissing(var k):
@@ -88,6 +107,48 @@ internal sealed class CatalogWriter
                 break;
             default:
                 throw new NotSupportedException(action.GetType().Name);
+        }
+    }
+
+    /// <summary>The wanted book with the same ISBN, or title and first author, as the newly read one (each wanted book
+    /// is matched at most once per scan).</summary>
+    private Book? WantedMatch(Book found)
+    {
+        var id = _wanted.Find(MatchKeys.For(found.Isbn, found.Title, found.Authors.OrderBy(a => a.Order).Select(a => a.Author.Name).FirstOrDefault()));
+        if (id == 0)
+        {
+            return null;
+        }
+
+        _wanted.Remove(id);
+        return _db.Books
+            .Include(b => b.Authors).ThenInclude(l => l.Author)
+            .Include(b => b.Genres).ThenInclude(l => l.Genre)
+            .Include(b => b.Series)
+            .Single(b => b.Id == id);
+    }
+
+    /// <summary>A wanted book keeps its own details (from the user or the import) and takes from the file only what it
+    /// lacks.</summary>
+    private void FillFromFile(Book wanted, Book found)
+    {
+        wanted.CoverFileName ??= found.CoverFileName;
+        wanted.Language ??= found.Language;
+        wanted.Isbn ??= found.Isbn;
+        if (wanted.Series is null && found.Series is not null)
+        {
+            wanted.Series = found.Series;
+            wanted.SeriesIndex = found.SeriesIndex;
+        }
+
+        if (wanted.Authors.Count == 0)
+        {
+            _names.SetAuthors(wanted, found.Authors.OrderBy(a => a.Order).Select(a => a.Author.Name));
+        }
+
+        if (wanted.Genres.Count == 0)
+        {
+            _names.SetGenres(wanted, found.Genres.Select(g => g.Genre.Name));
         }
     }
 

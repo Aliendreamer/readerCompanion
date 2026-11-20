@@ -41,6 +41,15 @@ public sealed class Book
 
     public List<ReadingSession> Sessions { get; set; } = [];
 
+    /// <summary>The Goodreads book id from an import, so re-imports find the same book.</summary>
+    public string? GoodreadsId { get; set; }
+
+    /// <summary>The status and rating the last Goodreads import set; an import only changes a value the user has not
+    /// changed since.</summary>
+    public ReadStatus? GoodreadsStatus { get; set; }
+
+    public int? GoodreadsRating { get; set; }
+
     /// <summary>The user's own collections this book is in; scans never change them.</summary>
     public List<BookCollection> Collections { get; set; } = [];
 }

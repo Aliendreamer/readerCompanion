@@ -31,7 +31,7 @@ All data lives in a local SQLite file you can back up by hand.
 | M3 — Reading tracking | Done | `openspec/changes/archive/2026-11-20-add-reading-*` |
 | M4 — Backup and restore | Done | `openspec/changes/archive/2026-11-20-add-backup-restore/` |
 | M5 — Organise files | Done (OS folders) | `openspec/changes/archive/2026-11-20-add-{organise-files,trash-extra-files}/` |
-| M6 — Goodreads | Next | this file |
+| M6 — Goodreads | In progress — import done | this file |
 | M7–M8 | Not started | this file |
 
 ## Guiding principles
@@ -254,3 +254,6 @@ None right now.
 - **2026-11-20** — M5 done for OS folders: a book's extra file can go to the system trash (Recycle Bin on Windows,
   freedesktop trash on Linux), never its last present file. Files on another disk are copied into the home trash
   (no per-disk trash yet). Next: M6.
+- **2026-11-20** — M6 first slice: Goodreads export import on Sources (status, reads, ratings, wanted books; safe
+  re-import), series split off Goodreads titles, scans attach files to wanted books. Next: review of uncertain
+  matches, shelves as collections, re-import reminder.

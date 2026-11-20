@@ -1,10 +1,11 @@
+@using ReaderCompanion.UI.Library
 @page "/sources"
 @inject ILibraryFolders Folders
 @inject ILibraryScanner Scanner
 @inject IFolderPicker Picker
 
 <h1 class="visually-hidden">Sources</h1>
-<p class="page-intro">Link the places your books come from. Google Drive and Goodreads will appear here later.</p>
+<p class="page-intro">Link the places your books come from. Google Drive will appear here later.</p>
 
 <section class="source card">
   <h2>Local folders</h2>
@@ -71,6 +72,8 @@
     </div>
   }
 </section>
+
+<GoodreadsSource />
 
 @code {
   private IReadOnlyList<string> _folders = [];

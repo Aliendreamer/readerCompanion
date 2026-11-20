@@ -1,6 +1,3 @@
-using System.Globalization;
-using System.Text;
-
 namespace ReaderCompanion.Core.Library;
 
 /// <summary>What duplicate matching looks at for one book.</summary>
@@ -62,55 +59,5 @@ public static class DuplicateFinder
         }
     }
 
-    private static IEnumerable<string> Keys(DuplicateCandidate book)
-    {
-        if (IsbnKey(book.Isbn) is { } isbn)
-        {
-            yield return "isbn:" + isbn;
-        }
-
-        // Without an author, a title alone ("Untitled", "Notes") says too little.
-        if (Fold(book.Title) is { Length: > 0 } title && Fold(book.FirstAuthor ?? "") is { Length: > 0 } author)
-        {
-            yield return "title:" + title + "|" + author;
-        }
-    }
-
-    /// <summary>The ISBN's digits (and a final X), or null when it is too short to be one.</summary>
-    private static string? IsbnKey(string? isbn)
-    {
-        var digits = new string((isbn ?? "").Where(c => char.IsAsciiDigit(c) || c is 'X' or 'x').ToArray()).ToUpperInvariant();
-        return digits.Length >= 10 ? digits : null;
-    }
-
-    /// <summary>Lower case, accents removed, only letters and digits separated by single spaces.</summary>
-    private static string Fold(string text)
-    {
-        var builder = new StringBuilder(text.Length);
-        var space = false;
-        foreach (var c in text.Normalize(NormalizationForm.FormD))
-        {
-            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
-            {
-                continue;
-            }
-
-            if (char.IsLetterOrDigit(c))
-            {
-                if (space && builder.Length > 0)
-                {
-                    builder.Append(' ');
-                }
-
-                builder.Append(char.ToLowerInvariant(c));
-                space = false;
-            }
-            else
-            {
-                space = true;
-            }
-        }
-
-        return builder.ToString();
-    }
+    private static IEnumerable<string> Keys(DuplicateCandidate book) => MatchKeys.For(book.Isbn, book.Title, book.FirstAuthor);
 }

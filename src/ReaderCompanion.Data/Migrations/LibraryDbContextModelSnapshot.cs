@@ -54,6 +54,15 @@ namespace ReaderCompanion.Data.Migrations
                     b.Property<DateTime?>("EditedUtc")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("GoodreadsId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("GoodreadsRating")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("GoodreadsStatus")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Isbn")
                         .HasColumnType("TEXT");
 
@@ -81,6 +90,9 @@ namespace ReaderCompanion.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("GoodreadsId")
+                        .IsUnique();
 
                     b.HasIndex("SeriesId");
 
@@ -282,6 +294,9 @@ namespace ReaderCompanion.Data.Migrations
 
                     b.Property<DateOnly?>("FinishedOn")
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("FromGoodreads")
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateOnly?>("StartedOn")
                         .HasColumnType("TEXT");
