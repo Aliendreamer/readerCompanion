@@ -9,7 +9,16 @@ public sealed record BookListItem(
     string? Series,
     decimal? SeriesIndex,
     bool FileMissing,
-    string? CoverFileName = null);
+    string? CoverFileName = null)
+{
+    /// <summary>The book's genres, ordered by name.</summary>
+    public IReadOnlyList<string> Genres { get; init; } = [];
+
+    /// <summary>The distinct formats of the book's files, in enum order.</summary>
+    public IReadOnlyList<BookFormat> Formats { get; init; } = [];
+
+    public DateTime DateAddedUtc { get; init; }
+}
 
 public interface ILibraryBooks
 {

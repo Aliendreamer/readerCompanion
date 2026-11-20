@@ -1,0 +1,69 @@
+@typeparam TValue where TValue : notnull
+
+@* A dropdown of the values not yet picked, followed by the picked values as removable chips. *@
+
+@if (Options.Count > 0)
+{
+  <div class="filter-picker">
+    <select id="@Id" class="filter-select" aria-label="Filter by @Label.ToLowerInvariant()" @key="_resets"
+            @ref="_select" @onchange="Add">
+      <option value="" selected>+ @Label</option>
+      @foreach (var option in Options.Where(o => !Picked.Contains(o)))
+      {
+        <option value="@Text(option)">@Text(option)</option>
+      }
+    </select>
+    @foreach (var value in Picked)
+    {
+      <button type="button" class="chip" aria-label="Remove @Label.ToLowerInvariant() @Text(value)"
+              @onclick="() => Remove(value)">
+        @Text(value) <span aria-hidden="true">×</span>
+      </button>
+    }
+  </div>
+}
+
+@code {
+  [Parameter, EditorRequired] public string Id { get; set; } = "";
+
+  [Parameter, EditorRequired] public string Label { get; set; } = "";
+
+  [Parameter, EditorRequired] public IReadOnlyList<TValue> Options { get; set; } = [];
+
+  /// <summary>How a value reads on screen; also identifies it in the dropdown.</summary>
+  [Parameter] public Func<TValue, string> Text { get; set; } = v => v.ToString() ?? "";
+
+  [Parameter] public IReadOnlyCollection<TValue> Picked { get; set; } = [];
+
+  [Parameter] public EventCallback<IReadOnlyCollection<TValue>> PickedChanged { get; set; }
+
+  private ElementReference _select;
+
+  // Bumped after a pick so the dropdown is rebuilt showing its "+ Label" prompt; focus then returns to it.
+  private int _resets;
+  private bool _refocus;
+
+  private Task Add(ChangeEventArgs e)
+  {
+    var text = e.Value as string;
+    if (Options.Where(o => Text(o) == text).Take(1).ToList() is not [var picked] || Picked.Contains(picked))
+    {
+      return Task.CompletedTask;
+    }
+
+    _resets++;
+    _refocus = true;
+    return PickedChanged.InvokeAsync([.. Picked, picked]);
+  }
+
+  private Task Remove(TValue value) => PickedChanged.InvokeAsync([.. Picked.Where(v => !v.Equals(value))]);
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (_refocus)
+    {
+      _refocus = false;
+      await _select.FocusAsync();
+    }
+  }
+}

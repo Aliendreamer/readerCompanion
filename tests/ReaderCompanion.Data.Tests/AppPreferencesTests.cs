@@ -43,6 +43,31 @@ public sealed class AppPreferencesTests : IDisposable
     }
 
     [Fact]
+    public void LibraryGroupAndSort_DefaultToNoneAndTitle_AndRoundTrip()
+    {
+        var preferences = _library.Services.GetRequiredService<IAppPreferences>();
+        Assert.Equal(LibraryGroup.None, preferences.Current.LibraryGroup);
+        Assert.Equal(LibrarySort.Title, preferences.Current.LibrarySort);
+
+        preferences.Save(preferences.Current with { LibraryGroup = LibraryGroup.Genre, LibrarySort = LibrarySort.DateAdded });
+        using var restarted = new ServiceCollection().AddLibraryData(_library.DatabasePath).BuildServiceProvider();
+
+        var current = restarted.GetRequiredService<IAppPreferences>().Current;
+        Assert.Equal(LibraryGroup.Genre, current.LibraryGroup);
+        Assert.Equal(LibrarySort.DateAdded, current.LibrarySort);
+    }
+
+    [Fact]
+    public void FileFromBeforeGroupAndSort_KeepsItsChoices_AndDefaultsTheRest()
+    {
+        File.WriteAllText(PreferencesFile, """{ "Theme": "Dark", "LibraryView": "Table" }""");
+
+        var current = _library.Services.GetRequiredService<IAppPreferences>().Current;
+
+        Assert.Equal(new AppPreferences(ThemeChoice.Dark, LibraryView.Table, LibraryGroup.None, LibrarySort.Title), current);
+    }
+
+    [Fact]
     public void CorruptFile_GivesDefaults()
     {
         File.WriteAllText(PreferencesFile, "{ not json");

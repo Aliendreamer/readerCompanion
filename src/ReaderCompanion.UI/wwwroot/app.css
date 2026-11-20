@@ -290,15 +290,148 @@ svg {
   cursor: pointer;
 }
 
-/* ---------- Page controls ---------- */
+/* ---------- Browse bar ---------- */
 
-.library-bar {
+.browse-bar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
 }
+
+.browse-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}
+
+.browse-search {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.browse-search,
+.browse-select select,
+.filter-select {
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.browse-search:focus,
+.browse-select select:focus,
+.filter-select:focus {
+  border-color: var(--accent);
+}
+
+.browse-select,
+.browse-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.browse-check input {
+  accent-color: var(--accent);
+}
+
+.filter-picker {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.filter-select {
+  max-width: 14rem;
+  padding: 0.3rem 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--accent);
+}
+
+.chip span {
+  color: var(--text-muted);
+}
+
+.browse-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ---------- Book sections ---------- */
+
+.book-section {
+  margin-bottom: 1.75rem;
+}
+
+.book-section > summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border);
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.book-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.book-section > summary::before {
+  content: "▾";
+  width: 1rem;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+}
+
+.book-section:not([open]) > summary::before {
+  transform: rotate(-90deg);
+}
+
+.book-section:not([open]) > summary {
+  margin-bottom: 0;
+}
+
+.section-count {
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+/* ---------- Page controls ---------- */
 
 .page-intro {
   margin: 0 0 1.5rem;

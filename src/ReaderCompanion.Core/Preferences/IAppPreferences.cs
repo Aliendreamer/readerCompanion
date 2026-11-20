@@ -15,7 +15,29 @@ public enum LibraryView
     Table,
 }
 
-public sealed record AppPreferences(ThemeChoice Theme = ThemeChoice.System, LibraryView LibraryView = LibraryView.Grid);
+/// <summary>How the Library page groups the books it shows.</summary>
+public enum LibraryGroup
+{
+    None,
+    Author,
+    Collection,
+    Genre,
+}
+
+/// <summary>How the Library page orders books.</summary>
+public enum LibrarySort
+{
+    Title,
+    Author,
+    Series,
+    DateAdded,
+}
+
+public sealed record AppPreferences(
+    ThemeChoice Theme = ThemeChoice.System,
+    LibraryView LibraryView = LibraryView.Grid,
+    LibraryGroup LibraryGroup = LibraryGroup.None,
+    LibrarySort LibrarySort = LibrarySort.Title);
 
 /// <summary>The user's remembered choices. Reads never fail: a missing or damaged store gives the defaults.</summary>
 public interface IAppPreferences

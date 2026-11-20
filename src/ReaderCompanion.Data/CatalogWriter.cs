@@ -55,7 +55,7 @@ internal sealed class CatalogWriter
             case SplitToNewBook(var k, var now):
                 {
                     var file = _files[k.FileId];
-                    var book = new Book();
+                    var book = new Book { DateAddedUtc = _now };
                     file.Unreadable = Describe(book, now);
                     file.Book = book;
                     Refresh(file, now);
@@ -75,7 +75,7 @@ internal sealed class CatalogWriter
                 break;
             case AddBook(var files):
                 {
-                    var book = new Book();
+                    var book = new Book { DateAddedUtc = _now };
                     var unreadable = Describe(book, files[0]);
                     foreach (var f in files)
                     {

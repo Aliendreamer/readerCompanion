@@ -1,0 +1,26 @@
+@using ReaderCompanion.Core.Preferences
+
+@* Ungrouped books render as a plain grid or table; grouped ones get a collapsible section each. *@
+
+@foreach (var part in Sections)
+{
+  if (part.Name is null)
+  {
+    <BookView Books="part.Books" View="View" />
+  }
+  else
+  {
+    <details class="book-section" open @key="(part.Name, part.IsCatchAll)">
+      <summary>
+        <span class="section-name">@part.Name</span> <span class="section-count">(@part.Books.Count)</span>
+      </summary>
+      <BookView Books="part.Books" View="View" />
+    </details>
+  }
+}
+
+@code {
+  [Parameter, EditorRequired] public IReadOnlyList<BookSection> Sections { get; set; } = [];
+
+  [Parameter] public LibraryView View { get; set; }
+}

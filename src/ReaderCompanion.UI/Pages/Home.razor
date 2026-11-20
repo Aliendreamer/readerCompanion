@@ -7,14 +7,6 @@
 
 <h1 class="visually-hidden">Library</h1>
 
-@if (_books is { Count: > 0 })
-{
-  <div class="library-bar">
-    <p class="book-count">@(_books.Count == 1 ? "1 book" : $"{_books.Count} books")</p>
-    <ViewToggle Value="Preferences.Current.LibraryView" ValueChanged="ChangeView" />
-  </div>
-}
-
 @if (_books is null)
 {
   <p class="muted">Loading…</p>
@@ -26,19 +18,78 @@ else if (_books.Count == 0)
     <p>Link a folder of e-books on the <a href="sources">Sources</a> page and scan it.</p>
   </div>
 }
-else if (Preferences.Current.LibraryView == LibraryView.Table)
-{
-  <BookTable Books="_books" />
-}
 else
 {
-  <BookGrid Books="_books" />
+  <BrowseBar Query="Query" QueryChanged="ChangeQuery" Options="_options" View="View" ViewChanged="ChangeView" />
+  <div class="browse-summary">
+    <p class="book-count">@Count()</p>
+    @if (Query.IsNarrowed)
+    {
+      <button id="clear-filters" type="button" class="link-button" @onclick="ClearFilters">Clear filters</button>
+    }
+  </div>
+
+  @if (_result.Shown == 0)
+  {
+    <div class="empty-state card">
+      <p class="empty-title">No books match.</p>
+      <p>Try a different search, or clear the filters.</p>
+    </div>
+  }
+  else
+  {
+    @* Keyed on the grouping so a new grouping starts with every section open. *@
+    <BookSections @key="Query.Group" Sections="_result.Sections" View="View" />
+  }
 }
 
 @code {
   private IReadOnlyList<BookListItem>? _books;
+  private BrowseOptions _options = BrowseOptions.Empty;
 
-  protected override async Task OnInitializedAsync() => _books = await Books.ListAsync();
+  // Search and filters live only on this page; grouping and sort are always read from the preferences.
+  private BrowseQuery _filters = new();
+  private BrowseResult _result = new(0, 0, []);
+
+  private LibraryView View => Preferences.Current.LibraryView;
+
+  private BrowseQuery Query => _filters with
+  {
+    Group = Preferences.Current.LibraryGroup,
+    Sort = Preferences.Current.LibrarySort,
+  };
+
+  protected override async Task OnInitializedAsync()
+  {
+    _books = await Books.ListAsync();
+    _options = LibraryBrowser.Options(_books);
+    Refresh();
+  }
+
+  private void Refresh() => _result = LibraryBrowser.Browse(_books ?? [], Query);
+
+  private string Count() =>
+    Query.IsNarrowed ? $"{_result.Shown} of {_result.Total} books"
+      : _result.Total == 1 ? "1 book"
+      : $"{_result.Total} books";
+
+  private void ChangeQuery(BrowseQuery query)
+  {
+    _filters = query;
+    var current = Preferences.Current;
+    if (query.Group != current.LibraryGroup || query.Sort != current.LibrarySort)
+    {
+      Preferences.Save(current with { LibraryGroup = query.Group, LibrarySort = query.Sort });
+    }
+
+    Refresh();
+  }
+
+  private void ClearFilters()
+  {
+    _filters = new();
+    Refresh();
+  }
 
   private void ChangeView(LibraryView view) => Preferences.Save(Preferences.Current with { LibraryView = view });
 }

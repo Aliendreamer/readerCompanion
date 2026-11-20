@@ -48,6 +48,9 @@ namespace ReaderCompanion.Data.Migrations
                     b.Property<string>("CoverFileName")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime>("DateAddedUtc")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Isbn")
                         .HasColumnType("TEXT");
 

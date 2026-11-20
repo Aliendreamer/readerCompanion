@@ -64,9 +64,33 @@ public sealed class LibraryBooksTests : IDisposable
         Assert.Null(books.Single(b => b.Title == "Plain").CoverFileName);
     }
 
-    private static BookFile File(string path, FileStatus status) => new()
+    [Fact]
+    public async Task List_GivesGenres_DistinctFormats_AndDateAdded()
+    {
+        var added = new DateTime(2025, 6, 7, 8, 9, 10, DateTimeKind.Utc);
+        using (var db = _library.NewContext())
+        {
+            var dune = new Book { Title = "Dune", DateAddedUtc = added };
+            dune.Genres.Add(new BookGenre { Genre = new Genre { Name = "Science Fiction", NormalizedName = "SF" } });
+            dune.Genres.Add(new BookGenre { Genre = new Genre { Name = "Adventure", NormalizedName = "ADV" } });
+            dune.Files.Add(File("/dune.epub", FileStatus.Present));
+            dune.Files.Add(File("/copy/dune.epub", FileStatus.Present));
+            dune.Files.Add(File("/dune.pdf", FileStatus.Present, BookFormat.Pdf));
+            db.Books.Add(dune);
+            db.SaveChanges();
+        }
+
+        var book = Assert.Single(await _library.Services.GetRequiredService<ILibraryBooks>().ListAsync(TestContext.Current.CancellationToken));
+
+        Assert.Equal(["Adventure", "Science Fiction"], book.Genres);
+        Assert.Equal([BookFormat.Epub, BookFormat.Pdf], book.Formats);
+        Assert.Equal(added, book.DateAddedUtc);
+    }
+
+    private static BookFile File(string path, FileStatus status, BookFormat format = BookFormat.Epub) => new()
     {
         Path = path,
+        Format = format,
         ContentHash = path,
         Status = status,
         LastWriteUtc = DateTime.UtcNow,

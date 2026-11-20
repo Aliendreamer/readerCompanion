@@ -1,0 +1,17 @@
+@using ReaderCompanion.Core.Library
+@using ReaderCompanion.Core.Preferences
+
+@if (View == LibraryView.Table)
+{
+  <BookTable Books="Books" />
+}
+else
+{
+  <BookGrid Books="Books" />
+}
+
+@code {
+  [Parameter, EditorRequired] public IReadOnlyList<BookListItem> Books { get; set; } = [];
+
+  [Parameter] public LibraryView View { get; set; }
+}

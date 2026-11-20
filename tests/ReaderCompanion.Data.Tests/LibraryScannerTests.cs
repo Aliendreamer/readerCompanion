@@ -59,6 +59,19 @@ public sealed class LibraryScannerTests : IDisposable
     }
 
     [Fact]
+    public async Task Rescan_KeepsTheDateABookWasAdded()
+    {
+        var path = WriteEpub("a.epub", "Kept");
+        await Scan();
+        var added = Assert.Single(Books()).DateAddedUtc;
+
+        File.Move(path, Path.Combine(_books, "moved.epub"));
+        await Scan();
+
+        Assert.Equal(added, Assert.Single(Books()).DateAddedUtc);
+    }
+
+    [Fact]
     public async Task Scan_TwoCopies_OneBookWithTwoFiles()
     {
         var original = WriteEpub("a.epub", "Copy Me");

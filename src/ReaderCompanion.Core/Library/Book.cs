@@ -19,6 +19,9 @@ public sealed class Book
     /// <summary>File name inside the covers folder, or null when the book has no cover.</summary>
     public string? CoverFileName { get; set; }
 
+    /// <summary>When the book entered the library: the time of the scan that first found it.</summary>
+    public DateTime DateAddedUtc { get; set; }
+
     public List<BookAuthor> Authors { get; set; } = [];
 
     public List<BookGenre> Genres { get; set; } = [];
