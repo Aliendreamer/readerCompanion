@@ -14,6 +14,19 @@ public static class AppPaths
         return Path.Combine(localAppDataRoot, "ReaderCompanion", "library.db");
     }
 
+    /// <summary>The default data folder, or null when this machine gives the user none.</summary>
+    public static string? DefaultDataFolder()
+    {
+        try
+        {
+            return Path.GetDirectoryName(DefaultDatabasePath());
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
     public static string DefaultDatabasePath() =>
         DatabasePath(Environment.GetFolderPath(
             Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.DoNotVerify));

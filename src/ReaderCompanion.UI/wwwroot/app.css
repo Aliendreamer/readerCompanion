@@ -1402,3 +1402,14 @@ button.book-title:hover {
 #goodreads-reminder {
   width: 4.5rem;
 }
+
+/* ---------- Settings ---------- */
+
+.settings .card {
+  margin-bottom: 1rem;
+}
+
+.settings h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}

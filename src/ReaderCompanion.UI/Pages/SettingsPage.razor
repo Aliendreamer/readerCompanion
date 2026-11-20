@@ -1,0 +1,67 @@
+@page "/settings"
+@using ReaderCompanion.Core.Library
+@using ReaderCompanion.Core.Preferences
+@using ReaderCompanion.Core.Scanning
+@using ReaderCompanion.UI.Library
+@inject ILibraryLocation Location
+@inject IAppPreferences Preferences
+@inject ILibraryFolders Folders
+@inject IFileLauncher Launcher
+
+<h1 class="visually-hidden">Settings</h1>
+<p class="page-intro">Where your library lives and what it is linked to. Each part is changed on its own page.</p>
+
+<div class="settings">
+<section class="card settings-data">
+  <h2>Data folder</h2>
+  <p>Your library (books, details, collections, reading) and the covers are kept in:</p>
+  <p class="folder-path">@Location.DataFolder</p>
+  <button id="settings-show-data" type="button" class="btn btn-small" @onclick="ShowDataFolder">Show in folder</button>
+  @if (_error is not null)
+  {
+    <p class="panel-error" role="alert">@_error</p>
+  }
+  <p class="muted">To keep a copy, use <a href="backup">Backup</a>.</p>
+</section>
+
+<section class="card settings-backup">
+  <h2>Backups</h2>
+  @if (Preferences.Current.BackupFolder is { } folder)
+  {
+    <p>Backups go to <span class="folder-path">@folder</span>@(Directory.Exists(folder) ? "" : " (folder not found)")@(Preferences.Current.BackupOnExit
+      ? $", and one is made on close (keeping the last {Preferences.Current.KeepBackups})." : ".")</p>
+  }
+  else
+  {
+    <p>No backup folder chosen yet.</p>
+  }
+  <a href="backup">Change backups</a>
+</section>
+
+<section class="card settings-sources">
+  <h2>Linked sources</h2>
+  <p>@(_folders is { } count ? $"{BookText.Plural(count, "local folder")} linked. " : "")Last Goodreads import: @(Preferences.Current.GoodreadsLastImportUtc is { } last ? BookText.Date(last) : "never").</p>
+  <a href="sources">Change sources</a>
+</section>
+</div>
+
+@code {
+  private int? _folders; // unknown until loaded (or if loading fails)
+  private string? _error;
+
+  protected override async Task OnInitializedAsync()
+  {
+    try
+    {
+      _folders = (await Folders.ListAsync()).Count;
+    }
+    catch (Exception e) when (e is not OperationCanceledException)
+    {
+      _error = $"The linked folders could not be read: {e.Message}";
+    }
+  }
+
+  // The launcher shows the folder that holds a file: the database sits in the data folder.
+  private void ShowDataFolder() =>
+    _error = Launcher.ShowInFolder(Location.DatabasePath) ? null : "The data folder could not be shown.";
+}

@@ -39,8 +39,10 @@ public static class BookText
     public static string FormatLabel(BookFormat format) => format.ToString().ToUpperInvariant();
 
     /// <summary>When a book was added, as shown on screen: 4 Mar 2026.</summary>
-    public static string DateAdded(BookListItem book) =>
-        book.DateAddedUtc.ToLocalTime().ToString("d MMM yyyy", CultureInfo.InvariantCulture);
+    public static string DateAdded(BookListItem book) => Date(book.DateAddedUtc);
+
+    /// <summary>A UTC time as the local day people read: 4 Mar 2026.</summary>
+    public static string Date(DateTime utc) => utc.ToLocalTime().ToString("d MMM yyyy", CultureInfo.InvariantCulture);
 
     /// <summary>A series position as people write it: 4, 2.5.</summary>
     public static string SeriesNumber(decimal index) => index.ToString("0.##", CultureInfo.InvariantCulture);

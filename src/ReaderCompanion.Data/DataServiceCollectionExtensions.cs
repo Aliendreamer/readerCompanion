@@ -14,7 +14,9 @@ public static class DataServiceCollectionExtensions
     public static IServiceCollection AddLibraryData(this IServiceCollection services, string databasePath)
     {
         var connectionString = new SqliteConnectionStringBuilder { DataSource = databasePath }.ToString();
-        services.AddSingleton(new LibraryDataPaths(databasePath));
+        var paths = new LibraryDataPaths(databasePath);
+        services.AddSingleton(paths);
+        services.AddSingleton<ILibraryLocation>(paths);
         services.AddSingleton<LibraryWriteGate>();
         services.AddSingleton<ILibraryScanner, LibraryScanner>();
         services.AddScoped<IOrganiser, Organiser>();

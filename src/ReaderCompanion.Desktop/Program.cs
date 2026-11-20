@@ -13,6 +13,19 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        try
+        {
+            Start(args);
+        }
+        catch (Exception e)
+        {
+            ReportStartupFailure(e);
+            Environment.ExitCode = 1;
+        }
+    }
+
+    private static void Start(string[] args)
+    {
         var builder = PhotinoBlazorAppBuilder.CreateDefault(args);
         builder.Services.AddLibraryData(AppPaths.DefaultDatabasePath());
         builder.Services.AddReaderCompanionUI();
@@ -38,6 +51,32 @@ internal static class Program
 
         app.Run();
     }
+
+    /// <summary>Writes the failure to the data folder's log and tells the user, instead of exiting silently.</summary>
+    private static void ReportStartupFailure(Exception error)
+    {
+        var (_, message) = StartupErrorLog.Write(error, AppPaths.DefaultDataFolder(), DateTime.Now);
+        const string title = "readerCompanion could not start";
+        try
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                _ = MessageBoxW(IntPtr.Zero, message, title, 0x10); // MB_ICONERROR; needs no web view, unlike Photino
+            }
+            else
+            {
+                new Photino.NET.PhotinoWindow().ShowMessage(title, message,
+                    Photino.NET.PhotinoDialogButtons.Ok, Photino.NET.PhotinoDialogIcon.Error);
+            }
+        }
+        catch (Exception)
+        {
+            Console.Error.WriteLine(message); // no window system either: the terminal is the last resort
+        }
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern int MessageBoxW(IntPtr owner, string text, string caption, uint type);
 
     /// <summary>Backs up and prunes when the user asked for it; a failure must not stop the app from closing.</summary>
     private static void BackUpOnExit(IServiceProvider services)

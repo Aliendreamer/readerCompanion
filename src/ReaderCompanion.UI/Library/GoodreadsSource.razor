@@ -18,7 +18,7 @@
     </button>
     <span class="muted">
       @(Preferences.Current.GoodreadsLastImportUtc is { } last
-        ? $"Last import: {last.ToLocalTime().ToString("d MMM yyyy", CultureInfo.InvariantCulture)}"
+        ? $"Last import: {BookText.Date(last)}"
         : "Not imported yet")
     </span>
   </div>

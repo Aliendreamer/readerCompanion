@@ -516,6 +516,13 @@ internal sealed class FakeGoodreads : ReaderCompanion.Core.Goodreads.IGoodreadsI
     }
 }
 
+internal sealed class FakeLocation : ILibraryLocation
+{
+    public string DataFolder => "/home/me/.local/share/ReaderCompanion";
+
+    public string DatabasePath => DataFolder + "/library.db";
+}
+
 internal sealed class FakeLauncher : IFileLauncher
 {
     public List<string> Opened { get; } = [];
@@ -575,6 +582,7 @@ internal static class TestServices
         services.AddSingleton<IDuplicates>(duplicates ?? new FakeDuplicates());
         services.AddSingleton<ILibraryBooks>(libraryBooks ?? new FakeBooks(books));
         services.AddSingleton<IFileLauncher>(launcher ?? new FakeLauncher());
+        services.AddSingleton<ILibraryLocation>(new FakeLocation());
         services.AddSingleton<ILibraryFolders>(folders ?? new FakeFolders());
         services.AddSingleton<ILibraryScanner>(scanner ?? new FakeScanner());
         services.AddSingleton<IFolderPicker>(picker ?? new FakePicker());
