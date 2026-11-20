@@ -1,0 +1,155 @@
+@page "/backup"
+@using System.Globalization
+@using ReaderCompanion.Core.Library
+@using ReaderCompanion.Core.Preferences
+@using ReaderCompanion.Core.Scanning
+@using ReaderCompanion.UI.Library
+@inject IBackups Backups
+@inject IAppPreferences Preferences
+@inject IFolderPicker Picker
+@inject ILibraryScanner Scanner
+@inject NavigationManager Navigation
+
+<h1 class="visually-hidden">Backup</h1>
+<p class="page-intro">Copies of your library — books, details, collections and reading — in a folder you choose.
+  Restoring one puts the library back as it was then; the current library is backed up first. Cover images are not
+  included; a scan reads them from the books again.</p>
+
+<section class="card backup-folder">
+  <h2>Backup folder</h2>
+  <p class="folder-path">@(Folder ?? "No folder chosen yet.")</p>
+  <div class="backup-actions">
+    <button id="backup-choose" type="button" class="btn" disabled="@_busy" @onclick="ChooseFolderAsync">Choose…</button>
+    <button id="backup-now" type="button" class="btn btn-primary" disabled="@(_busy || Folder is null)" @onclick="BackUpNowAsync">
+      Back up now
+    </button>
+  </div>
+  @if (_message is not null)
+  {
+    <p class="backup-message muted">@_message</p>
+  }
+  @if (_error is not null)
+  {
+    <p class="panel-error" role="alert">@_error</p>
+  }
+
+  <div class="backup-settings">
+    <label class="browse-check">
+      <input id="backup-on-exit" type="checkbox" checked="@Preferences.Current.BackupOnExit" @onchange="SetOnExit" />
+      Back up when closing the app
+    </label>
+    <label class="browse-select">
+      <span>Keep the last</span>
+      <input id="backup-keep" type="number" min="1" max="100" value="@Preferences.Current.KeepBackups" @onchange="SetKeep"
+             @key="_keepVersion" />
+      <span>backups</span>
+    </label>
+  </div>
+</section>
+
+@if (Folder is not null)
+{
+  <section class="card backups">
+    <h2>Backups</h2>
+    @if (_backups.Count == 0)
+    {
+      <p class="muted">No backups in this folder yet.</p>
+    }
+    else
+    {
+      <ul class="backup-list">
+        @foreach (var backup in _backups)
+        {
+          <li @key="backup.Path">
+            <span class="backup-when">@backup.CreatedLocal.ToString("d MMM yyyy, HH:mm", CultureInfo.InvariantCulture)</span>
+            <span class="muted">@BookText.FileSize(backup.SizeBytes)@(backup.BeforeRestore ? " · taken before a restore" : "")</span>
+            @if (_confirming == backup.Path)
+            {
+              <span class="backup-question">Restore the library to this backup? The current library is backed up first.</span>
+              <button type="button" class="btn btn-primary btn-small backup-confirm" disabled="@_busy" @onclick="() => RestoreAsync(backup)">Restore</button>
+              <button type="button" class="btn btn-small backup-cancel" @onclick="() => _confirming = null">Cancel</button>
+            }
+            else
+            {
+              <button type="button" class="btn btn-small backup-restore" disabled="@(_busy || Scanner.IsScanning)"
+                      title="@(Scanner.IsScanning ? "Wait for the scan to finish" : null)" @onclick="() => _confirming = backup.Path">
+                Restore…
+              </button>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </section>
+}
+
+@code {
+  private IReadOnlyList<BackupInfo> _backups = [];
+  private string? _confirming;
+  private string? _message;
+  private string? _error;
+  private bool _busy;
+  private int _keepVersion; // rebuilds the "keep" box so it always shows the stored number
+
+  private string? Folder => Preferences.Current.BackupFolder;
+
+  protected override void OnInitialized() => Refresh();
+
+  private void Refresh() => _backups = Folder is { } folder ? Backups.List(folder) : [];
+
+  private async Task ChooseFolderAsync()
+  {
+    if (await Picker.PickFolderAsync() is { } folder)
+    {
+      Preferences.Save(Preferences.Current with { BackupFolder = folder });
+      Refresh();
+    }
+  }
+
+  private Task BackUpNowAsync() => RunAsync(async () =>
+  {
+    var backup = await Backups.BackupAsync(Folder!, DateTime.Now);
+    Backups.Prune(Folder!, Preferences.Current.KeepBackups);
+    _message = $"Backed up to {Path.GetFileName(backup.Path)}.";
+    Refresh();
+  });
+
+  private Task RestoreAsync(BackupInfo backup) => RunAsync(async () =>
+  {
+    await Backups.RestoreAsync(backup.Path, DateTime.Now);
+    Navigation.NavigateTo("/", forceLoad: true); // every page reloads the restored library
+  });
+
+  // One action at a time; failures (e.g. a file that is not a backup) are shown.
+  private async Task RunAsync(Func<Task> action)
+  {
+    _busy = true;
+    _error = null;
+    _message = null;
+    try
+    {
+      await action();
+    }
+    catch (Exception e) when (e is not OperationCanceledException)
+    {
+      _error = e.Message;
+    }
+    finally
+    {
+      _busy = false;
+      _confirming = null;
+    }
+  }
+
+  private void SetOnExit(ChangeEventArgs e) => Preferences.Save(Preferences.Current with { BackupOnExit = e.Value is true });
+
+  private void SetKeep(ChangeEventArgs e)
+  {
+    if (int.TryParse(e.Value as string, NumberStyles.Integer, CultureInfo.InvariantCulture, out var keep))
+    {
+      Preferences.Save(Preferences.Current with { KeepBackups = Math.Clamp(keep, 1, 100) });
+    }
+
+    _keepVersion++;
+  }
+}

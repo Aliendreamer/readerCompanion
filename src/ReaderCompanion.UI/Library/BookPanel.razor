@@ -1,4 +1,3 @@
-@using System.Globalization
 @using ReaderCompanion.Core.Library
 @inject ILibraryBooks Books
 @inject IFileLauncher Launcher
@@ -87,7 +86,7 @@
           <span class="file-name">@Path.GetFileName(file.Path)</span>
           <span class="file-folder-path">@Path.GetDirectoryName(file.Path)</span>
           <span class="file-meta">
-            @BookText.FormatLabel(file.Format) · @Size(file.SizeBytes)@(file.Present ? "" : " · missing")
+            @BookText.FormatLabel(file.Format) · @BookText.FileSize(file.SizeBytes)@(file.Present ? "" : " · missing")
           </span>
           @if (file.Present)
           {
@@ -247,11 +246,4 @@
 
   private void ShowFolder(string path) =>
     _error = Launcher.ShowInFolder(path) ? null : $"Could not show the folder of {Path.GetFileName(path)}.";
-
-  private static string Size(long bytes) => bytes switch
-  {
-    >= 1024 * 1024 => (bytes / (1024.0 * 1024)).ToString("0.0", CultureInfo.InvariantCulture) + " MB",
-    >= 1024 => (bytes / 1024.0).ToString("0", CultureInfo.InvariantCulture) + " KB",
-    _ => bytes + " B",
-  };
 }

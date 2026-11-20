@@ -24,6 +24,14 @@ public static class BookText
         _ => "Not started",
     };
 
+    /// <summary>A file size as shown on screen: 1.4 MB, 512 KB, 900 B.</summary>
+    public static string FileSize(long bytes) => bytes switch
+    {
+        >= 1024 * 1024 => (bytes / (1024.0 * 1024)).ToString("0.0", CultureInfo.InvariantCulture) + " MB",
+        >= 1024 => (bytes / 1024.0).ToString("0", CultureInfo.InvariantCulture) + " KB",
+        _ => bytes + " B",
+    };
+
     /// <summary>A file format as shown on screen: EPUB, PDF.</summary>
     public static string FormatLabel(BookFormat format) => format.ToString().ToUpperInvariant();
 

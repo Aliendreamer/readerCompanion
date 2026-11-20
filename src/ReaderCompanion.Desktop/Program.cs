@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Photino.Blazor;
+using ReaderCompanion.Core.Library;
+using ReaderCompanion.Core.Preferences;
 using ReaderCompanion.Data;
 using ReaderCompanion.UI;
 
@@ -26,9 +28,35 @@ internal static class Program
         app.MainWindow
             .SetTitle("readerCompanion")
             .SetSize(1200, 800)
-            .SetLogVerbosity(0);
+            .SetLogVerbosity(0)
+            .RegisterWindowClosingHandler((_, _) =>
+            {
+                BackUpOnExit(app.Services);
+                return false; // never keep the window open
+            });
 
         app.Run();
+    }
+
+    /// <summary>Backs up and prunes when the user asked for it; a failure must not stop the app from closing.</summary>
+    private static void BackUpOnExit(IServiceProvider services)
+    {
+        var preferences = services.GetRequiredService<IAppPreferences>().Current;
+        if (!preferences.BackupOnExit || preferences.BackupFolder is not { } folder)
+        {
+            return;
+        }
+
+        try
+        {
+            var backups = services.GetRequiredService<IBackups>();
+            backups.Backup(folder, DateTime.Now);
+            backups.Prune(folder, preferences.KeepBackups);
+        }
+        catch (Exception)
+        {
+            // Closing always wins, whatever went wrong; the next backup will try again.
+        }
     }
 
     /// <summary>Wraps Photino.Blazor's own file provider so it also serves covers.</summary>

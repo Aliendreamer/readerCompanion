@@ -342,6 +342,46 @@ internal sealed class FakeReadingStats : IReadingStats
         Fail ? throw new InvalidOperationException("database is locked") : Task.FromResult<IReadOnlyList<StatsBook>>([.. Books]);
 }
 
+internal sealed class FakeBackups : IBackups
+{
+    public List<BackupInfo> Existing { get; } = [];
+
+    public List<string> Restored { get; } = [];
+
+    public Exception? RestoreFailure { get; set; }
+
+    public Task<BackupInfo> BackupAsync(string folder, DateTime nowLocal, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Backup(folder, nowLocal));
+
+    public BackupInfo Backup(string folder, DateTime nowLocal)
+    {
+        var backup = new BackupInfo(Path.Combine(folder, $"readerCompanion-{nowLocal:yyyy-MM-dd-HHmmss}.db"), nowLocal, 2048, false);
+        Existing.Insert(0, backup);
+        return backup;
+    }
+
+    public IReadOnlyList<BackupInfo> List(string folder) => [.. Existing];
+
+    public Task<BackupInfo> RestoreAsync(string backupPath, DateTime nowLocal, CancellationToken cancellationToken = default)
+    {
+        if (RestoreFailure is { } failure)
+        {
+            throw failure;
+        }
+
+        Restored.Add(backupPath);
+        return Task.FromResult(new BackupInfo(backupPath + ".safety", nowLocal, 1, true));
+    }
+
+    public void Prune(string folder, int keep)
+    {
+        if (Existing.Count > keep)
+        {
+            Existing.RemoveRange(keep, Existing.Count - keep);
+        }
+    }
+}
+
 internal sealed class FakeLauncher : IFileLauncher
 {
     public List<string> Opened { get; } = [];
@@ -376,8 +416,12 @@ internal static class TestServices
         FakeLauncher? launcher = null,
         FakeDuplicates? duplicates = null,
         FakeReading? reading = null,
-        FakeReadingStats? stats = null)
+        FakeReadingStats? stats = null,
+        FakeBackups? backups = null,
+        FakePicker? picker = null,
+        FakeScanner? scanner = null)
     {
+        services.AddSingleton<IBackups>(backups ?? new FakeBackups());
         services.AddSingleton<IReadingStats>(stats ?? new FakeReadingStats());
         books ??= libraryBooks?.Books ?? [];
         services.AddSingleton<IReading>(reading ?? new FakeReading(books));
@@ -385,8 +429,8 @@ internal static class TestServices
         services.AddSingleton<ILibraryBooks>(libraryBooks ?? new FakeBooks(books));
         services.AddSingleton<IFileLauncher>(launcher ?? new FakeLauncher());
         services.AddSingleton<ILibraryFolders>(new FakeFolders());
-        services.AddSingleton<ILibraryScanner>(new FakeScanner());
-        services.AddSingleton<IFolderPicker>(new FakePicker());
+        services.AddSingleton<ILibraryScanner>(scanner ?? new FakeScanner());
+        services.AddSingleton<IFolderPicker>(picker ?? new FakePicker());
         services.AddSingleton<IAppPreferences>(preferences ?? new FakePreferences());
         services.AddSingleton<ISystemTheme>(systemTheme ?? new FakeSystemTheme());
         services.AddSingleton<ICoverUrls>(new FakeCoverUrls());

@@ -19,7 +19,7 @@ public class ShellTests : BunitContext
         var cut = Render<Routes>();
 
         var links = cut.FindAll(".sidebar nav a");
-        Assert.Equal(["Library", "Reading", "Duplicates", "Sources"], links.Select(a => a.TextContent.Trim()));
+        Assert.Equal(["Library", "Reading", "Duplicates", "Sources", "Backup"], links.Select(a => a.TextContent.Trim()));
         Assert.Equal("Sources", cut.Find(".sidebar nav a.active").TextContent.Trim());
         Assert.Contains("readerCompanion", cut.Find(".sidebar .brand").TextContent);
     }

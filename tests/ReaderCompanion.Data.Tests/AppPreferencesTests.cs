@@ -68,6 +68,19 @@ public sealed class AppPreferencesTests : IDisposable
     }
 
     [Fact]
+    public void BackupSettings_DefaultOff_KeepTen_AndRoundTrip()
+    {
+        var preferences = _library.Services.GetRequiredService<IAppPreferences>();
+        Assert.Equal((null, false, 10), (preferences.Current.BackupFolder, preferences.Current.BackupOnExit, preferences.Current.KeepBackups));
+
+        preferences.Save(preferences.Current with { BackupFolder = "/backups", BackupOnExit = true, KeepBackups = 5 });
+        using var restarted = new ServiceCollection().AddLibraryData(_library.DatabasePath).BuildServiceProvider();
+
+        var current = restarted.GetRequiredService<IAppPreferences>().Current;
+        Assert.Equal(("/backups", true, 5), (current.BackupFolder, current.BackupOnExit, current.KeepBackups));
+    }
+
+    [Fact]
     public void CorruptFile_GivesDefaults()
     {
         File.WriteAllText(PreferencesFile, "{ not json");

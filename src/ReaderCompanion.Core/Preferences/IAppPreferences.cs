@@ -37,7 +37,10 @@ public sealed record AppPreferences(
     ThemeChoice Theme = ThemeChoice.System,
     LibraryView LibraryView = LibraryView.Grid,
     LibraryGroup LibraryGroup = LibraryGroup.None,
-    LibrarySort LibrarySort = LibrarySort.Title);
+    LibrarySort LibrarySort = LibrarySort.Title,
+    string? BackupFolder = null,
+    bool BackupOnExit = false,
+    int KeepBackups = 10);
 
 /// <summary>The user's remembered choices. Reads never fail: a missing or damaged store gives the defaults.</summary>
 public interface IAppPreferences

@@ -29,8 +29,9 @@ All data lives in a local SQLite file you can back up by hand.
 | UI look — sidebar, cover grid / table toggle, dark theme | Done | `openspec/changes/archive/2026-11-20-add-library-look/` |
 | M2 — Library views and duplicates | Done | `openspec/changes/archive/2026-11-20-add-*` (browse, book details, duplicates, user collections) |
 | M3 — Reading tracking | Done | `openspec/changes/archive/2026-11-20-add-reading-*` |
-| M4 — Backup and restore | Next | this file |
-| M5–M8 | Not started | this file |
+| M4 — Backup and restore | Done | `openspec/changes/archive/2026-11-20-add-backup-restore/` |
+| M5 — Organise files | Next | this file |
+| M6–M8 | Not started | this file |
 
 ## Guiding principles
 
@@ -137,7 +138,7 @@ duplicates.
 
 **Done when:** you can see at a glance what you have, what you've read and what you want, in any grouping.
 
-### M4 — Backup and restore
+### M4 — Backup and restore (done)
 
 Make it safe to undo before the app starts changing files or importing history.
 
@@ -244,3 +245,5 @@ None right now.
   filters. Owned = has files; wanted books come with M6. Next: the stats page.
 - **2026-11-20** — M3 done: a Reading page with this year, by year, have/read/want at a glance, author and series
   progress. Next: M4.
+- **2026-11-20** — M4 done: Backup page (back up now, list, restore with an automatic safety copy, back up on
+  close keeping the last N). Backups hold the database only; covers are re-read by a scan. Next: M5.
