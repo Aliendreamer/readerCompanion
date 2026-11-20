@@ -24,6 +24,9 @@ public static class BookText
         _ => "Not started",
     };
 
+    /// <summary>"1 book", "3 books".</summary>
+    public static string Plural(int count, string noun) => count == 1 ? $"1 {noun}" : $"{count} {noun}s";
+
     /// <summary>A file size as shown on screen: 1.4 MB, 512 KB, 900 B.</summary>
     public static string FileSize(long bytes) => bytes switch
     {

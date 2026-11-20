@@ -141,12 +141,18 @@ public sealed class BackupsTests : IDisposable
     {
         AddBook("Mort");
         var backup = await Backups.BackupAsync(_folder, Noon, Token);
-        var whileScanning = new Backups(
-            _library.Services.GetRequiredService<LibraryDataPaths>(),
-            _library.Services.GetRequiredService<IDbContextFactory<LibraryDbContext>>(),
-            new BusyScanner());
+        var gate = _library.Services.GetRequiredService<LibraryWriteGate>();
+        Assert.True(gate.TryEnter(LibraryWork.Scan));
+        try
+        {
+            var error = await Assert.ThrowsAsync<InvalidOperationException>(() => Backups.RestoreAsync(backup.Path, Noon, Token));
+            Assert.Contains("scan is running", error.Message);
+        }
+        finally
+        {
+            gate.Exit();
+        }
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => whileScanning.RestoreAsync(backup.Path, Noon, Token));
         Assert.Equal(["Mort"], Titles());
     }
 
@@ -161,13 +167,4 @@ public sealed class BackupsTests : IDisposable
     }
 
     public void Dispose() => _library.Dispose();
-
-    private sealed class BusyScanner : ReaderCompanion.Core.Scanning.ILibraryScanner
-    {
-        public bool IsScanning => true;
-
-        public Task<ReaderCompanion.Core.Scanning.ScanSummary> ScanAsync(
-            IProgress<ReaderCompanion.Core.Scanning.ScanProgress>? progress = null, CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException();
-    }
 }

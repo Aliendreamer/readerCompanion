@@ -3,12 +3,11 @@ using System.Text.RegularExpressions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using ReaderCompanion.Core.Library;
-using ReaderCompanion.Core.Scanning;
 
 namespace ReaderCompanion.Data;
 
 internal sealed partial class Backups(
-    LibraryDataPaths paths, IDbContextFactory<LibraryDbContext> contexts, ILibraryScanner scanner) : IBackups
+    LibraryDataPaths paths, IDbContextFactory<LibraryDbContext> contexts, LibraryWriteGate gate) : IBackups
 {
     private const string Stamp = "yyyy-MM-dd-HHmmss";
     private const string BeforeRestoreTag = "-before-restore";
@@ -43,25 +42,32 @@ internal sealed partial class Backups(
 
     public async Task<BackupInfo> RestoreAsync(string backupPath, DateTime nowLocal, CancellationToken cancellationToken = default)
     {
-        if (scanner.IsScanning)
+        if (!gate.TryEnter(LibraryWork.Restore)) // no scan or organise may write while the library is replaced
         {
-            throw new InvalidOperationException("Wait for the scan to finish before restoring.");
+            throw new InvalidOperationException(gate.BusyMessage);
         }
 
-        var safety = await Task.Run(() =>
+        try
         {
-            EnsureLibrary(backupPath);
-            var safety = Write(Path.GetDirectoryName(Path.GetFullPath(backupPath))!, nowLocal, beforeRestore: true);
-            using var source = Open(backupPath, readOnly: true);
-            using var live = Open(paths.DatabasePath, readOnly: false);
-            source.BackupDatabase(live);
-            return safety;
-        }, cancellationToken);
+            var safety = await Task.Run(() =>
+            {
+                EnsureLibrary(backupPath);
+                var safety = Write(Path.GetDirectoryName(Path.GetFullPath(backupPath))!, nowLocal, beforeRestore: true);
+                using var source = Open(backupPath, readOnly: true);
+                using var live = Open(paths.DatabasePath, readOnly: false);
+                source.BackupDatabase(live);
+                return safety;
+            }, cancellationToken);
 
-        SqliteConnection.ClearAllPools(); // the app's pooled connections must not keep reading the old content
-        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
-        await db.Database.MigrateAsync(cancellationToken); // an older backup gets the newer schema
-        return safety;
+            SqliteConnection.ClearAllPools(); // the app's pooled connections must not keep reading the old content
+            await using var db = await contexts.CreateDbContextAsync(cancellationToken);
+            await db.Database.MigrateAsync(cancellationToken); // an older backup gets the newer schema
+            return safety;
+        }
+        finally
+        {
+            gate.Exit();
+        }
     }
 
     public void Prune(string folder, int keep)

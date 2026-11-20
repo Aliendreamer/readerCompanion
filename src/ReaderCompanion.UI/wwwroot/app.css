@@ -1318,3 +1318,45 @@ button.book-title:hover {
 .backup-question {
   flex-basis: 100%;
 }
+
+/* ---------- Organise ---------- */
+
+.organise-setup,
+.organise-result {
+  margin-bottom: 1rem;
+}
+
+.organise-controls,
+.organise-undo-row,
+.organise-apply-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1.25rem;
+}
+
+.organise-undo-row {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.organise-apply-row {
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.organise-result p {
+  margin: 0 0 0.5rem;
+}
+
+.organise-failures {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.85rem;
+}
+
+.organise-moves .move-include {
+  accent-color: var(--accent);
+}

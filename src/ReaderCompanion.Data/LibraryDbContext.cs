@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ReaderCompanion.Core.Library;
+using ReaderCompanion.Core.Organising;
 
 namespace ReaderCompanion.Data;
 
@@ -20,6 +21,8 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
     public DbSet<DismissedDuplicate> DismissedDuplicates => Set<DismissedDuplicate>();
 
     public DbSet<ReadingSession> ReadingSessions => Set<ReadingSession>();
+
+    public DbSet<FileOperation> FileOperations => Set<FileOperation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -70,6 +73,9 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
         });
 
         modelBuilder.Entity<LibraryFolder>().HasIndex(f => f.Path).IsUnique();
+
+        modelBuilder.Entity<FileOperation>()
+            .HasMany(o => o.Moves).WithOne().HasForeignKey(m => m.OperationId);
 
         // Removing either book removes the dismissal.
         modelBuilder.Entity<DismissedDuplicate>(pair =>

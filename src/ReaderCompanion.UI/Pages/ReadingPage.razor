@@ -33,7 +33,7 @@ else
   <div class="stats-columns">
     <section class="this-year card">
       <h2>This year</h2>
-      <p class="stats-big">@Plural(_stats.ThisYear, "read")</p>
+      <p class="stats-big">@BookText.Plural(_stats.ThisYear, "read")</p>
       @if (_stats.ThisYearBooks.Count > 0)
       {
         <ul class="plain-list">
@@ -93,6 +93,4 @@ else
       _error = $"The reading stats could not be loaded: {e.Message}";
     }
   }
-
-  private static string Plural(int count, string noun) => count == 1 ? $"1 {noun}" : $"{count} {noun}s";
 }

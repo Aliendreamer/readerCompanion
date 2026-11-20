@@ -1,0 +1,203 @@
+@page "/organise"
+@using System.Globalization
+@using ReaderCompanion.Core.Organising
+@using ReaderCompanion.Core.Scanning
+@using ReaderCompanion.UI.Library
+@inject IOrganiser Organiser
+@inject ILibraryFolders Folders
+
+<h1 class="visually-hidden">Organise</h1>
+<p class="page-intro">Move and rename the files in a library folder into tidy folders built from each book's details.
+  You always see the moves first, and the last organise can be undone.</p>
+
+@if (_folders is null)
+{
+  <p class="muted loading">Loading…</p>
+}
+else if (_folders.Count == 0)
+{
+  <div class="empty-state card">
+    <p class="empty-title">No library folder yet.</p>
+    <p>Link a folder of e-books on the <a href="sources">Sources</a> page first.</p>
+  </div>
+}
+else
+{
+  <section class="card organise-setup">
+    <div class="organise-controls">
+      <label class="browse-select">
+        <span>Folder</span>
+        <select id="organise-folder" value="@_folder" @onchange="e => Pick(() => _folder = e.Value as string ?? _folder)">
+          @foreach (var folder in _folders)
+          {
+            <option value="@folder">@folder</option>
+          }
+        </select>
+      </label>
+      <label class="browse-select">
+        <span>Layout</span>
+        <select id="organise-layout" value="@_layout" @onchange="e => Pick(() => _layout = Enum.Parse<OrganiseLayout>((string)e.Value!))">
+          <option value="@OrganiseLayout.GenreAuthorTitle">Genre / Author / Title</option>
+          <option value="@OrganiseLayout.AuthorSeriesTitle">Author / Series / 01 - Title</option>
+          <option value="@OrganiseLayout.AuthorTitle">Author / Title</option>
+        </select>
+      </label>
+      <button id="organise-preview" type="button" class="btn" disabled="@_busy" @onclick="PreviewAsync">Preview</button>
+    </div>
+
+    @if (_last is { } last)
+    {
+      <div class="organise-undo-row">
+        <span class="muted">
+          Last organise: @last.CreatedUtc.ToLocalTime().ToString("d MMM yyyy, HH:mm", CultureInfo.InvariantCulture),
+          @Files(last.FileCount) in @last.Root
+        </span>
+        <button id="organise-undo" type="button" class="btn btn-small" disabled="@_busy" @onclick="UndoAsync">Undo last organise</button>
+      </div>
+    }
+  </section>
+
+  @if (_error is not null)
+  {
+    <p class="panel-error" role="alert">@_error</p>
+  }
+
+  @if (_result is { } result)
+  {
+    <div class="organise-result card">
+      <p>@(_undid ? $"Moved {Files(result.Moved)} back." : $"Moved {Files(result.Moved)}.")</p>
+      @if (result.Failed.Count > 0)
+      {
+        <p>@Files(result.Failed.Count) could not be moved:</p>
+        <ul class="organise-failures">
+          @foreach (var failure in result.Failed)
+          {
+            <li><span class="folder-path">@failure.From</span> — @failure.Reason</li>
+          }
+        </ul>
+      }
+    </div>
+  }
+
+  @if (_moves is { } moves)
+  {
+    @if (moves.Count == 0)
+    {
+      <p class="muted">Nothing needs to move: this folder already follows the layout.</p>
+    }
+    else
+    {
+      <div class="organise-apply-row">
+        <span>@_included.Count of @Files(moves.Count) selected</span>
+        <button id="organise-apply" type="button" class="btn btn-primary" disabled="@(_busy || _included.Count == 0)" @onclick="ApplyAsync">
+          Move @Files(_included.Count)
+        </button>
+      </div>
+      <table class="organise-moves book-table">
+        <thead>
+          <tr>
+            <th class="col-cover"><span class="visually-hidden">Move</span></th>
+            <th>Now</th>
+            <th>After</th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach (var move in moves)
+          {
+            <tr @key="move.FileId">
+              <td class="col-cover">
+                <input type="checkbox" class="move-include" aria-label="Move this file" checked="@_included.Contains(move.FileId)"
+                       @onchange="e => Toggle(move.FileId, e.Value is true)" />
+              </td>
+              <td class="folder-path">@Path.GetRelativePath(_folder, move.From)</td>
+              <td class="folder-path">@Path.GetRelativePath(_folder, move.To)</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  }
+}
+
+@code {
+  private IReadOnlyList<string>? _folders;
+  private string _folder = "";
+  private OrganiseLayout _layout;
+  private IReadOnlyList<Move>? _moves;
+  private readonly HashSet<int> _included = [];
+  private OrganiseResult? _result;
+  private bool _undid;
+  private LastOrganise? _last;
+  private string? _error;
+  private bool _busy;
+
+  protected override async Task OnInitializedAsync()
+  {
+    _folders = await Folders.ListAsync();
+    _folder = _folders.FirstOrDefault() ?? "";
+    _last = await Organiser.LastAsync();
+  }
+
+  private static string Files(int count) => BookText.Plural(count, "file");
+
+  // A new folder or layout makes the shown preview stale.
+  private void Pick(Action change)
+  {
+    change();
+    _moves = null;
+  }
+
+  private void Toggle(int fileId, bool include)
+  {
+    if (include)
+    {
+      _included.Add(fileId);
+    }
+    else
+    {
+      _included.Remove(fileId);
+    }
+  }
+
+  private Task PreviewAsync() => RunAsync(async () =>
+  {
+    _result = null;
+    _moves = await Organiser.PreviewAsync(_folder, _layout);
+    _included.Clear();
+    _included.UnionWith(_moves.Select(m => m.FileId));
+  });
+
+  private Task ApplyAsync() => RunAsync(async () =>
+  {
+    _result = await Organiser.ApplyAsync(_folder, [.. _moves!.Where(m => _included.Contains(m.FileId))]);
+    _undid = false;
+    _moves = null;
+  });
+
+  private Task UndoAsync() => RunAsync(async () =>
+  {
+    _result = await Organiser.UndoLastAsync();
+    _undid = true;
+    _moves = null;
+  });
+
+  // One action at a time; a refusal (e.g. a scan is running) is shown.
+  private async Task RunAsync(Func<Task> action)
+  {
+    _busy = true;
+    _error = null;
+    try
+    {
+      await action();
+      _last = await Organiser.LastAsync();
+    }
+    catch (Exception e) when (e is not OperationCanceledException)
+    {
+      _error = e.Message;
+    }
+    finally
+    {
+      _busy = false;
+    }
+  }
+}

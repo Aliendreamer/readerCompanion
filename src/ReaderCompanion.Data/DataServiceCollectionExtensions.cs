@@ -2,6 +2,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ReaderCompanion.Core.Library;
+using ReaderCompanion.Core.Organising;
 using ReaderCompanion.Core.Preferences;
 using ReaderCompanion.Core.Scanning;
 
@@ -13,7 +14,9 @@ public static class DataServiceCollectionExtensions
     {
         var connectionString = new SqliteConnectionStringBuilder { DataSource = databasePath }.ToString();
         services.AddSingleton(new LibraryDataPaths(databasePath));
+        services.AddSingleton<LibraryWriteGate>();
         services.AddSingleton<ILibraryScanner, LibraryScanner>();
+        services.AddScoped<IOrganiser, Organiser>();
         services.AddScoped<ILibraryFolders, LibraryFolders>();
         services.AddScoped<ILibraryBooks, LibraryBooks>();
         services.AddScoped<IDuplicates, Duplicates>();

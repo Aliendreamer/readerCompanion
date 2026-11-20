@@ -8,7 +8,7 @@ using ReaderCompanion.Core.Scanning;
 
 namespace ReaderCompanion.Data;
 
-internal sealed class LibraryScanner(IServiceScopeFactory scopes, LibraryDataPaths paths) : ILibraryScanner
+internal sealed class LibraryScanner(IServiceScopeFactory scopes, LibraryDataPaths paths, LibraryWriteGate gate) : ILibraryScanner
 {
     private const int BatchSize = 100;
     private const int ProgressIntervalMs = 100;
@@ -21,15 +21,13 @@ internal sealed class LibraryScanner(IServiceScopeFactory scopes, LibraryDataPat
         AttributesToSkip = FileAttributes.ReparsePoint, // symlinked folders are not followed (no loops)
     };
 
-    private int _running;
-
-    public bool IsScanning => Volatile.Read(ref _running) == 1;
+    public bool IsScanning => gate.Holder == LibraryWork.Scan;
 
     public Task<ScanSummary> ScanAsync(IProgress<ScanProgress>? progress = null, CancellationToken cancellationToken = default)
     {
-        if (Interlocked.CompareExchange(ref _running, 1, 0) != 0)
+        if (!gate.TryEnter(LibraryWork.Scan))
         {
-            return Task.FromException<ScanSummary>(new InvalidOperationException("A scan is already running."));
+            return Task.FromException<ScanSummary>(new InvalidOperationException(gate.BusyMessage));
         }
 
         return Task.Run(
@@ -41,7 +39,7 @@ internal sealed class LibraryScanner(IServiceScopeFactory scopes, LibraryDataPat
                 }
                 finally
                 {
-                    Volatile.Write(ref _running, 0);
+                    gate.Exit();
                 }
             },
             CancellationToken.None);

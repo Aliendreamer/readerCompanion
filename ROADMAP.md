@@ -30,7 +30,7 @@ All data lives in a local SQLite file you can back up by hand.
 | M2 — Library views and duplicates | Done | `openspec/changes/archive/2026-11-20-add-*` (browse, book details, duplicates, user collections) |
 | M3 — Reading tracking | Done | `openspec/changes/archive/2026-11-20-add-reading-*` |
 | M4 — Backup and restore | Done | `openspec/changes/archive/2026-11-20-add-backup-restore/` |
-| M5 — Organise files | Next | this file |
+| M5 — Organise files | In progress — organise with preview and undo done | this file |
 | M6–M8 | Not started | this file |
 
 ## Guiding principles
@@ -247,3 +247,6 @@ None right now.
   progress. Next: M4.
 - **2026-11-20** — M4 done: Backup page (back up now, list, restore with an automatic safety copy, back up on
   close keeping the last N). Backups hold the database only; covers are re-read by a scan. Next: M5.
+- **2026-11-20** — M5 first slice: Organise page (Genre/Author/Title and two other layouts), preview, apply without
+  overwriting, undo; scans, organising and restores never run at once. Trailing dots are trimmed from names
+  (Windows), so `Tolkien, J.R.R.` becomes `Tolkien, J.R.R`. Next: duplicates' extra files to the trash.

@@ -293,6 +293,57 @@ namespace ReaderCompanion.Data.Migrations
                     b.ToTable("ReadingSessions");
                 });
 
+            modelBuilder.Entity("ReaderCompanion.Core.Organising.FileMove", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BookFileId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Done")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("From")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("OperationId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("To")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OperationId");
+
+                    b.ToTable("FileMove");
+                });
+
+            modelBuilder.Entity("ReaderCompanion.Core.Organising.FileOperation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Root")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UndoneUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("FileOperations");
+                });
+
             modelBuilder.Entity("ReaderCompanion.Core.Library.Book", b =>
                 {
                     b.HasOne("ReaderCompanion.Core.Library.Collection", "Series")
@@ -395,6 +446,15 @@ namespace ReaderCompanion.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("ReaderCompanion.Core.Organising.FileMove", b =>
+                {
+                    b.HasOne("ReaderCompanion.Core.Organising.FileOperation", null)
+                        .WithMany("Moves")
+                        .HasForeignKey("OperationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("ReaderCompanion.Core.Library.Book", b =>
                 {
                     b.Navigation("Authors");
@@ -406,6 +466,11 @@ namespace ReaderCompanion.Data.Migrations
                     b.Navigation("Genres");
 
                     b.Navigation("Sessions");
+                });
+
+            modelBuilder.Entity("ReaderCompanion.Core.Organising.FileOperation", b =>
+                {
+                    b.Navigation("Moves");
                 });
 #pragma warning restore 612, 618
         }

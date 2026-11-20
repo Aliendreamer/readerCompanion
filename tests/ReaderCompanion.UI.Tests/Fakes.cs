@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using ReaderCompanion.Core.Library;
+using ReaderCompanion.Core.Organising;
 using ReaderCompanion.Core.Preferences;
 using ReaderCompanion.Core.Scanning;
 
@@ -382,6 +383,46 @@ internal sealed class FakeBackups : IBackups
     }
 }
 
+internal sealed class FakeOrganiser : IOrganiser
+{
+    public List<Move> Planned { get; } = [];
+
+    public List<IReadOnlyList<Move>> Applied { get; } = [];
+
+    public LastOrganise? Last { get; set; }
+
+    public int Undos { get; private set; }
+
+    public OrganiseLayout? LastLayout { get; private set; }
+
+    public Task<IReadOnlyList<Move>> PreviewAsync(
+        string root, OrganiseLayout layout, CancellationToken cancellationToken = default)
+    {
+        LastLayout = layout;
+        return Task.FromResult<IReadOnlyList<Move>>([.. Planned]);
+    }
+
+    public Task<OrganiseResult> ApplyAsync(
+        string root, IReadOnlyList<Move> moves, CancellationToken cancellationToken = default)
+    {
+        Applied.Add(moves);
+        Last = new(DateTime.UtcNow, root, moves.Count);
+        return Task.FromResult(new OrganiseResult(moves.Count, []));
+    }
+
+    public Task<LastOrganise?> LastAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(Last);
+
+    public Task<OrganiseResult> UndoLastAsync(CancellationToken cancellationToken = default)
+    {
+        Undos++;
+        var count = Last?.FileCount ?? 0;
+        Last = null;
+        return Task.FromResult(new OrganiseResult(count - 1,
+            [new MoveFailure("/books/Writer, A/A.epub", "The file is no longer there.")]));
+    }
+}
+
 internal sealed class FakeLauncher : IFileLauncher
 {
     public List<string> Opened { get; } = [];
@@ -419,8 +460,11 @@ internal static class TestServices
         FakeReadingStats? stats = null,
         FakeBackups? backups = null,
         FakePicker? picker = null,
-        FakeScanner? scanner = null)
+        FakeScanner? scanner = null,
+        FakeFolders? folders = null,
+        FakeOrganiser? organiser = null)
     {
+        services.AddSingleton<IOrganiser>(organiser ?? new FakeOrganiser());
         services.AddSingleton<IBackups>(backups ?? new FakeBackups());
         services.AddSingleton<IReadingStats>(stats ?? new FakeReadingStats());
         books ??= libraryBooks?.Books ?? [];
@@ -428,7 +472,7 @@ internal static class TestServices
         services.AddSingleton<IDuplicates>(duplicates ?? new FakeDuplicates());
         services.AddSingleton<ILibraryBooks>(libraryBooks ?? new FakeBooks(books));
         services.AddSingleton<IFileLauncher>(launcher ?? new FakeLauncher());
-        services.AddSingleton<ILibraryFolders>(new FakeFolders());
+        services.AddSingleton<ILibraryFolders>(folders ?? new FakeFolders());
         services.AddSingleton<ILibraryScanner>(scanner ?? new FakeScanner());
         services.AddSingleton<IFolderPicker>(picker ?? new FakePicker());
         services.AddSingleton<IAppPreferences>(preferences ?? new FakePreferences());
