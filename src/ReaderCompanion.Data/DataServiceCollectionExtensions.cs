@@ -18,6 +18,7 @@ public static class DataServiceCollectionExtensions
         services.AddScoped<ILibraryBooks, LibraryBooks>();
         services.AddScoped<IDuplicates, Duplicates>();
         services.AddScoped<IReading, Reading>();
+        services.AddScoped<IReadingStats, ReadingStatsLoader>();
         services.AddSingleton<IAppPreferences, JsonAppPreferences>();
         services.AddSingleton(sp => new CoverStore(sp.GetRequiredService<LibraryDataPaths>()));
         // The factory gives services a fresh context per operation (desktop scopes live as long as the app);

@@ -1,0 +1,98 @@
+@page "/reading"
+@using ReaderCompanion.Core.Library
+@using ReaderCompanion.UI.Library
+@inject IReadingStats Stats
+
+<h1 class="visually-hidden">Reading</h1>
+
+@if (_error is not null)
+{
+  <p class="panel-error" role="alert">@_error</p>
+}
+else if (_stats is null)
+{
+  <p class="muted loading">Counting…</p>
+}
+else if (_empty)
+{
+  <div class="empty-state card">
+    <p class="empty-title">Nothing to show yet.</p>
+    <p>Add books on the Sources page, then mark what you are reading in each book's details.</p>
+  </div>
+}
+else
+{
+  var glance = _stats.Glance;
+  <div class="glance">
+    <div class="glance-card card"><span class="glance-count">@glance.OwnedRead</span><span>Have and read</span></div>
+    <div class="glance-card card"><span class="glance-count">@glance.OwnedUnread</span><span>Have, not read</span></div>
+    <div class="glance-card card"><span class="glance-count">@glance.Wanted</span><span>Wanted</span></div>
+    <div class="glance-card card"><span class="glance-count">@glance.ReadNotOwned</span><span>Read, not owned</span></div>
+  </div>
+
+  <div class="stats-columns">
+    <section class="this-year card">
+      <h2>This year</h2>
+      <p class="stats-big">@Plural(_stats.ThisYear, "read")</p>
+      @if (_stats.ThisYearBooks.Count > 0)
+      {
+        <ul class="plain-list">
+          @foreach (var book in _stats.ThisYearBooks)
+          {
+            <li>@book.Title@(book.Reads > 1 ? $" ×{book.Reads}" : "")</li>
+          }
+        </ul>
+      }
+      @if (_stats.ByYear.Count > 0)
+      {
+        <h3>By year</h3>
+        <ul class="by-year plain-list">
+          @foreach (var year in _stats.ByYear)
+          {
+            <li>@year.Year: @year.Reads</li>
+          }
+        </ul>
+      }
+    </section>
+
+    @if (_stats.Series.Count > 0)
+    {
+      <section class="series-progress card">
+        <h2>Series</h2>
+        <ProgressTable Rows="_stats.Series" />
+      </section>
+    }
+  </div>
+
+  <section class="author-progress card">
+    <h2>Authors</h2>
+    <ProgressTable Rows="_stats.Authors.Take(TopAuthors)" />
+    @if (_stats.Authors.Count > TopAuthors)
+    {
+      <p class="muted">And @(_stats.Authors.Count - TopAuthors) more authors.</p>
+    }
+  </section>
+}
+
+@code {
+  private const int TopAuthors = 20;
+  private ReadingStats? _stats;
+  private bool _empty;
+  private string? _error;
+
+  protected override async Task OnInitializedAsync()
+  {
+    try
+    {
+      var books = await Stats.LoadAsync();
+      _empty = books.Count == 0;
+      _stats = ReadingStats.From(books, DateTime.Now.Year);
+    }
+    catch (Exception e) when (e is not OperationCanceledException)
+    {
+      _error = $"The reading stats could not be loaded: {e.Message}";
+    }
+  }
+
+  private static string Plural(int count, string noun) => count == 1 ? $"1 {noun}" : $"{count} {noun}s";
+}

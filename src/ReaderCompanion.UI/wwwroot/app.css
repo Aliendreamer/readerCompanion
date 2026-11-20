@@ -2,6 +2,10 @@
    Light palette on .app; dark palette when the user picks dark, or when following a dark system.
    Contrast (normal text >= 4.5:1) checked for text, muted text, accent and danger on bg and surface. */
 
+:root {
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+}
+
 .app {
   --bg: #f6f4ef;
   --surface: #ffffff;
@@ -112,7 +116,7 @@ main {
 
 h1,
 h2 {
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-family: var(--font-serif);
   font-weight: 600;
   letter-spacing: -0.01em;
 }
@@ -173,7 +177,7 @@ svg {
   gap: 0.5rem;
   min-width: 0;
   padding: 0 0.35rem;
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-family: var(--font-serif);
   font-size: 1.05rem;
   font-weight: 600;
 }
@@ -409,7 +413,7 @@ svg {
   margin-bottom: 1rem;
   padding-bottom: 0.4rem;
   border-bottom: 1px solid var(--border);
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-family: var(--font-serif);
   font-size: 1.1rem;
   font-weight: 600;
   cursor: pointer;
@@ -565,7 +569,7 @@ svg {
     hsl(calc(var(--cover-hue) + 25) 46% calc(var(--cover-lightness) - 8%))
   );
   color: #ffffff;
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-family: var(--font-serif);
 }
 
 .placeholder-title {
@@ -1176,4 +1180,83 @@ button.book-title:hover {
 .session-list input {
   padding: 0.2rem 0.35rem;
   font-size: 0.8rem;
+}
+
+/* ---------- Reading stats ---------- */
+
+.glance {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.glance-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.glance-count,
+.stats-big {
+  color: var(--text);
+  font-family: var(--font-serif);
+  font-size: 1.8rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.stats-big {
+  margin: 0 0 0.75rem;
+}
+
+.stats-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.stats-columns h2,
+.author-progress h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.stats-columns h3 {
+  margin: 1rem 0 0.4rem;
+  font-size: 0.95rem;
+}
+
+.plain-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.progress-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.progress-table th {
+  color: var(--text-muted);
+  font-weight: 500;
+  text-align: left;
+}
+
+.progress-table td,
+.progress-table th {
+  padding: 0.35rem 0.5rem 0.35rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.progress-table progress {
+  width: 8rem;
+  accent-color: var(--accent);
 }

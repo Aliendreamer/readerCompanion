@@ -332,6 +332,16 @@ internal sealed class FakeReading(List<BookListItem> books) : IReading
     }
 }
 
+internal sealed class FakeReadingStats : IReadingStats
+{
+    public List<StatsBook> Books { get; } = [];
+
+    public bool Fail { get; set; }
+
+    public Task<IReadOnlyList<StatsBook>> LoadAsync(CancellationToken cancellationToken = default) =>
+        Fail ? throw new InvalidOperationException("database is locked") : Task.FromResult<IReadOnlyList<StatsBook>>([.. Books]);
+}
+
 internal sealed class FakeLauncher : IFileLauncher
 {
     public List<string> Opened { get; } = [];
@@ -365,8 +375,10 @@ internal static class TestServices
         FakeBooks? libraryBooks = null,
         FakeLauncher? launcher = null,
         FakeDuplicates? duplicates = null,
-        FakeReading? reading = null)
+        FakeReading? reading = null,
+        FakeReadingStats? stats = null)
     {
+        services.AddSingleton<IReadingStats>(stats ?? new FakeReadingStats());
         books ??= libraryBooks?.Books ?? [];
         services.AddSingleton<IReading>(reading ?? new FakeReading(books));
         services.AddSingleton<IDuplicates>(duplicates ?? new FakeDuplicates());

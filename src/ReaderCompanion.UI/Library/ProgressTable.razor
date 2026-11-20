@@ -1,0 +1,25 @@
+@using ReaderCompanion.Core.Library
+
+<table class="progress-table">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Read</th>
+      <th class="visually-hidden">Progress</th>
+    </tr>
+  </thead>
+  <tbody>
+    @foreach (var row in Rows)
+    {
+      <tr>
+        <td>@row.Name</td>
+        <td>@row.Read of @row.Total read</td>
+        <td><progress max="@row.Total" value="@row.Read">@row.Read of @row.Total</progress></td>
+      </tr>
+    }
+  </tbody>
+</table>
+
+@code {
+  [Parameter, EditorRequired] public IEnumerable<Progress> Rows { get; set; } = [];
+}

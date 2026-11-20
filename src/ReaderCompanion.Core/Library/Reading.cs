@@ -68,6 +68,12 @@ public static class ReadingLog
         return open[1..];
     }
 
+    /// <summary>A read to the end: finished and not abandoned. An expression, so database queries can use it too.</summary>
+    public static readonly System.Linq.Expressions.Expression<Func<ReadingSession, bool>> IsRead =
+        s => s.FinishedOn != null && !s.Abandoned;
+
+    private static readonly Func<ReadingSession, bool> IsReadCompiled = IsRead.Compile();
+
     /// <summary>How many times the book was read to the end.</summary>
-    public static int Reads(IEnumerable<ReadingSession> sessions) => sessions.Count(s => s.FinishedOn is not null && !s.Abandoned);
+    public static int Reads(IEnumerable<ReadingSession> sessions) => sessions.Count(IsReadCompiled);
 }

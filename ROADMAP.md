@@ -28,8 +28,9 @@ All data lives in a local SQLite file you can back up by hand.
 | M1 — Local folder scan | Done | `openspec/changes/archive/2026-11-19-add-local-folder-scan/` |
 | UI look — sidebar, cover grid / table toggle, dark theme | Done | `openspec/changes/archive/2026-11-20-add-library-look/` |
 | M2 — Library views and duplicates | Done | `openspec/changes/archive/2026-11-20-add-*` (browse, book details, duplicates, user collections) |
-| M3 — Reading tracking | In progress — status, reads, rating, notes, filters done | this file |
-| M4–M8 | Not started | this file |
+| M3 — Reading tracking | Done | `openspec/changes/archive/2026-11-20-add-reading-*` |
+| M4 — Backup and restore | Next | this file |
+| M5–M8 | Not started | this file |
 
 ## Guiding principles
 
@@ -126,7 +127,7 @@ Browse and tidy what was found.
 **Done when:** you can browse the whole library by author, series and genre, fix bad metadata, and merge
 duplicates.
 
-### M3 — Reading tracking
+### M3 — Reading tracking (done)
 
 - Read status per book: *want to read / reading / read / abandoned*.
 - Start and finish dates, re-reads, rating, short notes.
@@ -241,3 +242,5 @@ None right now.
 - **2026-11-20** — M2 done: user collections added (from the book panel; browse treats them like series). Next: M3.
 - **2026-11-20** — M3 first slice: reading status, dated reads (re-reads count), rating, notes, status and owned/wanted
   filters. Owned = has files; wanted books come with M6. Next: the stats page.
+- **2026-11-20** — M3 done: a Reading page with this year, by year, have/read/want at a glance, author and series
+  progress. Next: M4.
