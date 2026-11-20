@@ -16,16 +16,18 @@ public class BookPanelTests : BunitContext
     private readonly FakeBooks _libraryBooks;
     private readonly FakeLauncher _launcher = new();
     private readonly FakePreferences _preferences = new();
+    private readonly FakeReading _reading;
 
     public BookPanelTests()
     {
         _libraryBooks = new FakeBooks(_books);
+        _reading = new FakeReading(_books);
         _libraryBooks.Files[2] =
         [
             new BookFileInfo("/books/mort.epub", BookFormat.Epub, 1_500_000, Present: true),
             new BookFileInfo("/old/mort.pdf", BookFormat.Pdf, 900, Present: false),
         ];
-        Services.AddAppFakes(preferences: _preferences, libraryBooks: _libraryBooks, launcher: _launcher);
+        Services.AddAppFakes(preferences: _preferences, libraryBooks: _libraryBooks, launcher: _launcher, reading: _reading);
     }
 
     private IRenderedComponent<Home> RenderHome()
@@ -127,6 +129,67 @@ public class BookPanelTests : BunitContext
         cut.Find(".file-open").Click();
 
         Assert.Contains("Could not open mort.epub", cut.Find(".panel-error").TextContent);
+    }
+
+    // ---------- reading ----------
+
+    [Fact]
+    public void Status_IsSet_FromThePanel_AndShowsInTheList()
+    {
+        var cut = RenderHome();
+        OpenBook(cut, "Mort");
+        Assert.Equal("true", cut.Find("#status-NotStarted").GetAttribute("aria-pressed"));
+
+        cut.Find("#status-Reading").Click();
+
+        cut.WaitForAssertion(() => Assert.Equal("true", cut.Find("#status-Reading").GetAttribute("aria-pressed")));
+        Assert.Equal(DateOnly.FromDateTime(DateTime.Now), _reading.LastToday);
+        Assert.Single(cut.FindAll(".session-list li"));
+        cut.WaitForAssertion(() => Assert.Contains("Reading", cut.FindAll(".status-badge").Select(b => b.TextContent)));
+    }
+
+    [Fact]
+    public void Rating_StarsAndClear()
+    {
+        var cut = RenderHome();
+        OpenBook(cut, "Mort");
+
+        cut.Find("#star-4").Click();
+        cut.WaitForAssertion(() => Assert.Equal("true", cut.Find("#star-4").GetAttribute("aria-pressed")));
+        Assert.Equal(4, _books[1].Rating);
+
+        cut.Find("#rating-clear").Click();
+        cut.WaitForAssertion(() => Assert.Null(_books[1].Rating));
+    }
+
+    [Fact]
+    public async Task Notes_AreSavedOnChange()
+    {
+        var cut = RenderHome();
+        OpenBook(cut, "Mort");
+
+        cut.Find("#reading-notes").Change("Death takes an apprentice.");
+
+        cut.WaitForAssertion(() => Assert.Equal("Death takes an apprentice.", cut.Find("#reading-notes").GetAttribute("value")));
+        Assert.Equal("Death takes an apprentice.", (await _reading.GetAsync(2, Xunit.TestContext.Current.CancellationToken))!.Notes);
+    }
+
+    [Fact]
+    public void Sessions_CanBeCorrected_Refused_AndDeleted()
+    {
+        _reading.AddSession(2, new DateOnly(2026, 2, 1), new DateOnly(2026, 3, 5));
+        var cut = RenderHome();
+        OpenBook(cut, "Mort");
+
+        cut.Find(".session-finished").Change("2026-02-12");
+        cut.WaitForAssertion(() => Assert.Equal(new DateOnly(2026, 2, 12), _reading.GetAsync(2, Xunit.TestContext.Current.CancellationToken).Result!.Sessions[0].FinishedOn));
+
+        cut.Find(".session-finished").Change("2026-01-01");
+        Assert.Contains("cannot finish before", cut.Find(".panel-error").TextContent);
+        Assert.Equal("2026-02-12", cut.Find(".session-finished").GetAttribute("value"));
+
+        cut.Find(".session-delete").Click();
+        cut.WaitForAssertion(() => Assert.Empty(cut.FindAll(".session-list li")));
     }
 
     // ---------- collections ----------

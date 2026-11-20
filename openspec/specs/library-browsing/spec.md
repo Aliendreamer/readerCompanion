@@ -202,3 +202,14 @@ book already in the library before this was recorded SHALL get the last-modified
 - **GIVEN** a scan finds a new book
 - **WHEN** the scan finishes
 - **THEN** the book's date added is the time of that scan, and later rescans do not change it
+
+### Requirement: Reading and owned filters
+
+The Library page SHALL filter by reading status (several may be picked) and by owned or wanted, where owned means
+the book has at least one file. Cards and table rows SHALL show a book's status unless it is not started.
+
+#### Scenario: Have but not read
+
+- **GIVEN** "Dune" read and "Mort" not started, both owned
+- **WHEN** the user picks the statuses "not started" and "want to read" and "owned"
+- **THEN** only "Mort" is shown

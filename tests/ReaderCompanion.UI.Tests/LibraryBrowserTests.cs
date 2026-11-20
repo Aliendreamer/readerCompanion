@@ -106,6 +106,21 @@ public class LibraryBrowserTests
     }
 
     [Fact]
+    public void StatusAndShelfFilters_HaveButNotRead()
+    {
+        var read = Dune with { ReadStatus = ReadStatus.Read };
+        var wanted = Book("Wanted") with { Owned = false };
+
+        var result = LibraryBrowser.Browse(
+            [read, Mort, wanted],
+            new BrowseQuery { Statuses = [ReadStatus.NotStarted, ReadStatus.WantToRead], Shelves = [Shelf.Owned] });
+
+        Assert.Equal(["Mort"], Titles(result));
+        Assert.True(new BrowseQuery { Shelves = [Shelf.Wanted] }.IsNarrowed);
+        Assert.Equal(["Wanted"], Titles(LibraryBrowser.Browse([read, Mort, wanted], new BrowseQuery { Shelves = [Shelf.Wanted] })));
+    }
+
+    [Fact]
     public void FormatFilter_MatchesABookWithAFileInThatFormat()
     {
         var epubOnly = Book("Epub only", formats: [BookFormat.Epub]);

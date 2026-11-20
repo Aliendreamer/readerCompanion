@@ -38,6 +38,7 @@ internal sealed class Duplicates(IDbContextFactory<LibraryDbContext> contexts, I
             .Include(b => b.Files)
             .Include(b => b.Genres)
             .Include(b => b.Collections)
+            .Include(b => b.Sessions)
             .Where(b => b.Id == keepId || others.Contains(b.Id))
             .ToListAsync(cancellationToken);
         if (loaded.Count != others.Count + 1)
@@ -46,6 +47,8 @@ internal sealed class Duplicates(IDbContextFactory<LibraryDbContext> contexts, I
         }
 
         var keep = loaded.Single(b => b.Id == keepId);
+        var extraOpenReads = ReadingLog.CombineOpen(loaded.SelectMany(b => b.Sessions));
+        db.ReadingSessions.RemoveRange(extraOpenReads);
         keep.EditedUtc = DateTime.UtcNow; // the user chose these details; scans keep them
         foreach (var other in loaded.Where(b => b.Id != keepId))
         {
@@ -64,6 +67,19 @@ internal sealed class Duplicates(IDbContextFactory<LibraryDbContext> contexts, I
                 keep.Collections.Add(new BookCollection { CollectionId = collectionId });
             }
 
+            foreach (var session in other.Sessions.Except(extraOpenReads).ToList())
+            {
+                session.BookId = keepId; // reading history is kept whole
+            }
+
+            if (keep.ReadStatus == ReadStatus.NotStarted)
+            {
+                keep.ReadStatus = other.ReadStatus;
+            }
+
+            keep.Rating ??= other.Rating;
+            keep.Notes = keep.Notes is null || other.Notes is null ? keep.Notes ?? other.Notes : $"{keep.Notes}\n\n{other.Notes}";
+
             if (other.DateAddedUtc < keep.DateAddedUtc)
             {
                 keep.DateAddedUtc = other.DateAddedUtc;
@@ -71,6 +87,12 @@ internal sealed class Duplicates(IDbContextFactory<LibraryDbContext> contexts, I
 
             keep.CoverFileName ??= other.CoverFileName;
             db.Books.Remove(other); // its author and genre links and its own dismissals go with it
+        }
+
+        // An open read (from either book) means the merged book is being read.
+        if (loaded.SelectMany(b => b.Sessions).Except(extraOpenReads).Any(s => s.FinishedOn is null))
+        {
+            keep.ReadStatus = ReadStatus.Reading;
         }
 
         // "Not duplicates" answers about the removed books now apply to the kept one.

@@ -316,7 +316,9 @@ svg {
 .filter-select,
 .edit-form input,
 .edit-form textarea,
-.collection-add input {
+.collection-add input,
+#reading-notes,
+.session-list input {
   padding: 0.45rem 0.65rem;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -331,7 +333,9 @@ svg {
 .filter-select:focus,
 .edit-form input:focus,
 .edit-form textarea:focus,
-.collection-add input:focus {
+.collection-add input:focus,
+#reading-notes:focus,
+.session-list input:focus {
   border-color: var(--accent);
 }
 
@@ -1071,4 +1075,105 @@ button.book-title:hover {
 .collection-add input {
   flex: 1;
   min-width: 0;
+}
+
+/* ---------- Reading ---------- */
+
+.status-badge {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.book-card .status-badge {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+}
+
+.status-abandoned {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+
+.status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.6rem;
+}
+
+.status-button {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.status-button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.rating-row {
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+  margin-bottom: 0.6rem;
+}
+
+.star {
+  padding: 0 0.1rem;
+  border: 0;
+  background: none;
+  color: var(--border);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.star.lit {
+  color: var(--accent);
+}
+
+.rating-row .link-button {
+  margin-left: 0.5rem;
+}
+
+#reading-notes {
+  width: 100%;
+  margin-bottom: 0.6rem;
+  background: var(--bg);
+  box-sizing: border-box;
+}
+
+.session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.session-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.session-list input {
+  padding: 0.2rem 0.35rem;
+  font-size: 0.8rem;
 }

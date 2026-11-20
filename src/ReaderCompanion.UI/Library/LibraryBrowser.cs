@@ -4,6 +4,13 @@ using ReaderCompanion.Core.Preferences;
 
 namespace ReaderCompanion.UI.Library;
 
+/// <summary>Whether a book is on the user's shelf (has files) or only wanted.</summary>
+public enum Shelf
+{
+    Owned,
+    Wanted,
+}
+
 /// <summary>What the user is looking for on the Library page. Several values in one filter match any of them;
 /// every active filter and the search must match.</summary>
 public sealed record BrowseQuery
@@ -18,6 +25,10 @@ public sealed record BrowseQuery
 
     public IReadOnlyCollection<BookFormat> Formats { get; init; } = [];
 
+    public IReadOnlyCollection<ReadStatus> Statuses { get; init; } = [];
+
+    public IReadOnlyCollection<Shelf> Shelves { get; init; } = [];
+
     public bool MissingOnly { get; init; }
 
     public LibraryGroup Group { get; init; }
@@ -26,7 +37,8 @@ public sealed record BrowseQuery
 
     /// <summary>True when a filter or the search hides books.</summary>
     public bool IsNarrowed => !string.IsNullOrWhiteSpace(Search)
-        || Genres.Count > 0 || Authors.Count > 0 || Collections.Count > 0 || Formats.Count > 0 || MissingOnly;
+        || Genres.Count > 0 || Authors.Count > 0 || Collections.Count > 0 || Formats.Count > 0 || MissingOnly
+        || Statuses.Count > 0 || Shelves.Count > 0;
 }
 
 /// <summary>A run of books under one heading; <see cref="Name"/> is null when the books are not grouped.
@@ -84,6 +96,8 @@ public static class LibraryBrowser
         && AnyOf(query.Collections, Collections(book))
         && (query.Formats.Count == 0 || book.Formats.Any(query.Formats.Contains))
         && (!query.MissingOnly || book.FileMissing)
+        && (query.Statuses.Count == 0 || query.Statuses.Contains(book.ReadStatus))
+        && (query.Shelves.Count == 0 || query.Shelves.Contains(book.Owned ? Shelf.Owned : Shelf.Wanted))
         && MatchesSearch(book, query.Search.Trim());
 
     private static bool AnyOf(IReadOnlyCollection<string> picked, IEnumerable<string> values) =>

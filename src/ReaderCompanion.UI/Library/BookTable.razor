@@ -24,6 +24,7 @@
           }
         </td>
         <td class="col-status">
+          <StatusBadge Status="book.ReadStatus" />
           @if (book.FileMissing)
           {
             <span class="book-missing">missing file</span>

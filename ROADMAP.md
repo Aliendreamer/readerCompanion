@@ -28,7 +28,7 @@ All data lives in a local SQLite file you can back up by hand.
 | M1 — Local folder scan | Done | `openspec/changes/archive/2026-11-19-add-local-folder-scan/` |
 | UI look — sidebar, cover grid / table toggle, dark theme | Done | `openspec/changes/archive/2026-11-20-add-library-look/` |
 | M2 — Library views and duplicates | Done | `openspec/changes/archive/2026-11-20-add-*` (browse, book details, duplicates, user collections) |
-| M3 — Reading tracking | Next | this file |
+| M3 — Reading tracking | In progress — status, reads, rating, notes, filters done | this file |
 | M4–M8 | Not started | this file |
 
 ## Guiding principles
@@ -239,3 +239,5 @@ None right now.
   ISBN), side-by-side merge that keeps all files, "not duplicates" remembered. The scan's split rule now only splits
   a changed file off when an identical copy remains, so merged books stay merged.
 - **2026-11-20** — M2 done: user collections added (from the book panel; browse treats them like series). Next: M3.
+- **2026-11-20** — M3 first slice: reading status, dated reads (re-reads count), rating, notes, status and owned/wanted
+  filters. Owned = has files; wanted books come with M6. Next: the stats page.

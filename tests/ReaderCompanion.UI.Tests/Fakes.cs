@@ -135,6 +135,8 @@ internal sealed class FakeCoverUrls : ICoverUrls
 
 internal sealed class FakeBooks(List<BookListItem> books) : ILibraryBooks
 {
+    public List<BookListItem> Books => books;
+
     /// <summary>Files per book id; books without an entry have none.</summary>
     public Dictionary<int, IReadOnlyList<BookFileInfo>> Files { get; } = [];
 
@@ -252,6 +254,84 @@ internal sealed class FakeDuplicates : IDuplicates
     }
 }
 
+/// <summary>Reading data in memory; status and rating changes also show in the book list.</summary>
+internal sealed class FakeReading(List<BookListItem> books) : IReading
+{
+    private readonly Dictionary<int, (ReadStatus Status, int? Rating, string? Notes, List<ReadingSession> Sessions)> _data = [];
+    private int _nextSession = 1;
+
+    public DateOnly? LastToday { get; private set; }
+
+    private (ReadStatus Status, int? Rating, string? Notes, List<ReadingSession> Sessions) Data(int id) =>
+        _data.TryGetValue(id, out var d) ? d : _data[id] = (ReadStatus.NotStarted, null, null, []);
+
+    public void AddSession(int bookId, DateOnly? started, DateOnly? finished) =>
+        Data(bookId).Sessions.Add(new ReadingSession { Id = _nextSession++, BookId = bookId, StartedOn = started, FinishedOn = finished });
+
+    public Task<ReadingInfo?> GetAsync(int bookId, CancellationToken cancellationToken = default)
+    {
+        if (books.All(b => b.Id != bookId))
+        {
+            return Task.FromResult<ReadingInfo?>(null);
+        }
+
+        var d = Data(bookId);
+        return Task.FromResult<ReadingInfo?>(new ReadingInfo(d.Status, d.Rating, d.Notes,
+            [.. d.Sessions.OrderByDescending(s => s.Id).Select(s => new SessionInfo(s.Id, s.StartedOn, s.FinishedOn, s.Abandoned))]));
+    }
+
+    public Task<bool> SetStatusAsync(int bookId, ReadStatus status, DateOnly today, CancellationToken cancellationToken = default)
+    {
+        LastToday = today;
+        var d = Data(bookId);
+        var before = d.Sessions.Count;
+        ReadingLog.ChangeStatus(d.Sessions, status, today);
+        foreach (var added in d.Sessions.Skip(before))
+        {
+            added.Id = _nextSession++;
+        }
+
+        _data[bookId] = d with { Status = status };
+        Sync(bookId);
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> SetRatingAsync(int bookId, int? rating, CancellationToken cancellationToken = default)
+    {
+        _data[bookId] = Data(bookId) with { Rating = rating };
+        Sync(bookId);
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> SetNotesAsync(int bookId, string? notes, CancellationToken cancellationToken = default)
+    {
+        _data[bookId] = Data(bookId) with { Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim() };
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> UpdateSessionAsync(int sessionId, DateOnly? startedOn, DateOnly? finishedOn, CancellationToken cancellationToken = default)
+    {
+        if (ReadingLog.DateError(startedOn, finishedOn) is { } error)
+        {
+            throw new ArgumentException(error);
+        }
+
+        var session = _data.Values.SelectMany(d => d.Sessions).Single(x => x.Id == sessionId);
+        session.StartedOn = startedOn;
+        session.FinishedOn = finishedOn;
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> DeleteSessionAsync(int sessionId, CancellationToken cancellationToken = default) =>
+        Task.FromResult(_data.Values.Any(d => d.Sessions.RemoveAll(x => x.Id == sessionId) > 0));
+
+    private void Sync(int bookId)
+    {
+        var index = books.FindIndex(b => b.Id == bookId);
+        books[index] = books[index] with { ReadStatus = Data(bookId).Status, Rating = Data(bookId).Rating };
+    }
+}
+
 internal sealed class FakeLauncher : IFileLauncher
 {
     public List<string> Opened { get; } = [];
@@ -284,10 +364,13 @@ internal static class TestServices
         FakeSystemTheme? systemTheme = null,
         FakeBooks? libraryBooks = null,
         FakeLauncher? launcher = null,
-        FakeDuplicates? duplicates = null)
+        FakeDuplicates? duplicates = null,
+        FakeReading? reading = null)
     {
+        books ??= libraryBooks?.Books ?? [];
+        services.AddSingleton<IReading>(reading ?? new FakeReading(books));
         services.AddSingleton<IDuplicates>(duplicates ?? new FakeDuplicates());
-        services.AddSingleton<ILibraryBooks>(libraryBooks ?? new FakeBooks(books ?? []));
+        services.AddSingleton<ILibraryBooks>(libraryBooks ?? new FakeBooks(books));
         services.AddSingleton<IFileLauncher>(launcher ?? new FakeLauncher());
         services.AddSingleton<ILibraryFolders>(new FakeFolders());
         services.AddSingleton<ILibraryScanner>(new FakeScanner());

@@ -49,6 +49,8 @@
       <p class="panel-note">Edited by you — scans keep these details.</p>
     }
 
+    <ReadingSection BookId="BookId" OnChanged="OnSaved" />
+
     <div class="panel-collections">
       <h3 class="panel-heading">Collections</h3>
       @if (book.Collections.Count > 0)

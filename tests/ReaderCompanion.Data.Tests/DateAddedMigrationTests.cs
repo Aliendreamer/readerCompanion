@@ -33,6 +33,24 @@ public sealed class DateAddedMigrationTests : IDisposable
         Assert.True(dates["Fileless"] > new DateTime(2026, 1, 1));
     }
 
+    [Fact]
+    public async Task ExistingBooks_AreNotStarted_AfterTheReadingMigration()
+    {
+        var path = Path.Combine(_root, "reading.db");
+        using var provider = new ServiceCollection().AddLibraryData(path).BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<LibraryDbContext>();
+        var migrator = db.GetInfrastructure().GetRequiredService<IMigrator>();
+        migrator.Migrate(db.Database.GetMigrations().Single(m => m.EndsWith("_AddUserCollections", StringComparison.Ordinal)));
+        db.Database.ExecuteSqlRaw("INSERT INTO Books (Id, Title, DateAddedUtc) VALUES (1, 'Old', '2024-01-01 00:00:00');");
+
+        migrator.Migrate();
+
+        var books = await scope.ServiceProvider.GetRequiredService<ReaderCompanion.Core.Library.ILibraryBooks>()
+            .ListAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(ReaderCompanion.Core.Library.ReadStatus.NotStarted, Assert.Single(books).ReadStatus);
+    }
+
     public void Dispose()
     {
         SqliteConnection.ClearAllPools();

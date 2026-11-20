@@ -19,12 +19,16 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
 
     public DbSet<DismissedDuplicate> DismissedDuplicates => Set<DismissedDuplicate>();
 
+    public DbSet<ReadingSession> ReadingSessions => Set<ReadingSession>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Book>(book =>
         {
             book.HasOne(b => b.Series).WithMany().HasForeignKey(b => b.SeriesId).OnDelete(DeleteBehavior.SetNull);
             book.Property(b => b.SeriesIndex).HasConversion<double?>();
+            book.Property(b => b.ReadStatus).HasConversion<string>();
+            book.HasMany(b => b.Sessions).WithOne().HasForeignKey(s => s.BookId);
         });
 
         modelBuilder.Entity<Author>().HasIndex(a => a.NormalizedName).IsUnique();

@@ -15,6 +15,15 @@ public static class BookText
         : book.SeriesIndex is { } index ? $"{book.Series} #{SeriesNumber(index)}"
         : book.Series;
 
+    public static string StatusLabel(ReadStatus status) => status switch
+    {
+        ReadStatus.WantToRead => "Want to read",
+        ReadStatus.Reading => "Reading",
+        ReadStatus.Read => "Read",
+        ReadStatus.Abandoned => "Abandoned",
+        _ => "Not started",
+    };
+
     /// <summary>A file format as shown on screen: EPUB, PDF.</summary>
     public static string FormatLabel(BookFormat format) => format.ToString().ToUpperInvariant();
 

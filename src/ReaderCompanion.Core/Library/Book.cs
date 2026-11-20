@@ -32,6 +32,15 @@ public sealed class Book
 
     public List<BookFile> Files { get; set; } = [];
 
+    public ReadStatus ReadStatus { get; set; }
+
+    /// <summary>1 to 5, or null when not rated.</summary>
+    public int? Rating { get; set; }
+
+    public string? Notes { get; set; }
+
+    public List<ReadingSession> Sessions { get; set; } = [];
+
     /// <summary>The user's own collections this book is in; scans never change them.</summary>
     public List<BookCollection> Collections { get; set; } = [];
 }

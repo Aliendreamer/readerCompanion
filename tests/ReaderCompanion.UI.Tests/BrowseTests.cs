@@ -84,6 +84,19 @@ public class BrowseTests : BunitContext
         Assert.Equal(["Good Omens"], Titles(cut));
     }
 
+    [Fact]
+    public void StatusFilter_AndBadge()
+    {
+        _books[0] = _books[0] with { ReadStatus = ReadStatus.Read };
+        var cut = RenderHome();
+
+        Assert.Equal("Read", cut.Find(".status-badge").TextContent);
+
+        cut.Find("#filter-status").Change("Read");
+
+        Assert.Equal(["Dune"], Titles(cut));
+    }
+
     // ---------- 3.2 sections ----------
 
     [Theory]

@@ -1,0 +1,128 @@
+@using System.Globalization
+@using ReaderCompanion.Core.Library
+@inject IReading Reading
+
+@* The user's reading of one book: status, rating, note and the dated reads. *@
+
+<section class="reading">
+  <h3 class="panel-heading">Reading</h3>
+
+  @if (_info is { } info)
+  {
+    <div class="status-row" role="group" aria-label="Reading status">
+      @foreach (var status in Enum.GetValues<ReadStatus>())
+      {
+        <button id="status-@status" type="button" class="status-button" aria-pressed="@(info.Status == status ? "true" : "false")"
+                @onclick="() => ChangeAsync(() => Reading.SetStatusAsync(BookId, status, Today), listChanges: true)">
+          @BookText.StatusLabel(status)
+        </button>
+      }
+    </div>
+
+    <div class="rating-row" role="group" aria-label="Rating">
+      @for (var stars = 1; stars <= 5; stars++)
+      {
+        var value = stars;
+        <button id="star-@value" type="button" class="star @(info.Rating >= value ? "lit" : null)"
+                aria-label="@value star@(value == 1 ? "" : "s")" aria-pressed="@(info.Rating == value ? "true" : "false")"
+                @onclick="() => ChangeAsync(() => Reading.SetRatingAsync(BookId, value), listChanges: true)">★</button>
+      }
+      @if (info.Rating is not null)
+      {
+        <button id="rating-clear" type="button" class="link-button" @onclick="() => ChangeAsync(() => Reading.SetRatingAsync(BookId, null), listChanges: true)">
+          Clear
+        </button>
+      }
+    </div>
+
+    <label class="visually-hidden" for="reading-notes">Note</label>
+    <textarea id="reading-notes" rows="3" placeholder="A short note…" value="@info.Notes"
+              @onchange="e => ChangeAsync(() => Reading.SetNotesAsync(BookId, e.Value as string))"></textarea>
+
+    @if (info.Sessions.Count > 0)
+    {
+      <ul class="session-list">
+        @foreach (var session in info.Sessions)
+        {
+          <li @key="(session.Id, _version)">
+            <input type="date" class="session-started" aria-label="Started" value="@Date(session.StartedOn)"
+                   @onchange="e => ChangeDatesAsync(session.Id, Parse(e), session.FinishedOn)" />
+            <span aria-hidden="true">→</span>
+            <input type="date" class="session-finished" aria-label="Finished" value="@Date(session.FinishedOn)"
+                   @onchange="e => ChangeDatesAsync(session.Id, session.StartedOn, Parse(e))" />
+            @if (session.Abandoned)
+            {
+              <span class="muted">abandoned</span>
+            }
+            <button type="button" class="link-button session-delete" aria-label="Delete this read"
+                    @onclick="() => ChangeAsync(() => Reading.DeleteSessionAsync(session.Id))">Delete</button>
+          </li>
+        }
+      </ul>
+    }
+
+    @if (_error is not null)
+    {
+      <p class="panel-error" role="alert">@_error</p>
+    }
+  }
+</section>
+
+@code {
+  [Parameter, EditorRequired] public int BookId { get; set; }
+
+  /// <summary>Raised after the status or rating changed, so the book list can show it.</summary>
+  [Parameter] public EventCallback OnChanged { get; set; }
+
+  private ReadingInfo? _info;
+  private string? _error;
+  private readonly SemaphoreSlim _oneAtATime = new(1, 1);
+  private int _version; // bumped to rebuild the date inputs, so a refused date shows the saved one again
+
+  private static DateOnly Today => DateOnly.FromDateTime(DateTime.Now);
+
+  protected override async Task OnInitializedAsync() => _info = await Reading.GetAsync(BookId);
+
+  private static string? Date(DateOnly? date) => date?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+  private static DateOnly? Parse(ChangeEventArgs e) =>
+    DateOnly.TryParseExact(e.Value as string, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d) ? d : null;
+
+  private Task ChangeDatesAsync(int sessionId, DateOnly? startedOn, DateOnly? finishedOn)
+  {
+    if (ReadingLog.DateError(startedOn, finishedOn) is { } error)
+    {
+      _error = error;
+      _version++;
+      return Task.CompletedTask;
+    }
+
+    return ChangeAsync(() => Reading.UpdateSessionAsync(sessionId, startedOn, finishedOn));
+  }
+
+  // Changes run one after another (a note saved while a star is clicked is not lost); a failed change is shown.
+  private async Task ChangeAsync(Func<Task<bool>> change, bool listChanges = false)
+  {
+    await _oneAtATime.WaitAsync();
+    _error = null;
+    try
+    {
+      await change();
+    }
+    catch (Exception e) when (e is not OperationCanceledException)
+    {
+      _error = $"That could not be saved: {e.Message}";
+      _version++;
+    }
+    finally
+    {
+      _oneAtATime.Release();
+    }
+
+    _info = await Reading.GetAsync(BookId);
+    if (listChanges)
+    {
+      await OnChanged.InvokeAsync();
+    }
+  }
+}

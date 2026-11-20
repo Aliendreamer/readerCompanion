@@ -10,6 +10,7 @@
         {
           <span class="book-missing">missing file</span>
         }
+        <StatusBadge Status="book.ReadStatus" />
       </div>
       <button type="button" class="book-title" title="@book.Title" @onclick="() => OnSelect.InvokeAsync(book)">@book.Title</button>
       <span class="book-authors">@BookText.Authors(book)</span>

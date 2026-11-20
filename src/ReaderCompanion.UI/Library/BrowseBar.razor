@@ -36,6 +36,10 @@
                   Picked="Query.Collections" PickedChanged="v => Change(Query with { Collections = v })" />
     <FilterPicker TValue="BookFormat" Id="filter-format" Label="Format" Options="Options.Formats" Picked="Query.Formats"
                   Text="BookText.FormatLabel" PickedChanged="v => Change(Query with { Formats = v })" />
+    <FilterPicker TValue="ReadStatus" Id="filter-status" Label="Status" Options="AllStatuses" Picked="Query.Statuses"
+                  Text="BookText.StatusLabel" PickedChanged="v => Change(Query with { Statuses = v })" />
+    <FilterPicker TValue="Shelf" Id="filter-shelf" Label="Owned / wanted" Options="AllShelves" Picked="Query.Shelves"
+                  PickedChanged="v => Change(Query with { Shelves = v })" />
     <label class="browse-check">
       <input id="browse-missing" type="checkbox" checked="@Query.MissingOnly"
              @onchange="e => Change(Query with { MissingOnly = e.Value is true })" />
@@ -57,6 +61,9 @@
 
   // Grouped by collection, books always read in series order, so the sort has no effect.
   private bool SortFixed => Query.Group == LibraryGroup.Collection;
+
+  private static readonly IReadOnlyList<ReadStatus> AllStatuses = Enum.GetValues<ReadStatus>();
+  private static readonly IReadOnlyList<Shelf> AllShelves = Enum.GetValues<Shelf>();
 
   private Task Change(BrowseQuery query) => QueryChanged.InvokeAsync(query);
 

@@ -60,6 +60,16 @@ namespace ReaderCompanion.Data.Migrations
                     b.Property<string>("Language")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("Rating")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ReadStatus")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("SeriesId")
                         .HasColumnType("INTEGER");
 
@@ -258,6 +268,31 @@ namespace ReaderCompanion.Data.Migrations
                     b.ToTable("LibraryFolders");
                 });
 
+            modelBuilder.Entity("ReaderCompanion.Core.Library.ReadingSession", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Abandoned")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BookId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly?>("FinishedOn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("StartedOn")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookId");
+
+                    b.ToTable("ReadingSessions");
+                });
+
             modelBuilder.Entity("ReaderCompanion.Core.Library.Book", b =>
                 {
                     b.HasOne("ReaderCompanion.Core.Library.Collection", "Series")
@@ -351,6 +386,15 @@ namespace ReaderCompanion.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("ReaderCompanion.Core.Library.ReadingSession", b =>
+                {
+                    b.HasOne("ReaderCompanion.Core.Library.Book", null)
+                        .WithMany("Sessions")
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("ReaderCompanion.Core.Library.Book", b =>
                 {
                     b.Navigation("Authors");
@@ -360,6 +404,8 @@ namespace ReaderCompanion.Data.Migrations
                     b.Navigation("Files");
 
                     b.Navigation("Genres");
+
+                    b.Navigation("Sessions");
                 });
 #pragma warning restore 612, 618
         }

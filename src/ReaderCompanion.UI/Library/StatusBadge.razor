@@ -1,0 +1,10 @@
+@using ReaderCompanion.Core.Library
+
+@if (Status != ReadStatus.NotStarted)
+{
+  <span class="status-badge status-@Status.ToString().ToLowerInvariant()">@BookText.StatusLabel(Status)</span>
+}
+
+@code {
+  [Parameter] public ReadStatus Status { get; set; }
+}

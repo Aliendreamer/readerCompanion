@@ -21,6 +21,13 @@ public sealed record BookListItem(
     public IReadOnlyList<BookFormat> Formats { get; init; } = [];
 
     public DateTime DateAddedUtc { get; init; }
+
+    public ReadStatus ReadStatus { get; init; }
+
+    public int? Rating { get; init; }
+
+    /// <summary>True when the book has at least one file; wanted books (from M6's import) have none.</summary>
+    public bool Owned { get; init; } = true;
 }
 
 /// <summary>One file of a book. <see cref="Present"/> is false when the last scan did not find it.</summary>

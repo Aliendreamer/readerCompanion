@@ -20,6 +20,8 @@ internal sealed class LibraryBooks(IDbContextFactory<LibraryDbContext> contexts)
         Collections = b.Collections.Select(c => c.Collection.Name).OrderBy(n => n).ToList(),
         Formats = b.Files.Select(f => f.Format).ToList(),
         DateAddedUtc = b.DateAddedUtc,
+        ReadStatus = b.ReadStatus,
+        Rating = b.Rating,
     };
 
     public async Task<IReadOnlyList<BookListItem>> ListAsync(CancellationToken cancellationToken = default)
@@ -137,6 +139,8 @@ internal sealed class LibraryBooks(IDbContextFactory<LibraryDbContext> contexts)
         return true;
     }
 
-    // SQLite cannot de-duplicate inside a nested collection, so formats are made distinct here.
-    private static BookListItem DistinctFormats(BookListItem book) => book with { Formats = [.. book.Formats.Distinct().Order()] };
+    // SQLite cannot de-duplicate inside a nested collection, so formats are made distinct here; a book is owned
+    // when it has any file at all.
+    private static BookListItem DistinctFormats(BookListItem book) =>
+        book with { Formats = [.. book.Formats.Distinct().Order()], Owned = book.Formats.Count > 0 };
 }
