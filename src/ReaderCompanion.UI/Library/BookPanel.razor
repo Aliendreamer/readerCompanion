@@ -49,6 +49,32 @@
       <p class="panel-note">Edited by you — scans keep these details.</p>
     }
 
+    <div class="panel-collections">
+      <h3 class="panel-heading">Collections</h3>
+      @if (book.Collections.Count > 0)
+      {
+        <div class="chips">
+          @foreach (var collection in book.Collections)
+          {
+            <RemovableChip Text="@collection" RemoveLabel="@($"Remove from {collection}")"
+                           OnRemove="() => RemoveCollectionAsync(collection)" />
+          }
+        </div>
+      }
+      <div class="collection-add">
+        <input id="collection-name" list="collection-suggestions" placeholder="Add to a collection…"
+               aria-label="Add to a collection" @bind="_newCollection" @bind:event="oninput"
+               @onkeydown="CollectionKeyDown" />
+        <datalist id="collection-suggestions">
+          @foreach (var name in AllCollections)
+          {
+            <option value="@name"></option>
+          }
+        </datalist>
+        <button id="collection-add" type="button" class="btn btn-small" @onclick="AddCollectionAsync">Add</button>
+      </div>
+    </div>
+
     <button id="panel-edit" type="button" class="btn" @onclick="StartEdit">Edit details</button>
 
     <h3 class="panel-heading">Files</h3>
@@ -71,9 +97,9 @@
         </li>
       }
     </ul>
-    @if (_launchError is not null)
+    @if (_error is not null)
     {
-      <p class="panel-error" role="alert">@_launchError</p>
+      <p class="panel-error" role="alert">@_error</p>
     }
   }
 </aside>
@@ -83,15 +109,20 @@
 
   [Parameter] public EventCallback OnClose { get; set; }
 
-  /// <summary>Raised after the book's details were saved, so the list can refresh.</summary>
+  /// <summary>Raised after the book's details or collections changed, so the list can refresh.</summary>
   [Parameter] public EventCallback OnSaved { get; set; }
+
+  /// <summary>The user's existing collections, offered as suggestions.</summary>
+  [Parameter] public IReadOnlyList<string> AllCollections { get; set; } = [];
 
   private ElementReference _panel;
   private BookDetails? _details;
   private BookForm? _form;
   private string? _formError;
-  private string? _launchError;
+  private string? _error;
   private bool _gone;
+  private string _newCollection = "";
+  private bool _changingCollections;
   private bool _refocus = true;
 
   // The page keys the panel on the book, so each pick gets a fresh panel.
@@ -165,11 +196,55 @@
     await OnSaved.InvokeAsync();
   }
 
+  private Task AddCollectionAsync()
+  {
+    var name = _newCollection;
+    if (string.IsNullOrWhiteSpace(name))
+    {
+      return Task.CompletedTask;
+    }
+
+    _newCollection = ""; // taken now, so typing on (or a second Enter) cannot resend it
+    return ChangeCollectionsAsync(() => Books.AddToCollectionAsync(BookId, name));
+  }
+
+  private Task CollectionKeyDown(KeyboardEventArgs e) => e.Key == "Enter" ? AddCollectionAsync() : Task.CompletedTask;
+
+  private Task RemoveCollectionAsync(string name) => ChangeCollectionsAsync(() => Books.RemoveFromCollectionAsync(BookId, name));
+
+  // One collection change at a time; a failure is shown instead of breaking the panel.
+  private async Task ChangeCollectionsAsync(Func<Task<bool>> change)
+  {
+    if (_changingCollections)
+    {
+      return;
+    }
+
+    _changingCollections = true;
+    _error = null;
+    try
+    {
+      await change();
+    }
+    catch (Exception e) when (e is not OperationCanceledException)
+    {
+      _error = $"The collections could not be changed: {e.Message}";
+      return;
+    }
+    finally
+    {
+      _changingCollections = false;
+    }
+
+    await LoadAsync();
+    await OnSaved.InvokeAsync();
+  }
+
   private void OpenFile(string path) =>
-    _launchError = Launcher.Open(path) ? null : $"Could not open {Path.GetFileName(path)}.";
+    _error = Launcher.Open(path) ? null : $"Could not open {Path.GetFileName(path)}.";
 
   private void ShowFolder(string path) =>
-    _launchError = Launcher.ShowInFolder(path) ? null : $"Could not show the folder of {Path.GetFileName(path)}.";
+    _error = Launcher.ShowInFolder(path) ? null : $"Could not show the folder of {Path.GetFileName(path)}.";
 
   private static string Size(long bytes) => bytes switch
   {

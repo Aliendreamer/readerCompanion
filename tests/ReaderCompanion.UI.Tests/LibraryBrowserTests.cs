@@ -94,6 +94,18 @@ public class LibraryBrowserTests
     }
 
     [Fact]
+    public void UserCollections_CountAsCollections_InOptionsFilterAndGrouping()
+    {
+        var mort = Mort with { Collections = ["Book club"] };
+
+        Assert.Equal(["Book club", "Discworld"], LibraryBrowser.Options([mort, Dune]).Collections);
+        Assert.Equal(["Mort"], Titles(LibraryBrowser.Browse([mort, Dune], new BrowseQuery { Collections = ["Book club"] })));
+        Assert.Equal(
+            ["Book club", "Discworld", "No collection"],
+            LibraryBrowser.Browse([mort, Dune], new BrowseQuery { Group = LibraryGroup.Collection }).Sections.Select(s => s.Name));
+    }
+
+    [Fact]
     public void FormatFilter_MatchesABookWithAFileInThatFormat()
     {
         var epubOnly = Book("Epub only", formats: [BookFormat.Epub]);

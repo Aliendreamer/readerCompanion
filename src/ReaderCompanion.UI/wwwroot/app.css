@@ -315,7 +315,8 @@ svg {
 .browse-select select,
 .filter-select,
 .edit-form input,
-.edit-form textarea {
+.edit-form textarea,
+.collection-add input {
   padding: 0.45rem 0.65rem;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -329,7 +330,8 @@ svg {
 .browse-select select:focus,
 .filter-select:focus,
 .edit-form input:focus,
-.edit-form textarea:focus {
+.edit-form textarea:focus,
+.collection-add input:focus {
   border-color: var(--accent);
 }
 
@@ -346,7 +348,8 @@ svg {
   accent-color: var(--accent);
 }
 
-.filter-picker {
+.filter-picker,
+.panel-collections .chips {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1051,4 +1054,21 @@ button.book-title:hover {
 
 .dup-question {
   font-size: 0.9rem;
+}
+
+/* ---------- Book collections (panel) ---------- */
+
+.panel-collections .chips {
+  margin-bottom: 0.6rem;
+}
+
+.collection-add {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.collection-add input {
+  flex: 1;
+  min-width: 0;
 }

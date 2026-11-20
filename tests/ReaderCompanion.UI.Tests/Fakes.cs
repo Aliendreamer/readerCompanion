@@ -165,6 +165,28 @@ internal sealed class FakeBooks(List<BookListItem> books) : ILibraryBooks
         return found;
     }
 
+    public Task<bool> AddToCollectionAsync(int id, string name, CancellationToken cancellationToken = default) =>
+        ChangeCollections(id, names => [.. names.Append(name.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Order()]);
+
+    public Task<bool> RemoveFromCollectionAsync(int id, string name, CancellationToken cancellationToken = default) =>
+        ChangeCollections(id, names => [.. names.Where(n => !n.Equals(name.Trim(), StringComparison.OrdinalIgnoreCase))]);
+
+    private Task<bool> ChangeCollections(int id, Func<IReadOnlyList<string>, string[]> change)
+    {
+        if (FailUpdates)
+        {
+            throw new InvalidOperationException("database is locked");
+        }
+
+        var index = books.FindIndex(b => b.Id == id);
+        if (index >= 0)
+        {
+            books[index] = books[index] with { Collections = change(books[index].Collections) };
+        }
+
+        return Task.FromResult(index >= 0);
+    }
+
     public Task<bool> UpdateAsync(int id, BookEdit edit, CancellationToken cancellationToken = default)
     {
         if (FailUpdates)

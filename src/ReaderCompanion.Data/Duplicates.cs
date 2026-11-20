@@ -37,6 +37,7 @@ internal sealed class Duplicates(IDbContextFactory<LibraryDbContext> contexts, I
         var loaded = await db.Books
             .Include(b => b.Files)
             .Include(b => b.Genres)
+            .Include(b => b.Collections)
             .Where(b => b.Id == keepId || others.Contains(b.Id))
             .ToListAsync(cancellationToken);
         if (loaded.Count != others.Count + 1)
@@ -56,6 +57,11 @@ internal sealed class Duplicates(IDbContextFactory<LibraryDbContext> contexts, I
             foreach (var genreId in other.Genres.Select(g => g.GenreId).Except(keep.Genres.Select(g => g.GenreId)))
             {
                 keep.Genres.Add(new BookGenre { GenreId = genreId });
+            }
+
+            foreach (var collectionId in other.Collections.Select(c => c.CollectionId).Except(keep.Collections.Select(c => c.CollectionId)))
+            {
+                keep.Collections.Add(new BookCollection { CollectionId = collectionId });
             }
 
             if (other.DateAddedUtc < keep.DateAddedUtc)

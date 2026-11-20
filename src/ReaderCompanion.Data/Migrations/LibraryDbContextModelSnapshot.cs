@@ -95,6 +95,21 @@ namespace ReaderCompanion.Data.Migrations
                     b.ToTable("BookAuthor");
                 });
 
+            modelBuilder.Entity("ReaderCompanion.Core.Library.BookCollection", b =>
+                {
+                    b.Property<int>("BookId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CollectionId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("BookId", "CollectionId");
+
+                    b.HasIndex("CollectionId");
+
+                    b.ToTable("BookCollection");
+                });
+
             modelBuilder.Entity("ReaderCompanion.Core.Library.BookFile", b =>
                 {
                     b.Property<int>("Id")
@@ -272,6 +287,25 @@ namespace ReaderCompanion.Data.Migrations
                     b.Navigation("Book");
                 });
 
+            modelBuilder.Entity("ReaderCompanion.Core.Library.BookCollection", b =>
+                {
+                    b.HasOne("ReaderCompanion.Core.Library.Book", "Book")
+                        .WithMany("Collections")
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ReaderCompanion.Core.Library.Collection", "Collection")
+                        .WithMany()
+                        .HasForeignKey("CollectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Book");
+
+                    b.Navigation("Collection");
+                });
+
             modelBuilder.Entity("ReaderCompanion.Core.Library.BookFile", b =>
                 {
                     b.HasOne("ReaderCompanion.Core.Library.Book", "Book")
@@ -320,6 +354,8 @@ namespace ReaderCompanion.Data.Migrations
             modelBuilder.Entity("ReaderCompanion.Core.Library.Book", b =>
                 {
                     b.Navigation("Authors");
+
+                    b.Navigation("Collections");
 
                     b.Navigation("Files");
 

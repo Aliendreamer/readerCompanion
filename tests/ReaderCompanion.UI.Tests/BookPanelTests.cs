@@ -129,6 +129,76 @@ public class BookPanelTests : BunitContext
         Assert.Contains("Could not open mort.epub", cut.Find(".panel-error").TextContent);
     }
 
+    // ---------- collections ----------
+
+    [Fact]
+    public void Collections_AreListed_AndExistingOnesSuggested()
+    {
+        _books[0] = _books[0] with { Collections = ["Favourites"] };
+        _books[1] = _books[1] with { Collections = ["Book club"] };
+        var cut = RenderHome();
+        OpenBook(cut, "Mort");
+
+        Assert.Equal(["Book club"], cut.FindAll(".panel-collections .chip").Select(c => c.TextContent.Replace("×", "").Trim()));
+        Assert.Equal(["Book club", "Favourites"], cut.FindAll("#collection-suggestions option").Select(o => o.GetAttribute("value")));
+    }
+
+    [Fact]
+    public void AddingACollection_ShowsIt_AndTheLibraryCanFilterByIt()
+    {
+        var cut = RenderHome();
+        OpenBook(cut, "Mort");
+
+        cut.Find("#collection-name").Input("Book club");
+        cut.Find("#collection-add").Click();
+
+        cut.WaitForAssertion(() => Assert.Contains("Book club", cut.Find(".panel-collections").TextContent));
+        Assert.Equal("", cut.Find("#collection-name").GetAttribute("value"));
+        cut.WaitForAssertion(() => Assert.Contains("Book club", cut.FindAll("#filter-collection option").Select(o => o.TextContent)));
+    }
+
+    [Fact]
+    public void Enter_AddsTheCollection_BlankIsIgnored()
+    {
+        var cut = RenderHome();
+        OpenBook(cut, "Mort");
+
+        cut.Find("#collection-name").Input("   ");
+        cut.Find("#collection-name").KeyDown("Enter");
+        Assert.Empty(cut.FindAll(".panel-collections .chip"));
+
+        cut.Find("#collection-name").Input("Favourites");
+        cut.Find("#collection-name").KeyDown("Enter");
+        cut.WaitForAssertion(() => Assert.Single(cut.FindAll(".panel-collections .chip")));
+    }
+
+    [Fact]
+    public void AddingACollection_Failure_IsShown()
+    {
+        _libraryBooks.FailUpdates = true;
+        var cut = RenderHome();
+        OpenBook(cut, "Mort");
+
+        cut.Find("#collection-name").Input("Book club");
+        cut.Find("#collection-add").Click();
+
+        Assert.Contains("could not be changed", cut.Find(".panel-error").TextContent);
+        Assert.Empty(cut.FindAll(".panel-collections .chip"));
+    }
+
+    [Fact]
+    public void RemovingACollection_TakesTheBookOut()
+    {
+        _books[1] = _books[1] with { Collections = ["Book club"] };
+        var cut = RenderHome();
+        OpenBook(cut, "Mort");
+
+        cut.Find(".panel-collections .chip").Click();
+
+        cut.WaitForAssertion(() => Assert.Empty(cut.FindAll(".panel-collections .chip")));
+        Assert.Empty(_books[1].Collections);
+    }
+
     // ---------- 3.2 edit ----------
 
     [Fact]

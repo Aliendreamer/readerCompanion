@@ -1,0 +1,13 @@
+@* A picked value shown as a pill; clicking it removes the value. *@
+<button type="button" class="chip" aria-label="@RemoveLabel" @onclick="OnRemove">
+  @Text <span aria-hidden="true">×</span>
+</button>
+
+@code {
+  [Parameter, EditorRequired] public string Text { get; set; } = "";
+
+  /// <summary>What a screen reader says the button does, e.g. "Remove genre Fantasy".</summary>
+  [Parameter, EditorRequired] public string RemoveLabel { get; set; } = "";
+
+  [Parameter] public EventCallback OnRemove { get; set; }
+}

@@ -43,6 +43,13 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             link.HasOne(l => l.Genre).WithMany().HasForeignKey(l => l.GenreId);
         });
 
+        modelBuilder.Entity<BookCollection>(link =>
+        {
+            link.HasKey(l => new { l.BookId, l.CollectionId });
+            link.HasOne(l => l.Book).WithMany(b => b.Collections).HasForeignKey(l => l.BookId);
+            link.HasOne(l => l.Collection).WithMany().HasForeignKey(l => l.CollectionId);
+        });
+
         modelBuilder.Entity<Collection>(collection =>
         {
             collection.HasIndex(c => new { c.Kind, c.NormalizedName }).IsUnique();

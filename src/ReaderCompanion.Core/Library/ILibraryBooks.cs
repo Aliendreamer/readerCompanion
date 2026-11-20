@@ -14,6 +14,9 @@ public sealed record BookListItem(
     /// <summary>The book's genres, ordered by name.</summary>
     public IReadOnlyList<string> Genres { get; init; } = [];
 
+    /// <summary>The user's own collections the book is in, ordered by name (its series is <see cref="Series"/>).</summary>
+    public IReadOnlyList<string> Collections { get; init; } = [];
+
     /// <summary>The distinct formats of the book's files, in enum order.</summary>
     public IReadOnlyList<BookFormat> Formats { get; init; } = [];
 
@@ -57,4 +60,13 @@ public interface ILibraryBooks
     /// no such book.</summary>
     /// <exception cref="ArgumentException">The title is blank.</exception>
     Task<bool> UpdateAsync(int id, BookEdit edit, CancellationToken cancellationToken = default);
+
+    /// <summary>Puts the book in the user collection called <paramref name="name"/>, creating it if needed (matched
+    /// ignoring case and extra spaces). Returns false if there is no such book.</summary>
+    /// <exception cref="ArgumentException">The name is blank.</exception>
+    Task<bool> AddToCollectionAsync(int id, string name, CancellationToken cancellationToken = default);
+
+    /// <summary>Takes the book out of that user collection, deleting the collection once no book is in it. Returns
+    /// false if there is no such book.</summary>
+    Task<bool> RemoveFromCollectionAsync(int id, string name, CancellationToken cancellationToken = default);
 }

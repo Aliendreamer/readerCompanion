@@ -15,10 +15,8 @@
     </select>
     @foreach (var value in Picked)
     {
-      <button type="button" class="chip" aria-label="Remove @Label.ToLowerInvariant() @Text(value)"
-              @onclick="() => Remove(value)">
-        @Text(value) <span aria-hidden="true">×</span>
-      </button>
+      <RemovableChip Text="@Text(value)" RemoveLabel="@($"Remove {Label.ToLowerInvariant()} {Text(value)}")"
+                     OnRemove="() => Remove(value)" />
     }
   </div>
 }

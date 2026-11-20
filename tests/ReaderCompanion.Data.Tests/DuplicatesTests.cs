@@ -142,5 +142,20 @@ public sealed class DuplicatesTests : IDisposable
         Assert.NotNull(Assert.Single(Books()).EditedUtc);
     }
 
+    [Fact]
+    public async Task Merge_CombinesUserCollections()
+    {
+        var keep = Add("Mort", "Terry Pratchett", "/b/a.epub");
+        var other = Add("Mort", "Terry Pratchett", "/b/b.pdf", BookFormat.Pdf);
+        var books = _library.Services.CreateScope().ServiceProvider.GetRequiredService<ILibraryBooks>();
+        await books.AddToCollectionAsync(keep, "Favourites", Token);
+        await books.AddToCollectionAsync(other, "Book club", Token);
+        await books.AddToCollectionAsync(other, "Favourites", Token);
+
+        await Duplicates.MergeAsync(keep, [other], Token);
+
+        Assert.Equal(["Book club", "Favourites"], (await books.GetAsync(keep, Token))!.Book.Collections);
+    }
+
     public void Dispose() => _library.Dispose();
 }

@@ -76,7 +76,7 @@ and the title is kept for screen readers only.
 
 The Library page SHALL offer genre, author and collection filters, each listing the values present in the
 library and accepting several. A book SHALL match a filter when it has any of the picked values. Collections
-are series until the user's own collections exist.
+are the books' series and the user's own collections.
 
 #### Scenario: Two genres
 
@@ -89,6 +89,12 @@ are series until the user's own collections exist.
 - **GIVEN** the genre filter holds Science Fiction
 - **WHEN** the user removes Science Fiction
 - **THEN** all books are shown again
+
+#### Scenario: User collection
+
+- **GIVEN** "Mort" in the Discworld series and in the user's collection "Book club", and "Dune" in no collection
+- **WHEN** the user picks the collection "Book club"
+- **THEN** only "Mort" is shown; grouped by collection, "Mort" appears under both "Book club" and "Discworld"
 
 ### Requirement: Filters combine
 

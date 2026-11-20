@@ -31,4 +31,7 @@ public sealed class Book
     public List<BookGenre> Genres { get; set; } = [];
 
     public List<BookFile> Files { get; set; } = [];
+
+    /// <summary>The user's own collections this book is in; scans never change them.</summary>
+    public List<BookCollection> Collections { get; set; } = [];
 }

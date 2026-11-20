@@ -59,6 +59,10 @@ public static class LibraryBrowser
         Distinct(books.SelectMany(Collections)),
         [.. books.SelectMany(b => b.Formats).Distinct().Order()]);
 
+    /// <summary>The user's own collections present in the library (series not included), sorted.</summary>
+    public static IReadOnlyList<string> UserCollections(IReadOnlyList<BookListItem> books) =>
+        Distinct(books.SelectMany(b => b.Collections));
+
     public static BrowseResult Browse(IReadOnlyList<BookListItem> books, BrowseQuery query)
     {
         // A collection always reads in series order, so grouping by collection overrides the chosen sort.
@@ -107,8 +111,9 @@ public static class LibraryBrowser
         _ => books.OrderBy(b => b.Title, Names),
     };
 
-    /// <summary>The collections a book belongs to: its series, for now.</summary>
-    private static IReadOnlyList<string> Collections(BookListItem book) => book.Series is { } series ? [series] : [];
+    /// <summary>The collections a book belongs to: its series and the user's own collections.</summary>
+    private static IReadOnlyList<string> Collections(BookListItem book) =>
+        book.Series is { } series ? [series, .. book.Collections] : book.Collections;
 
     /// <summary>One section per key, ordered by name, with books lacking a key in a last <paramref name="none"/>
     /// section. A book with several keys appears in each; books keep their order within a section.</summary>

@@ -46,13 +46,14 @@ else
 
   @if (_selected is { } id)
   {
-    <BookPanel @key="id" BookId="id" OnClose="() => _selected = null" OnSaved="ReloadAsync" />
+    <BookPanel @key="id" BookId="id" OnClose="() => _selected = null" OnSaved="ReloadAsync" AllCollections="_userCollections" />
   }
 }
 
 @code {
   private IReadOnlyList<BookListItem>? _books;
   private BrowseOptions _options = BrowseOptions.Empty;
+  private IReadOnlyList<string> _userCollections = [];
 
   // Search and filters live only on this page; grouping and sort are always read from the preferences.
   private BrowseQuery _filters = new();
@@ -74,6 +75,7 @@ else
   {
     _books = await Books.ListAsync();
     _options = LibraryBrowser.Options(_books);
+    _userCollections = LibraryBrowser.UserCollections(_books);
     Refresh();
   }
 

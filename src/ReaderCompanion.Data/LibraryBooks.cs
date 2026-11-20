@@ -17,6 +17,7 @@ internal sealed class LibraryBooks(IDbContextFactory<LibraryDbContext> contexts)
         b.CoverFileName)
     {
         Genres = b.Genres.Select(g => g.Genre.Name).OrderBy(n => n).ToList(),
+        Collections = b.Collections.Select(c => c.Collection.Name).OrderBy(n => n).ToList(),
         Formats = b.Files.Select(f => f.Format).ToList(),
         DateAddedUtc = b.DateAddedUtc,
     };
@@ -84,6 +85,55 @@ internal sealed class LibraryBooks(IDbContextFactory<LibraryDbContext> contexts)
         book.Isbn = NameNormalizer.Clean(edit.Isbn);
         book.EditedUtc = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<bool> AddToCollectionAsync(int id, string name, CancellationToken cancellationToken = default)
+    {
+        var clean = NameNormalizer.Clean(name) ?? throw new ArgumentException("A collection needs a name.", nameof(name));
+        var key = NameNormalizer.Normalize(clean);
+
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
+        var book = await db.Books.Include(b => b.Collections).SingleOrDefaultAsync(b => b.Id == id, cancellationToken);
+        if (book is null)
+        {
+            return false;
+        }
+
+        var collection = await db.Collections.SingleOrDefaultAsync(c => c.Kind == CollectionKind.User && c.NormalizedName == key, cancellationToken)
+            ?? new Collection { Name = clean, NormalizedName = key, Kind = CollectionKind.User };
+        if (book.Collections.All(l => l.CollectionId != collection.Id))
+        {
+            book.Collections.Add(new BookCollection { Collection = collection });
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        return true;
+    }
+
+    public async Task<bool> RemoveFromCollectionAsync(int id, string name, CancellationToken cancellationToken = default)
+    {
+        var key = NameNormalizer.Normalize(name);
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
+        var book = await db.Books
+            .Include(b => b.Collections).ThenInclude(l => l.Collection)
+            .SingleOrDefaultAsync(b => b.Id == id, cancellationToken);
+        if (book is null)
+        {
+            return false;
+        }
+
+        if (book.Collections.FirstOrDefault(l => l.Collection.NormalizedName == key) is { } link)
+        {
+            book.Collections.Remove(link);
+            if (!await db.Set<BookCollection>().AnyAsync(l => l.CollectionId == link.CollectionId && l.BookId != id, cancellationToken))
+            {
+                db.Collections.Remove(link.Collection); // nothing else is in it
+            }
+
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
         return true;
     }
 
