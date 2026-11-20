@@ -30,8 +30,9 @@ All data lives in a local SQLite file you can back up by hand.
 | M2 — Library views and duplicates | Done | `openspec/changes/archive/2026-11-20-add-*` (browse, book details, duplicates, user collections) |
 | M3 — Reading tracking | Done | `openspec/changes/archive/2026-11-20-add-reading-*` |
 | M4 — Backup and restore | Done | `openspec/changes/archive/2026-11-20-add-backup-restore/` |
-| M5 — Organise files | In progress — organise with preview and undo done | this file |
-| M6–M8 | Not started | this file |
+| M5 — Organise files | Done (OS folders) | `openspec/changes/archive/2026-11-20-add-{organise-files,trash-extra-files}/` |
+| M6 — Goodreads | Next | this file |
+| M7–M8 | Not started | this file |
 
 ## Guiding principles
 
@@ -149,7 +150,7 @@ Make it safe to undo before the app starts changing files or importing history.
 
 **Done when:** you can back up, wipe, and restore without losing anything.
 
-### M5 — Organise files
+### M5 — Organise files (done for OS folders; Drive comes with M7)
 
 Manage the files themselves from the app, not only the catalog — starting with your OS folders.
 
@@ -250,3 +251,6 @@ None right now.
 - **2026-11-20** — M5 first slice: Organise page (Genre/Author/Title and two other layouts), preview, apply without
   overwriting, undo; scans, organising and restores never run at once. Trailing dots are trimmed from names
   (Windows), so `Tolkien, J.R.R.` becomes `Tolkien, J.R.R`. Next: duplicates' extra files to the trash.
+- **2026-11-20** — M5 done for OS folders: a book's extra file can go to the system trash (Recycle Bin on Windows,
+  freedesktop trash on Linux), never its last present file. Files on another disk are copied into the home trash
+  (no per-disk trash yet). Next: M6.

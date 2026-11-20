@@ -10,11 +10,17 @@ public sealed class TempLibrary : IDisposable
     {
         Root = Directory.CreateTempSubdirectory("rc-lib-").FullName;
         DatabasePath = Path.Combine(Root, "data", "library.db");
-        Services = new ServiceCollection().AddLibraryData(DatabasePath).BuildServiceProvider();
+        // Tests must never touch the real system trash: a recording trash is registered first.
+        Services = new ServiceCollection()
+            .AddSingleton<ReaderCompanion.Core.Library.ITrash>(Trash)
+            .AddLibraryData(DatabasePath)
+            .BuildServiceProvider();
         Services.MigrateLibraryDatabase();
     }
 
     public string Root { get; }
+
+    public RecordingTrash Trash { get; } = new();
 
     public string DatabasePath { get; }
 
@@ -28,5 +34,23 @@ public sealed class TempLibrary : IDisposable
         Services.Dispose();
         SqliteConnection.ClearAllPools();
         Directory.Delete(Root, recursive: true);
+    }
+}
+
+/// <summary>A trash that records what it was given and deletes nothing; <see cref="Works"/> false makes it refuse.</summary>
+public sealed class RecordingTrash : ReaderCompanion.Core.Library.ITrash
+{
+    public List<string> Trashed { get; } = [];
+
+    public bool Works { get; set; } = true;
+
+    public bool MoveToTrash(string path)
+    {
+        if (Works)
+        {
+            Trashed.Add(path);
+        }
+
+        return Works;
     }
 }

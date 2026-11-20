@@ -31,7 +31,7 @@ public sealed record BookListItem(
 }
 
 /// <summary>One file of a book. <see cref="Present"/> is false when the last scan did not find it.</summary>
-public sealed record BookFileInfo(string Path, BookFormat Format, long SizeBytes, bool Present);
+public sealed record BookFileInfo(string Path, BookFormat Format, long SizeBytes, bool Present, int Id = 0);
 
 /// <summary>Everything about one book. <see cref="Edited"/> is true once the user saved its details.</summary>
 public sealed record BookDetails(
@@ -67,6 +67,10 @@ public interface ILibraryBooks
     /// no such book.</summary>
     /// <exception cref="ArgumentException">The title is blank.</exception>
     Task<bool> UpdateAsync(int id, BookEdit edit, CancellationToken cancellationToken = default);
+
+    /// <summary>Sends one file of a book that has another file to the system trash, then forgets it. A book's last
+    /// file is never trashed; if the trash refuses, nothing changes.</summary>
+    Task<TrashResult> TrashFileAsync(int fileId, CancellationToken cancellationToken = default);
 
     /// <summary>Puts the book in the user collection called <paramref name="name"/>, creating it if needed (matched
     /// ignoring case and extra spaces). Returns false if there is no such book.</summary>

@@ -168,6 +168,34 @@ internal sealed class FakeBooks(List<BookListItem> books) : ILibraryBooks
         return found;
     }
 
+    public FakeTrash Trash { get; set; } = new();
+
+    public Task<TrashResult> TrashFileAsync(int fileId, CancellationToken cancellationToken = default)
+    {
+        foreach (var (bookId, files) in Files)
+        {
+            if (files.FirstOrDefault(f => f.Id == fileId) is not { } file)
+            {
+                continue;
+            }
+
+            if (files.Count < 2)
+            {
+                return Task.FromResult(TrashResult.LastFile);
+            }
+
+            if (!Trash.MoveToTrash(file.Path))
+            {
+                return Task.FromResult(TrashResult.TrashFailed);
+            }
+
+            Files[bookId] = [.. files.Where(f => f.Id != fileId)];
+            return Task.FromResult(TrashResult.Trashed);
+        }
+
+        return Task.FromResult(TrashResult.NotFound);
+    }
+
     public Task<bool> AddToCollectionAsync(int id, string name, CancellationToken cancellationToken = default) =>
         ChangeCollections(id, names => [.. names.Append(name.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Order()]);
 
@@ -423,6 +451,23 @@ internal sealed class FakeOrganiser : IOrganiser
     }
 }
 
+internal sealed class FakeTrash : ITrash
+{
+    public List<string> Trashed { get; } = [];
+
+    public bool Works { get; set; } = true;
+
+    public bool MoveToTrash(string path)
+    {
+        if (Works)
+        {
+            Trashed.Add(path);
+        }
+
+        return Works;
+    }
+}
+
 internal sealed class FakeLauncher : IFileLauncher
 {
     public List<string> Opened { get; } = [];
@@ -462,8 +507,14 @@ internal static class TestServices
         FakePicker? picker = null,
         FakeScanner? scanner = null,
         FakeFolders? folders = null,
-        FakeOrganiser? organiser = null)
+        FakeOrganiser? organiser = null,
+        FakeTrash? trash = null)
     {
+        if (libraryBooks is not null && trash is not null)
+        {
+            libraryBooks.Trash = trash;
+        }
+
         services.AddSingleton<IOrganiser>(organiser ?? new FakeOrganiser());
         services.AddSingleton<IBackups>(backups ?? new FakeBackups());
         services.AddSingleton<IReadingStats>(stats ?? new FakeReadingStats());

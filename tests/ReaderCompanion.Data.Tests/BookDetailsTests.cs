@@ -62,9 +62,8 @@ public sealed class BookDetailsTests : IDisposable
         Assert.Equal("978-0552131063", details.Isbn);
         Assert.False(details.Edited);
         Assert.Equal(
-            [new BookFileInfo("/books/mort.epub", BookFormat.Epub, 1234, Present: true),
-             new BookFileInfo("/old/mort.pdf", BookFormat.Pdf, 1234, Present: false)],
-            details.Files);
+            [("/books/mort.epub", BookFormat.Epub, 1234L, true), ("/old/mort.pdf", BookFormat.Pdf, 1234L, false)],
+            details.Files.Select(f => (f.Path, f.Format, f.SizeBytes, f.Present)));
     }
 
     [Fact]
@@ -76,6 +75,43 @@ public sealed class BookDetailsTests : IDisposable
 
         Assert.Equal([id], many.Select(d => d.Book.Id));
         Assert.Equal(2, many[0].Files.Count);
+    }
+
+    [Fact]
+    public async Task TrashFile_TrashesAnExtraFile_AndForgetsIt_ButNeverTheLastOne()
+    {
+        var id = AddMort();
+        var files = (await Books.GetAsync(id, Token))!.Files;
+
+        Assert.Equal(TrashResult.Trashed, await Books.TrashFileAsync(files[1].Id, Token)); // the missing pdf; the epub is left
+        Assert.Equal(["/old/mort.pdf"], _library.Trash.Trashed);
+        var left = Assert.Single((await Books.GetAsync(id, Token))!.Files);
+        Assert.Equal(TrashResult.LastFile, await Books.TrashFileAsync(left.Id, Token));
+        Assert.Equal(TrashResult.NotFound, await Books.TrashFileAsync(999, Token));
+
+        Assert.Single(_library.Trash.Trashed);
+        Assert.Single((await Books.GetAsync(id, Token))!.Files);
+    }
+
+    [Fact]
+    public async Task TrashFile_NeverTrashesTheLastPresentFile()
+    {
+        var id = AddMort(); // mort.epub present, mort.pdf missing
+        var epub = (await Books.GetAsync(id, Token))!.Files.Single(f => f.Present);
+
+        Assert.Equal(TrashResult.LastFile, await Books.TrashFileAsync(epub.Id, Token));
+        Assert.Empty(_library.Trash.Trashed);
+    }
+
+    [Fact]
+    public async Task TrashFile_WhenTheTrashRefuses_ChangesNothing()
+    {
+        var id = AddMort();
+        _library.Trash.Works = false;
+
+        Assert.Equal(TrashResult.TrashFailed, await Books.TrashFileAsync((await Books.GetAsync(id, Token))!.Files[1].Id, Token));
+
+        Assert.Equal(2, (await Books.GetAsync(id, Token))!.Files.Count);
     }
 
     [Fact]

@@ -93,7 +93,19 @@
             <span class="file-actions">
               <button type="button" class="link-button file-open" @onclick="() => OpenFile(file.Path)">Open</button>
               <button type="button" class="link-button file-folder" @onclick="() => ShowFolder(file.Path)">Show in folder</button>
+              @if (_details.Files.Count > 1)
+              {
+                <button type="button" class="link-button file-trash" @onclick="() => _trashing = file.Id">Move to trash…</button>
+              }
             </span>
+            @if (_trashing == file.Id)
+            {
+              <span class="file-trash-question">
+                Move @Path.GetFileName(file.Path) to the trash? The book keeps its other files.
+                <button type="button" class="btn btn-small file-trash-confirm" @onclick="() => TrashAsync(file)">Move to trash</button>
+                <button type="button" class="btn btn-small" @onclick="() => _trashing = null">Cancel</button>
+              </span>
+            }
           }
         </li>
       }
@@ -123,6 +135,7 @@
   private string? _error;
   private bool _gone;
   private string _newCollection = "";
+  private int? _trashing;
   private bool _changingCollections;
   private bool _refocus = true;
 
@@ -235,6 +248,27 @@
     finally
     {
       _changingCollections = false;
+    }
+
+    await LoadAsync();
+    await OnSaved.InvokeAsync();
+  }
+
+  private async Task TrashAsync(BookFileInfo file)
+  {
+    _trashing = null;
+    try
+    {
+      _error = await Books.TrashFileAsync(file.Id) switch
+      {
+        TrashResult.Trashed => null,
+        TrashResult.LastFile => "A book's last file is never moved to the trash.",
+        _ => $"{Path.GetFileName(file.Path)} could not be moved to the trash.",
+      };
+    }
+    catch (Exception e) when (e is not OperationCanceledException)
+    {
+      _error = $"{Path.GetFileName(file.Path)} could not be moved to the trash: {e.Message}";
     }
 
     await LoadAsync();

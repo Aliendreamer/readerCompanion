@@ -5,7 +5,7 @@ using ReaderCompanion.Core.Metadata;
 
 namespace ReaderCompanion.Data;
 
-internal sealed class LibraryBooks(IDbContextFactory<LibraryDbContext> contexts) : ILibraryBooks
+internal sealed class LibraryBooks(IDbContextFactory<LibraryDbContext> contexts, ITrash trash) : ILibraryBooks
 {
     private static readonly Expression<Func<Book, BookListItem>> ToListItem = b => new BookListItem(
         b.Id,
@@ -54,7 +54,7 @@ internal sealed class LibraryBooks(IDbContextFactory<LibraryDbContext> contexts)
                 b.Isbn,
                 Edited = b.EditedUtc != null,
                 Files = b.Files.OrderBy(f => f.Path)
-                    .Select(f => new BookFileInfo(f.Path, f.Format, f.SizeBytes, f.Status == FileStatus.Present))
+                    .Select(f => new BookFileInfo(f.Path, f.Format, f.SizeBytes, f.Status == FileStatus.Present, f.Id))
                     .ToList(),
             })
             .ToListAsync(cancellationToken);
@@ -88,6 +88,32 @@ internal sealed class LibraryBooks(IDbContextFactory<LibraryDbContext> contexts)
         book.EditedUtc = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    public async Task<TrashResult> TrashFileAsync(int fileId, CancellationToken cancellationToken = default)
+    {
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
+        if (await db.BookFiles.FindAsync([fileId], cancellationToken) is not { } file)
+        {
+            return TrashResult.NotFound;
+        }
+
+        // The book must keep a file that is actually there; a row for a missing file does not count.
+        if (!await db.BookFiles.AnyAsync(f => f.BookId == file.BookId && f.Id != fileId && f.Status == FileStatus.Present, cancellationToken))
+        {
+            return TrashResult.LastFile;
+        }
+
+        // The file goes to the trash first (off the UI thread: across disks it is a copy); only then does the library
+        // forget it, so a refused trash changes nothing.
+        if (!await Task.Run(() => trash.MoveToTrash(file.Path), cancellationToken))
+        {
+            return TrashResult.TrashFailed;
+        }
+
+        db.BookFiles.Remove(file);
+        await db.SaveChangesAsync(CancellationToken.None); // the file is gone: the library must follow, cancelled or not
+        return TrashResult.Trashed;
     }
 
     public async Task<bool> AddToCollectionAsync(int id, string name, CancellationToken cancellationToken = default)

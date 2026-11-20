@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using ReaderCompanion.Core.Library;
 using ReaderCompanion.Core.Organising;
 using ReaderCompanion.Core.Preferences;
@@ -23,6 +24,7 @@ public static class DataServiceCollectionExtensions
         services.AddScoped<IReading, Reading>();
         services.AddScoped<IReadingStats, ReadingStatsLoader>();
         services.AddSingleton<IBackups, Backups>();
+        services.TryAddSingleton(_ => PlatformTrash.ForThisMachine()); // tests register their own first
         services.AddSingleton<IAppPreferences, JsonAppPreferences>();
         services.AddSingleton(sp => new CoverStore(sp.GetRequiredService<LibraryDataPaths>()));
         // The factory gives services a fresh context per operation (desktop scopes live as long as the app);

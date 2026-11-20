@@ -17,6 +17,7 @@ public class BookPanelTests : BunitContext
     private readonly FakeLauncher _launcher = new();
     private readonly FakePreferences _preferences = new();
     private readonly FakeReading _reading;
+    private readonly FakeTrash _trash = new();
 
     public BookPanelTests()
     {
@@ -24,10 +25,10 @@ public class BookPanelTests : BunitContext
         _reading = new FakeReading(_books);
         _libraryBooks.Files[2] =
         [
-            new BookFileInfo("/books/mort.epub", BookFormat.Epub, 1_500_000, Present: true),
-            new BookFileInfo("/old/mort.pdf", BookFormat.Pdf, 900, Present: false),
+            new BookFileInfo("/books/mort.epub", BookFormat.Epub, 1_500_000, Present: true, Id: 21),
+            new BookFileInfo("/old/mort.pdf", BookFormat.Pdf, 900, Present: false, Id: 22),
         ];
-        Services.AddAppFakes(preferences: _preferences, libraryBooks: _libraryBooks, launcher: _launcher, reading: _reading);
+        Services.AddAppFakes(preferences: _preferences, libraryBooks: _libraryBooks, launcher: _launcher, reading: _reading, trash: _trash);
     }
 
     private IRenderedComponent<Home> RenderHome()
@@ -129,6 +130,58 @@ public class BookPanelTests : BunitContext
         cut.Find(".file-open").Click();
 
         Assert.Contains("Could not open mort.epub", cut.Find(".panel-error").TextContent);
+    }
+
+    // ---------- trash ----------
+
+    [Fact]
+    public void ExtraFile_CanBeTrashed_AfterConfirming()
+    {
+        _libraryBooks.Files[2] =
+        [
+            new BookFileInfo("/books/mort.epub", BookFormat.Epub, 10, Present: true, Id: 21),
+            new BookFileInfo("/books/mort.pdf", BookFormat.Pdf, 10, Present: true, Id: 22),
+        ];
+        var cut = RenderHome();
+        OpenBook(cut, "Mort");
+
+        cut.FindAll(".file-trash")[1].Click();
+        Assert.Contains("Move mort.pdf to the trash?", cut.Find(".file-list").TextContent);
+        Assert.Empty(_trash.Trashed);
+        cut.Find(".file-trash-confirm").Click();
+
+        Assert.Equal(["/books/mort.pdf"], _trash.Trashed);
+        cut.WaitForAssertion(() => Assert.Single(cut.FindAll(".file-list li")));
+        Assert.Empty(cut.FindAll(".file-trash")); // the last file cannot be trashed
+    }
+
+    [Fact]
+    public void SingleFile_OffersNoTrash()
+    {
+        _libraryBooks.Files[2] = [new BookFileInfo("/books/mort.epub", BookFormat.Epub, 10, Present: true, Id: 21)];
+        var cut = RenderHome();
+        OpenBook(cut, "Mort");
+
+        Assert.Empty(cut.FindAll(".file-trash"));
+    }
+
+    [Fact]
+    public void TrashFailure_IsShown_AndTheFileStays()
+    {
+        _trash.Works = false;
+        _libraryBooks.Files[2] =
+        [
+            new BookFileInfo("/books/mort.epub", BookFormat.Epub, 10, Present: true, Id: 21),
+            new BookFileInfo("/books/mort.pdf", BookFormat.Pdf, 10, Present: true, Id: 22),
+        ];
+        var cut = RenderHome();
+        OpenBook(cut, "Mort");
+
+        cut.FindAll(".file-trash")[1].Click();
+        cut.Find(".file-trash-confirm").Click();
+
+        Assert.Contains("could not be moved to the trash", cut.Find(".panel-error").TextContent);
+        Assert.Equal(2, cut.FindAll(".file-list li").Count);
     }
 
     // ---------- reading ----------
