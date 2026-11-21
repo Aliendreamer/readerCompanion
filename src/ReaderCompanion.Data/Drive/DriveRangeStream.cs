@@ -32,6 +32,27 @@ internal sealed class DriveRangeStream(
         set => _position = value >= 0 ? value : throw new ArgumentOutOfRangeException(nameof(value));
     }
 
+    /// <summary>Fetches the first and/or last piece at the same time, before a reader asks for them one by one.</summary>
+    public async Task PrefetchAsync(bool start, bool end)
+    {
+        var last = length <= 0 ? 0 : (length - 1) / chunkSize;
+        var indexes = new[] { start ? 0 : -1, end ? last : -1 }.Where(i => i >= 0).Distinct().Where(i => !_chunks.ContainsKey(i)).ToList();
+        try
+        {
+            var pieces = await Task.WhenAll(indexes.Select(i =>
+                files.DownloadRangeAsync(id, i * chunkSize, Math.Min(length, (i + 1) * chunkSize) - 1, cancellationToken)));
+            for (var i = 0; i < indexes.Count; i++)
+            {
+                Keep(indexes[i], pieces[i]);
+            }
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            Failure ??= e;
+            throw new IOException(e.Message, e);
+        }
+    }
+
     public override int Read(byte[] buffer, int offset, int count) => Read(buffer.AsSpan(offset, count));
 
     public override int Read(Span<byte> buffer)
@@ -88,6 +109,12 @@ internal sealed class DriveRangeStream(
             throw new IOException(e.Message, e);
         }
 
+        Keep(index, chunk);
+        return chunk;
+    }
+
+    private void Keep(long index, byte[] chunk)
+    {
         if (_kept.Count == KeptChunks)
         {
             _chunks.Remove(_kept.Dequeue());
@@ -95,6 +122,5 @@ internal sealed class DriveRangeStream(
 
         _chunks[index] = chunk;
         _kept.Enqueue(index);
-        return chunk;
     }
 }

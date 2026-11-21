@@ -60,8 +60,23 @@ internal sealed class FakeDrive
 
     private int _listing;
 
+    /// <summary>How many of the next file reads Drive answers with 429 (too many requests).</summary>
+    public int ThrottleNextReads { get; set; }
+
     private async Task<HttpResponseMessage> AnswerAsync(HttpRequestMessage request)
     {
+        if (request.RequestUri!.Query.Contains("alt=media", StringComparison.Ordinal))
+        {
+            lock (Items)
+            {
+                if (ThrottleNextReads > 0)
+                {
+                    ThrottleNextReads--;
+                    return new HttpResponseMessage(HttpStatusCode.TooManyRequests);
+                }
+            }
+        }
+
         if (FileReadTakes != TimeSpan.Zero && request.RequestUri!.Query.Contains("alt=media", StringComparison.Ordinal))
         {
             var reading = Interlocked.Increment(ref _reading);

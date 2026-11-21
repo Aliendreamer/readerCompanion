@@ -89,6 +89,19 @@ public sealed class DriveLibraryTests : IDisposable
     }
 
     [Fact]
+    public async Task Scan_WhenDriveAsksToSlowDown_WaitsAndTriesAgain()
+    {
+        var books = await AddBooksFolderAsync();
+        _drive.File("A.epub", books, Epub("Alpha"));
+        _drive.ThrottleNextReads = 2;
+
+        var summary = await Drive.ScanAsync(cancellationToken: Token);
+
+        Assert.Equal(1, summary.Added);
+        Assert.Equal("Alpha", Books().Single().Title);
+    }
+
+    [Fact]
     public async Task Download_ReportsThePercentage_UpToAHundred()
     {
         var books = await AddBooksFolderAsync();
@@ -274,10 +287,10 @@ public sealed class DriveLibraryTests : IDisposable
     }
 
     [Fact]
-    public async Task Scan_ReadsUpToTenBooksAtOnce()
+    public async Task Scan_ReadsUpToTwentyBooksAtOnce()
     {
         var books = await AddBooksFolderAsync();
-        for (var i = 0; i < 25; i++)
+        for (var i = 0; i < 60; i++)
         {
             _drive.File($"Book {i}.epub", books, Epub($"Book {i}"));
         }
@@ -286,9 +299,9 @@ public sealed class DriveLibraryTests : IDisposable
 
         var summary = await Drive.ScanAsync(cancellationToken: Token);
 
-        Assert.Equal(25, summary.Added);
-        Assert.Equal(25, Books().Select(b => b.Title).Distinct().Count());
-        Assert.InRange(_drive.MaxFileReadsAtOnce, 2, 10);
+        Assert.Equal(60, summary.Added);
+        Assert.Equal(60, Books().Select(b => b.Title).Distinct().Count());
+        Assert.InRange(_drive.MaxFileReadsAtOnce, 11, 20);
     }
 
     [Fact]

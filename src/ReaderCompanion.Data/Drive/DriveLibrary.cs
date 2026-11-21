@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 using ReaderCompanion.Core.Drive;
 using ReaderCompanion.Core.Library;
@@ -18,11 +17,11 @@ internal sealed class DriveLibrary(
     GoogleDriveFiles files,
     IAppPreferences preferences) : IDriveLibrary
 {
-    /// <summary>Books read at once, each in a few small range requests.</summary>
-    private const int ReadsAtOnce = 10;
+    /// <summary>Books read at once, each in a few small range requests: a few thousand requests a minute.</summary>
+    private const int ReadsAtOnce = 20;
 
-    /// <summary>Plan actions handled per batch: their books are read together, then written.</summary>
-    private const int ReadBatch = 50;
+    /// <summary>Books read but not yet written, at most (their covers wait in memory).</summary>
+    private const int ReadAhead = 100;
 
     /// <summary>Drive folders listed at once: about 2,000–3,000 requests a minute at Drive's usual speed, well
     /// within Google's 12,000 per user.</summary>
@@ -206,28 +205,74 @@ internal sealed class DriveLibrary(
         IReadOnlyList<UnreadableFile> unreadable = [];
         if (plan.Actions.Any(a => a is not KeepFile))
         {
-            // Books are read in place (only the parts their details live in), up to ReadsAtOnce at a time, a batch at
-            // a time so covers waiting to be written stay few; the catalog is then changed in the plan's order.
+            // Books are read in place (only the parts their details live in), up to ReadsAtOnce at a time: each slot takes
+            // the next book as soon as it is free. The catalog is changed in the plan's order as reads complete, with at
+            // most ReadAhead books read and waiting, so their covers stay few.
             await using var db = await contexts.CreateDbContextAsync(cancellationToken);
-            var readAhead = new ConcurrentDictionary<string, MetadataResult>(StringComparer.Ordinal);
+            var readAhead = new Dictionary<string, MetadataResult>(StringComparer.Ordinal);
             var writer = new CatalogWriter(db, paths.CoversFolder, DateTime.UtcNow, readAhead: readAhead);
+            using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            using var slots = new SemaphoreSlim(ReadsAtOnce);
+            var waiting = new Queue<(ScanAction Action, FoundFile? File, Task<MetadataResult>? Read)>();
             var read = 0;
-            foreach (var batch in plan.Actions.Chunk(ReadBatch))
+
+            async Task<MetadataResult> ReadInSlotAsync(FoundFile file)
             {
-                var files = batch.Select(CatalogWriter.FileToRead).OfType<FoundFile>();
-                await Parallel.ForEachAsync(
-                    files, new ParallelOptions { MaxDegreeOfParallelism = ReadsAtOnce, CancellationToken = cancellationToken },
-                    async (file, token) =>
-                    {
-                        readAhead[file.Path] = await ReadInPlaceAsync(listed[file.DriveFileId!].Item, file.Path, temp, token);
-                        progress?.Report(new ScanProgress(Interlocked.Increment(ref read), toRead));
-                    });
-                foreach (var action in batch)
+                try
                 {
-                    writer.Apply(action);
+                    var result = await ReadInPlaceAsync(listed[file.DriveFileId!].Item, file.Path, temp, stop.Token);
+                    progress?.Report(new ScanProgress(Interlocked.Increment(ref read), toRead));
+                    return result;
+                }
+                finally
+                {
+                    slots.Release();
+                }
+            }
+
+            async Task WriteNextAsync()
+            {
+                var (action, file, reading) = waiting.Dequeue();
+                if (file is not null)
+                {
+                    readAhead[file.Path] = await reading!;
                 }
 
-                readAhead.Clear();
+                writer.Apply(action);
+                if (file is not null)
+                {
+                    readAhead.Remove(file.Path);
+                }
+            }
+
+            try
+            {
+                foreach (var action in plan.Actions)
+                {
+                    var file = CatalogWriter.FileToRead(action);
+                    Task<MetadataResult>? reading = null;
+                    if (file is not null)
+                    {
+                        await slots.WaitAsync(stop.Token);
+                        reading = ReadInSlotAsync(file);
+                    }
+
+                    waiting.Enqueue((action, file, reading));
+                    while (waiting.TryPeek(out var next) && (next.Read is null || next.Read.IsCompleted || waiting.Count > ReadAhead))
+                    {
+                        await WriteNextAsync();
+                    }
+                }
+
+                while (waiting.Count > 0)
+                {
+                    await WriteNextAsync();
+                }
+            }
+            catch
+            {
+                await stop.CancelAsync(); // the other reads are not needed any more
+                throw;
             }
 
             filesRead += read;
@@ -369,6 +414,9 @@ internal sealed class DriveLibrary(
                 {
                     try
                     {
+                        // An EPUB is read from its ZIP directory at the end, then its package file near the start: one
+                        // round trip for both.
+                        await stream.PrefetchAsync(start: BookMetadataReader.FormatOf(path) == BookFormat.Epub, end: true);
                         result = BookMetadataReader.ReadInPlace(stream, path);
                     }
                     catch (IOException) when (stream.Failure is not null)

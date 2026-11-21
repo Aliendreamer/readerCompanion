@@ -177,22 +177,42 @@ internal sealed class GoogleDriveFiles(IDriveAccount account, HttpClient http)
         }
     }
 
+    /// <summary>Sends a request. A read Google answers with "too many requests" or a passing server error is sent
+    /// again after a short wait (twice at most), as Google asks clients to.</summary>
     private async Task<HttpResponseMessage> SendAsync(
         HttpMethod method, string url, HttpContent? content, HttpCompletionOption completion, CancellationToken cancellationToken,
         RangeHeaderValue? range = null)
     {
-        using var request = new HttpRequestMessage(method, url) { Content = content };
-        request.Headers.Range = range;
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await account.GetAccessTokenAsync(cancellationToken));
-        try
+        for (var attempt = 0; ; attempt++)
         {
-            return await http.SendAsync(request, completion, cancellationToken);
-        }
-        catch (HttpRequestException e)
-        {
-            throw new DriveUnavailableException("Google Drive could not be reached.", e);
+            using var request = new HttpRequestMessage(method, url) { Content = content };
+            request.Headers.Range = range;
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await account.GetAccessTokenAsync(cancellationToken));
+            HttpResponseMessage response;
+            try
+            {
+                response = await http.SendAsync(request, completion, cancellationToken);
+            }
+            catch (HttpRequestException e)
+            {
+                throw new DriveUnavailableException("Google Drive could not be reached.", e);
+            }
+
+            var passing = response.StatusCode == HttpStatusCode.TooManyRequests || (int)response.StatusCode >= 500;
+            if (!passing || method != HttpMethod.Get || attempt == Retries)
+            {
+                return response;
+            }
+
+            var wait = response.Headers.RetryAfter?.Delta
+                ?? TimeSpan.FromMilliseconds((250 << attempt) + Random.Shared.Next(250)); // 0.25-0.5 s, then 0.5-0.75 s
+            response.Dispose();
+            await Task.Delay(wait < MaxRetryWait ? wait : MaxRetryWait, cancellationToken);
         }
     }
+
+    private const int Retries = 2;
+    private static readonly TimeSpan MaxRetryWait = TimeSpan.FromSeconds(10);
 
     private static DriveUnavailableException Unavailable(HttpStatusCode status) => new(status switch
     {
