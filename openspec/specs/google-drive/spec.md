@@ -9,14 +9,14 @@ choose, so Drive books can later appear and be managed beside local ones.
 
 ### Requirement: Drive access level
 
-The Settings page SHALL offer the Google Drive access level, remembered: only books the user picks (the default), the
-whole Drive read only, or the whole Drive read and write. A change SHALL take effect the next time Drive is linked,
+The Settings page SHALL offer the Google Drive access level, remembered: only books the user picks, the whole Drive
+read only, or the whole Drive read and write (the default). A change SHALL take effect the next time Drive is linked,
 and while linked at another level the page SHALL say so.
 
 #### Scenario: Change while linked
 
-- **GIVEN** Drive linked with only picked books
-- **WHEN** the user chooses the whole Drive, read and write
+- **GIVEN** Drive linked with the whole Drive, read and write
+- **WHEN** the user chooses only picked books
 - **THEN** the choice is remembered and the page says to link Drive again to use it
 
 ### Requirement: Link Google Drive

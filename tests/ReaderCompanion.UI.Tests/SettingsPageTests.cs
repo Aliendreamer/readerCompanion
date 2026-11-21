@@ -15,16 +15,16 @@ public class SettingsPageTests : BunitContext
         Services.AddAppFakes(preferences: _preferences, folders: _folders, launcher: _launcher, covers: _covers, drive: _drive);
 
     [Fact]
-    public void DriveAccess_IsRemembered_AndALinkAtAnotherLevelIsPointedOut()
+    public void DriveAccess_DefaultsToTheWholeDrive_IsRemembered_AndALinkAtAnotherLevelIsPointedOut()
     {
-        _drive.Link = new ReaderCompanion.Core.Drive.DriveLink(ReaderCompanion.Core.Drive.DriveAccess.PickedFiles, "Ana", DateTime.UtcNow);
+        _drive.Link = new ReaderCompanion.Core.Drive.DriveLink(ReaderCompanion.Core.Drive.DriveAccess.WholeDrive, "Ana", DateTime.UtcNow);
         var cut = Render<SettingsPage>();
-        Assert.True(cut.Find("#drive-access-PickedFiles").HasAttribute("checked"));
+        Assert.True(cut.Find("#drive-access-WholeDrive").HasAttribute("checked")); // the default
         Assert.Empty(cut.FindAll(".drive-relink"));
 
-        cut.Find("#drive-access-WholeDrive").Change("WholeDrive");
+        cut.Find("#drive-access-PickedFiles").Change("PickedFiles");
 
-        Assert.Equal(ReaderCompanion.Core.Drive.DriveAccess.WholeDrive, _preferences.Current.DriveAccess);
+        Assert.Equal(ReaderCompanion.Core.Drive.DriveAccess.PickedFiles, _preferences.Current.DriveAccess);
         Assert.Contains("unlink", cut.Find(".drive-relink").TextContent);
     }
 

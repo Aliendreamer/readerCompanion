@@ -47,7 +47,7 @@ public sealed record AppPreferences(
     DateTime? GoodreadsLastImportUtc = null,
     int GoodreadsReminderMonths = 3,
     bool OnlineCovers = false,
-    DriveAccess DriveAccess = DriveAccess.PickedFiles,
+    DriveAccess DriveAccess = DriveAccess.WholeDrive,
     int TextSize = 115,
     bool SystemTitleBar = false)
 {
