@@ -8,6 +8,10 @@
 @if (Shown(Window))
 {
   <div class="window-bar">
+    <div class="brand" @onmousedown="Press">
+      <img class="brand-logo" src="_content/ReaderCompanion.UI/logo.svg" alt="" />
+      <span>readerCompanion</span>
+    </div>
     <div class="window-drag" @onmousedown="Press"></div>
     <div class="window-buttons">
       <button id="window-fullscreen" type="button" class="window-button" title="Full screen (F11)"

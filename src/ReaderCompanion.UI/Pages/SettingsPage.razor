@@ -33,6 +33,20 @@
   <p class="muted">Makes the whole window larger or smaller: menu, pages and covers.</p>
 </section>
 
+<section class="card settings-theme">
+  <h2>Theme</h2>
+  @if (Preferences.Current.Theme == ThemeChoice.System)
+  {
+    <p class="muted">Follows your system's light or dark setting. The switch in the toolbar picks one instead.</p>
+  }
+  else
+  {
+    <p class="muted">Always @(Preferences.Current.Theme == ThemeChoice.Dark ? "dark" : "light"), whatever your system uses.</p>
+    <button id="use-system-theme" type="button" class="link-button"
+            @onclick="() => Preferences.Save(Preferences.Current with { Theme = ThemeChoice.System })">Use system theme</button>
+  }
+</section>
+
 <section class="card settings-window">
   <h2>Window</h2>
   <label class="browse-check">

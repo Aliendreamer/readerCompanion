@@ -12,16 +12,16 @@ public class ShellTests : BunitContext
     public ShellTests() => Services.AddAppFakes(preferences: _preferences, systemTheme: _system);
 
     [Fact]
-    public void Sidebar_LinksToEachPage_AndHighlightsCurrentPage()
+    public void Toolbar_LinksToEachPage_AndShowsTheCurrentOneAsPressed()
     {
         Services.GetRequiredService<NavigationManager>().NavigateTo("sources");
 
         var cut = Render<Routes>();
 
-        var links = cut.FindAll(".sidebar nav a");
-        Assert.Equal(["Library", "Reading", "Duplicates", "Organise", "Sources", "Backup", "Settings", "Help"], links.Select(a => a.TextContent.Trim()));
-        Assert.Equal("Sources", cut.Find(".sidebar nav a.active").TextContent.Trim());
-        Assert.Contains("readerCompanion", cut.Find(".sidebar .brand").TextContent);
+        var buttons = cut.FindAll(".toolbar .toolbar-button");
+        Assert.Equal(["Library", "Reading", "Duplicates", "Organise", "Sources", "Backup", "Settings", "Help"], buttons.Select(a => a.TextContent.Trim()));
+        Assert.Equal("Sources", cut.Find(".toolbar .toolbar-button.active").TextContent.Trim());
+        Assert.Empty(cut.FindAll(".sidebar"));
     }
 
     [Fact]
@@ -70,9 +70,10 @@ public class ShellTests : BunitContext
     }
 
     [Fact]
-    public void UseSystemTheme_ReturnsToSystem_AndHidesItself()
+    public void UseSystemTheme_IsInSettings_ReturnsToSystem_AndHidesItself()
     {
         _preferences.Save(new AppPreferences(ThemeChoice.Dark));
+        Services.GetRequiredService<NavigationManager>().NavigateTo("settings");
         var cut = Render<Routes>();
 
         cut.Find("#use-system-theme").Click();

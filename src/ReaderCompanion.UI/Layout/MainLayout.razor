@@ -5,8 +5,8 @@
 @inject IAppWindow Window
 
 <div class="app @(WindowFrame.Shown(Window) ? "has-frame" : "")" data-theme="@Preferences.Current.Theme.ToString().ToLowerInvariant()">
-  <Sidebar />
   <WindowFrame />
+  <Toolbar />
   <main>
     @Body
   </main>

@@ -55,11 +55,12 @@ public class WindowFrameTests : BunitContext
     }
 
     [Fact]
-    public void SidebarBrand_MovesTheWindow()
+    public void TitleStrip_ShowsTheLogo_AndMovesTheWindow()
     {
         var cut = RenderApp();
 
-        cut.Find(".sidebar .brand").MouseDown(new MouseEventArgs { Button = 0, Detail = 1 });
+        Assert.Contains("readerCompanion", cut.Find(".window-bar .brand").TextContent);
+        cut.Find(".window-bar .brand").MouseDown(new MouseEventArgs { Button = 0, Detail = 1 });
 
         Assert.Equal(["BeginMove"], _window.Calls);
     }

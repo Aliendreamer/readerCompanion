@@ -4,17 +4,12 @@
 @implements IAsyncDisposable
 @inject ISystemTheme SystemTheme
 
-<div class="theme-control">
-  <button id="theme-toggle" type="button" role="switch" class="theme-toggle" aria-checked="@(IsDark ? "true" : "false")"
-          @onclick="Flip">
-    <span class="theme-toggle-track" aria-hidden="true"><span class="theme-toggle-thumb"></span></span>
-    <span>Dark theme</span>
-  </button>
-  @if (Preferences.Current.Theme != ThemeChoice.System)
-  {
-    <button id="use-system-theme" type="button" class="link-button" @onclick="UseSystem">Use system theme</button>
-  }
-</div>
+@* The light/dark switch in the toolbar; "Use system theme" is on the Settings page. *@
+<button id="theme-toggle" type="button" role="switch" class="toolbar-switch" aria-checked="@(IsDark ? "true" : "false")"
+        title="Dark theme" @onclick="Flip">
+  <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 1.5A6.5 6.5 0 1 0 14.5 11 5.5 5.5 0 0 1 10.5 1.5z" /></svg>
+  <span class="toolbar-label">Dark</span>
+</button>
 
 @code {
   private bool _systemDark;
@@ -26,6 +21,11 @@
     ThemeChoice.Light => false,
     _ => _systemDark,
   };
+
+  // The theme can also change elsewhere ("Use system theme" in Settings): show it.
+  protected override void OnInitialized() => Preferences.Changed += OnPreferencesChanged;
+
+  private void OnPreferencesChanged() => InvokeAsync(StateHasChanged);
 
   protected override async Task OnAfterRenderAsync(bool firstRender)
   {
@@ -53,6 +53,7 @@
 
   public async ValueTask DisposeAsync()
   {
+    Preferences.Changed -= OnPreferencesChanged;
     if (_subscription is not null)
     {
       await _subscription.DisposeAsync();
@@ -62,5 +63,4 @@
   private void Flip() =>
     Preferences.Save(Preferences.Current with { Theme = IsDark ? ThemeChoice.Light : ThemeChoice.Dark });
 
-  private void UseSystem() => Preferences.Save(Preferences.Current with { Theme = ThemeChoice.System });
 }
