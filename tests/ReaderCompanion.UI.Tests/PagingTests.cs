@@ -61,6 +61,26 @@ public class PagingTests : BunitContext
     }
 
     [Fact]
+    public void Organise_ShowsWhatItIsDoing_NotJustGreyButtons()
+    {
+        _folders.Linked.Add("/books");
+        _organiser.Planned.AddRange(Enumerable.Range(1, 340).Select(i => new Move(i, $"/books/{i}.epub", $"/books/A/{i}.epub")));
+        _organiser.ApplyReports = new OrganiseProgress(OrganiseStage.Moving, 12, 340);
+        _organiser.ApplyHeld = new TaskCompletionSource<OrganiseResult>();
+        var cut = Render<OrganisePage>();
+        cut.WaitForAssertion(() => cut.Find("#organise-preview").Click());
+        cut.WaitForAssertion(() => cut.Find("#organise-apply"));
+
+        cut.Find("#organise-apply").Click();
+
+        cut.WaitForAssertion(() => Assert.Equal("Moving files… 12 of 340", cut.Find(".organise-progress .progress-text").TextContent));
+        Assert.Single(cut.FindAll(".organise-progress progress"));
+        cut.InvokeAsync(() => _organiser.ApplyHeld.SetResult(new OrganiseResult(340, [])));
+        cut.WaitForAssertion(() => Assert.Empty(cut.FindAll(".organise-progress")));
+        Assert.Contains("Moved 340 files", cut.Find(".organise-result").TextContent);
+    }
+
+    [Fact]
     public void Duplicates_ListsGroupsAPageAtATime()
     {
         for (var i = 0; i < 125; i++)

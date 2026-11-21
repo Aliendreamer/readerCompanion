@@ -432,17 +432,28 @@ internal sealed class FakeOrganiser : IOrganiser
 
     public OrganiseLayout? LastLayout { get; private set; }
 
+    /// <summary>When set, an apply reports this and waits for <see cref="ApplyHeld"/>.</summary>
+    public OrganiseProgress? ApplyReports { get; set; }
+
+    public TaskCompletionSource<OrganiseResult>? ApplyHeld { get; set; }
+
     public Task<IReadOnlyList<Move>> PreviewAsync(
-        string root, OrganiseLayout layout, CancellationToken cancellationToken = default)
+        string root, OrganiseLayout layout, IProgress<OrganiseProgress>? progress = null, CancellationToken cancellationToken = default)
     {
         LastLayout = layout;
         return Task.FromResult<IReadOnlyList<Move>>([.. Planned]);
     }
 
     public Task<OrganiseResult> ApplyAsync(
-        string root, IReadOnlyList<Move> moves, CancellationToken cancellationToken = default)
+        string root, IReadOnlyList<Move> moves, IProgress<OrganiseProgress>? progress = null, CancellationToken cancellationToken = default)
     {
         Applied.Add(moves);
+        if (ApplyHeld is { } held)
+        {
+            progress?.Report(ApplyReports!);
+            return held.Task;
+        }
+
         Last = new(DateTime.UtcNow, root, moves.Count);
         return Task.FromResult(new OrganiseResult(moves.Count, []));
     }
@@ -450,7 +461,7 @@ internal sealed class FakeOrganiser : IOrganiser
     public Task<LastOrganise?> LastAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult(Last);
 
-    public Task<OrganiseResult> UndoLastAsync(CancellationToken cancellationToken = default)
+    public Task<OrganiseResult> UndoLastAsync(IProgress<OrganiseProgress>? progress = null, CancellationToken cancellationToken = default)
     {
         Undos++;
         var count = Last?.FileCount ?? 0;

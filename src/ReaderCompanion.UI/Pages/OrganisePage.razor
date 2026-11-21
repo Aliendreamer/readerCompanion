@@ -60,6 +60,21 @@ else
     }
   </section>
 
+  @if (_busy)
+  {
+    <div class="organise-progress card" role="status">
+      <p class="progress-text">@ProgressText</p>
+      @if (_progress is { Total: > 0 } counted)
+      {
+        <progress class="scan-bar" max="@counted.Total" value="@counted.Done"></progress>
+      }
+      else
+      {
+        <progress class="scan-bar"></progress> @* no total yet: the bar moves on its own *@
+      }
+    </div>
+  }
+
   @if (_error is not null)
   {
     <p class="panel-error" role="alert">@_error</p>
@@ -137,6 +152,25 @@ else
   private LastOrganise? _last;
   private string? _error;
   private bool _busy;
+  private OrganiseProgress? _progress;
+
+  private string ProgressText => _progress switch
+  {
+    { Stage: OrganiseStage.Planning } => "Working out the moves…",
+    { Stage: OrganiseStage.Moving } p => $"Moving files… {p.Done} of {p.Total}",
+    { Stage: OrganiseStage.MovingBack } p => $"Moving files back… {p.Done} of {p.Total}",
+    { Stage: OrganiseStage.Tidying } => "Removing emptied folders…",
+    _ => "Working…",
+  };
+
+  private Progress<OrganiseProgress> Progress() => new(p =>
+  {
+    if (_busy)
+    {
+      _progress = p;
+      InvokeAsync(StateHasChanged);
+    }
+  });
 
   protected override async Task OnInitializedAsync()
   {
@@ -179,21 +213,21 @@ else
   private Task PreviewAsync() => RunAsync(async () =>
   {
     _result = null;
-    _moves = await Organiser.PreviewAsync(_folder, _layout);
+    _moves = await Organiser.PreviewAsync(_folder, _layout, Progress());
     _included.Clear();
     _included.UnionWith(_moves.Select(m => m.FileId));
   });
 
   private Task ApplyAsync() => RunAsync(async () =>
   {
-    _result = await Organiser.ApplyAsync(_folder, [.. _moves!.Where(m => _included.Contains(m.FileId))]);
+    _result = await Organiser.ApplyAsync(_folder, [.. _moves!.Where(m => _included.Contains(m.FileId))], Progress());
     _undid = false;
     _moves = null;
   });
 
   private Task UndoAsync() => RunAsync(async () =>
   {
-    _result = await Organiser.UndoLastAsync();
+    _result = await Organiser.UndoLastAsync(Progress());
     _undid = true;
     _moves = null;
   });
@@ -202,6 +236,7 @@ else
   private async Task RunAsync(Func<Task> action)
   {
     _busy = true;
+    _progress = null;
     _error = null;
     try
     {

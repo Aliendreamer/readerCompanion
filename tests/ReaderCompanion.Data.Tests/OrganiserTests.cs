@@ -52,7 +52,7 @@ public sealed class OrganiserTests : IDisposable
         AddBook("hobbit_final(1).epub", "The Hobbit", "J.R.R. Tolkien", "Fantasy");
         AddBook("Fantasy/Herbert, Frank/Dune.epub", "Dune", "Frank Herbert", "Fantasy");
 
-        var moves = await Organiser.PreviewAsync(_root, OrganiseLayout.GenreAuthorTitle, Token);
+        var moves = await Organiser.PreviewAsync(_root, OrganiseLayout.GenreAuthorTitle, cancellationToken: Token);
 
         var move = Assert.Single(moves);
         Assert.Equal("Fantasy/Tolkien, J.R.R/The Hobbit.epub", Rel(move.To));
@@ -62,9 +62,9 @@ public sealed class OrganiserTests : IDisposable
     public async Task Apply_MovesFiles_UpdatesTheLibrary_AndRemovesEmptyFolders()
     {
         AddBook("downloads/old/hobbit.epub", "The Hobbit", "J.R.R. Tolkien", "Fantasy");
-        var moves = await Organiser.PreviewAsync(_root, OrganiseLayout.GenreAuthorTitle, Token);
+        var moves = await Organiser.PreviewAsync(_root, OrganiseLayout.GenreAuthorTitle, cancellationToken: Token);
 
-        var result = await Organiser.ApplyAsync(_root, moves, Token);
+        var result = await Organiser.ApplyAsync(_root, moves, cancellationToken: Token);
 
         Assert.Equal(1, result.Moved);
         Assert.Empty(result.Failed);
@@ -79,10 +79,10 @@ public sealed class OrganiserTests : IDisposable
     {
         var gone = AddBook("a.epub", "Gone", "A Writer");
         AddBook("b.epub", "Here", "A Writer");
-        var moves = await Organiser.PreviewAsync(_root, OrganiseLayout.AuthorTitle, Token);
+        var moves = await Organiser.PreviewAsync(_root, OrganiseLayout.AuthorTitle, cancellationToken: Token);
         File.Delete(gone);
 
-        var result = await Organiser.ApplyAsync(_root, moves, Token);
+        var result = await Organiser.ApplyAsync(_root, moves, cancellationToken: Token);
 
         Assert.Equal(1, result.Moved);
         Assert.Equal(gone, Assert.Single(result.Failed).From);
@@ -92,11 +92,11 @@ public sealed class OrganiserTests : IDisposable
     public async Task Apply_IsRefused_WhileAScanRuns_AndScansWaitForOrganising()
     {
         AddBook("a.epub", "A", "A Writer");
-        var moves = await Organiser.PreviewAsync(_root, OrganiseLayout.AuthorTitle, Token);
+        var moves = await Organiser.PreviewAsync(_root, OrganiseLayout.AuthorTitle, cancellationToken: Token);
         var gate = _library.Services.GetRequiredService<LibraryWriteGate>();
 
         Assert.True(gate.TryEnter(LibraryWork.Scan));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Organiser.ApplyAsync(_root, moves, Token));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Organiser.ApplyAsync(_root, moves, cancellationToken: Token));
         gate.Exit();
 
         Assert.True(gate.TryEnter(LibraryWork.Organise));
@@ -106,15 +106,42 @@ public sealed class OrganiserTests : IDisposable
     }
 
     [Fact]
+    public async Task PreviewApplyAndUndo_ReportWhatTheyAreDoing()
+    {
+        AddBook("x/hobbit.epub", "The Hobbit", "J.R.R. Tolkien", "Fantasy");
+        AddBook("dune.epub", "Dune", "Frank Herbert", "Science Fiction");
+        var reports = new List<OrganiseProgress>();
+        var progress = new Reports(reports.Add);
+
+        var moves = await Organiser.PreviewAsync(_root, OrganiseLayout.GenreAuthorTitle, progress, Token);
+        Assert.Equal(OrganiseStage.Planning, reports[0].Stage);
+
+        reports.Clear();
+        await Organiser.ApplyAsync(_root, moves, progress, Token);
+        Assert.Equal(
+            [new(OrganiseStage.Moving, 0, 2), new(OrganiseStage.Moving, 1, 2), new(OrganiseStage.Moving, 2, 2), new(OrganiseStage.Tidying)],
+            reports);
+
+        reports.Clear();
+        await Organiser.UndoLastAsync(progress, Token);
+        Assert.Equal(new OrganiseProgress(OrganiseStage.MovingBack, 2, 2), reports.Last(r => r.Stage == OrganiseStage.MovingBack));
+    }
+
+    private sealed class Reports(Action<OrganiseProgress> report) : IProgress<OrganiseProgress>
+    {
+        public void Report(OrganiseProgress value) => report(value);
+    }
+
+    [Fact]
     public async Task Undo_PutsFilesBack_AndTheLibraryFollows()
     {
         AddBook("x/hobbit.epub", "The Hobbit", "J.R.R. Tolkien", "Fantasy");
         AddBook("dune.epub", "Dune", "Frank Herbert", "Science Fiction");
-        await Organiser.ApplyAsync(_root, await Organiser.PreviewAsync(_root, OrganiseLayout.GenreAuthorTitle, Token), Token);
+        await Organiser.ApplyAsync(_root, await Organiser.PreviewAsync(_root, OrganiseLayout.GenreAuthorTitle, cancellationToken: Token), cancellationToken: Token);
         var last = await Organiser.LastAsync(Token);
         Assert.Equal(2, last!.FileCount);
 
-        var result = await Organiser.UndoLastAsync(Token);
+        var result = await Organiser.UndoLastAsync(cancellationToken: Token);
 
         Assert.Equal(2, result.Moved);
         Assert.Equal(["dune.epub", "x/hobbit.epub"], StoredPaths());
@@ -128,11 +155,11 @@ public sealed class OrganiserTests : IDisposable
     {
         AddBook("a.epub", "A", "A Writer");
         AddBook("b.epub", "B", "A Writer");
-        await Organiser.ApplyAsync(_root, await Organiser.PreviewAsync(_root, OrganiseLayout.AuthorTitle, Token), Token);
+        await Organiser.ApplyAsync(_root, await Organiser.PreviewAsync(_root, OrganiseLayout.AuthorTitle, cancellationToken: Token), cancellationToken: Token);
         var moved = Path.Combine(_root, "Writer, A", "A.epub");
         File.Move(moved, Path.Combine(_root, "elsewhere.epub"));
 
-        var result = await Organiser.UndoLastAsync(Token);
+        var result = await Organiser.UndoLastAsync(cancellationToken: Token);
 
         Assert.Equal(1, result.Moved);
         Assert.Equal(moved, Assert.Single(result.Failed).From);
@@ -146,7 +173,7 @@ public sealed class OrganiserTests : IDisposable
         var path = AddBook("a.epub", "A", "A Writer");
         var outside = Path.Combine(_library.Root, "elsewhere", "a.epub");
 
-        var result = await Organiser.ApplyAsync(_root, [new Move(1, path, outside)], Token);
+        var result = await Organiser.ApplyAsync(_root, [new Move(1, path, outside)], cancellationToken: Token);
 
         Assert.Equal(0, result.Moved);
         Assert.Single(result.Failed);
@@ -157,7 +184,7 @@ public sealed class OrganiserTests : IDisposable
     [Fact]
     public async Task Apply_WithNothingToMove_RecordsNothing()
     {
-        await Organiser.ApplyAsync(_root, [], Token);
+        await Organiser.ApplyAsync(_root, [], cancellationToken: Token);
 
         using var db = _library.NewContext();
         Assert.Empty(db.FileOperations);

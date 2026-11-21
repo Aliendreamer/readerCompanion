@@ -11,8 +11,10 @@ namespace ReaderCompanion.Data;
 internal sealed class Organiser(
     IDbContextFactory<LibraryDbContext> contexts, LibraryWriteGate gate, IDriveAccount drive, GoogleDriveFiles driveFiles) : IOrganiser
 {
-    public async Task<IReadOnlyList<Move>> PreviewAsync(string root, OrganiseLayout layout, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Move>> PreviewAsync(
+        string root, OrganiseLayout layout, IProgress<OrganiseProgress>? progress = null, CancellationToken cancellationToken = default)
     {
+        progress?.Report(new OrganiseProgress(OrganiseStage.Planning));
         var onDrive = DrivePath.IsDrive(root);
         var folder = onDrive ? DrivePath.Display(root) : LibraryPaths.Normalize(root);
         await using var db = await contexts.CreateDbContextAsync(cancellationToken);
@@ -49,7 +51,8 @@ internal sealed class Organiser(
             DrivePath.Make(DrivePath.Id(inside[m.FileId].Path), m.To.Replace(Path.DirectorySeparatorChar, '/'))))];
     }
 
-    public Task<OrganiseResult> ApplyAsync(string root, IReadOnlyList<Move> moves, CancellationToken cancellationToken = default) =>
+    public Task<OrganiseResult> ApplyAsync(
+        string root, IReadOnlyList<Move> moves, IProgress<OrganiseProgress>? progress = null, CancellationToken cancellationToken = default) =>
         WithGateAsync(async () =>
         {
             var mover = MoverFor(root);
@@ -69,7 +72,9 @@ internal sealed class Organiser(
             db.FileOperations.Add(operation);
             await db.SaveChangesAsync(cancellationToken); // the log exists before any file moves
 
-            var moved = await MoveAllAsync(db, mover, operation.Moves.Select(m => (m, m.From, m.To)), done: true, cancellationToken);
+            var moved = await MoveAllAsync(
+                db, mover, [.. operation.Moves.Select(m => (m, m.From, m.To))], done: true, Stage(progress, OrganiseStage.Moving), cancellationToken);
+            progress?.Report(new OrganiseProgress(OrganiseStage.Tidying));
             await mover.RemoveEmptyFoldersAsync(operation.Moves.Where(m => m.Done).Select(m => m.From), cancellationToken);
             return moved with { Failed = [.. outside, .. moved.Failed] };
         });
@@ -82,7 +87,7 @@ internal sealed class Organiser(
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    public Task<OrganiseResult> UndoLastAsync(CancellationToken cancellationToken = default) =>
+    public Task<OrganiseResult> UndoLastAsync(IProgress<OrganiseProgress>? progress = null, CancellationToken cancellationToken = default) =>
         WithGateAsync(async () =>
         {
             await using var db = await contexts.CreateDbContextAsync(cancellationToken);
@@ -94,13 +99,15 @@ internal sealed class Organiser(
             var mover = MoverFor(operation.Root);
             await mover.LoadAsync(cancellationToken);
             var done = operation.Moves.Where(m => m.Done).OrderByDescending(m => m.Id).ToList();
-            var result = await MoveAllAsync(db, mover, done.Select(m => (m, m.To, m.From)), done: false, cancellationToken);
+            var result = await MoveAllAsync(
+                db, mover, [.. done.Select(m => (m, m.To, m.From))], done: false, Stage(progress, OrganiseStage.MovingBack), cancellationToken);
             if (done.All(m => !m.Done)) // only when every file is back; otherwise the rest can be undone later
             {
                 operation.UndoneUtc = DateTime.UtcNow;
                 await db.SaveChangesAsync(cancellationToken);
             }
 
+            progress?.Report(new OrganiseProgress(OrganiseStage.Tidying));
             await mover.RemoveEmptyFoldersAsync(done.Where(m => !m.Done).Select(m => m.To), cancellationToken); // the ones moved back
             return result;
         });
@@ -126,11 +133,13 @@ internal sealed class Organiser(
     /// the files. A file that is gone, replaced, or whose target is taken is reported, not moved. Sets each moved log's
     /// <see cref="FileMove.Done"/> to <paramref name="done"/>.</summary>
     private static async Task<OrganiseResult> MoveAllAsync(
-        LibraryDbContext db, IMover mover, IEnumerable<(FileMove Log, string From, string To)> moves, bool done, CancellationToken cancellationToken)
+        LibraryDbContext db, IMover mover, IReadOnlyList<(FileMove Log, string From, string To)> moves, bool done,
+        Action<int, int>? report, CancellationToken cancellationToken)
     {
         var moved = 0;
         var failed = new List<MoveFailure>();
-        foreach (var (log, from, to) in moves)
+        report?.Invoke(0, moves.Count);
+        foreach (var (index, (log, from, to)) in moves.Index())
         {
             if (await TryMoveAsync(db, mover, log, from, to, done, cancellationToken) is { } reason)
             {
@@ -140,10 +149,15 @@ internal sealed class Organiser(
             {
                 moved++;
             }
+
+            report?.Invoke(index + 1, moves.Count);
         }
 
         return new OrganiseResult(moved, failed);
     }
+
+    private static Action<int, int>? Stage(IProgress<OrganiseProgress>? progress, OrganiseStage stage) =>
+        progress is null ? null : (done, total) => progress.Report(new OrganiseProgress(stage, done, total));
 
     /// <summary>Moves one file; returns why it could not, or null when it did.</summary>
     private static async Task<string?> TryMoveAsync(

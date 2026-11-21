@@ -1770,3 +1770,12 @@ button.book-title:hover {
   gap: 1rem;
   padding: 1.5rem 0 0.5rem;
 }
+
+/* What an organise is doing, under its controls. */
+.organise-progress {
+  margin-bottom: 1rem;
+}
+
+.organise-progress .progress-text {
+  margin: 0 0 0.5rem;
+}
