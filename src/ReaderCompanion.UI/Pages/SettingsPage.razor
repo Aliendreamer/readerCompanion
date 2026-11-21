@@ -16,6 +16,23 @@
 <p class="page-intro">Where your library lives and what it is linked to. Each part is changed on its own page.</p>
 
 <div class="settings">
+<section class="card settings-text-size">
+  <h2>Text size</h2>
+  <fieldset class="text-size">
+    <legend class="visually-hidden">Text size</legend>
+    @foreach (var size in AppPreferences.TextSizes)
+    {
+      <label class="browse-check">
+        <input id="text-size-@size" type="radio" name="text-size" value="@size"
+               checked="@(Preferences.Current.TextSize == size)"
+               @onchange="() => Preferences.Save(Preferences.Current with { TextSize = size })" />
+        @size%
+      </label>
+    }
+  </fieldset>
+  <p class="muted">Makes the whole window larger or smaller: menu, pages and covers.</p>
+</section>
+
 <section class="card settings-data">
   <h2>Data folder</h2>
   <p>Your library (books, details, collections, reading) and the covers are kept in:</p>

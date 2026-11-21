@@ -47,7 +47,12 @@ public sealed record AppPreferences(
     DateTime? GoodreadsLastImportUtc = null,
     int GoodreadsReminderMonths = 3,
     bool OnlineCovers = false,
-    DriveAccess DriveAccess = DriveAccess.PickedFiles);
+    DriveAccess DriveAccess = DriveAccess.PickedFiles,
+    int TextSize = 115)
+{
+    /// <summary>The text sizes offered, in percent of the web view's normal size.</summary>
+    public static IReadOnlyList<int> TextSizes { get; } = [100, 115, 130, 150];
+}
 
 /// <summary>The user's remembered choices. Reads never fail: a missing or damaged store gives the defaults.</summary>
 public interface IAppPreferences

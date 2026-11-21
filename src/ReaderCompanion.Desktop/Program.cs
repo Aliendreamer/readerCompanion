@@ -42,7 +42,12 @@ internal static class Program
         var app = builder.Build();
         app.Services.MigrateLibraryDatabase();
 
+        // The whole window follows the chosen text size, at start and whenever it changes.
+        var preferences = app.Services.GetRequiredService<IAppPreferences>();
+        preferences.Changed += () => app.MainWindow.SetZoom(preferences.Current.TextSize);
+
         app.MainWindow
+            .SetZoom(preferences.Current.TextSize)
             .SetTitle("readerCompanion")
             .SetSize(1200, 800)
             .SetLogVerbosity(0)

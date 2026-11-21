@@ -29,6 +29,19 @@ public class SettingsPageTests : BunitContext
     }
 
     [Fact]
+    public void TextSize_IsPickedAndRemembered()
+    {
+        var cut = Render<SettingsPage>();
+        Assert.True(cut.Find("#text-size-115").HasAttribute("checked"));
+        Assert.Equal(["100%", "115%", "130%", "150%"], cut.FindAll(".text-size label").Select(l => l.TextContent.Trim()));
+
+        cut.Find("#text-size-130").Change("130");
+
+        Assert.Equal(130, _preferences.Current.TextSize);
+        Assert.True(cut.Find("#text-size-130").HasAttribute("checked"));
+    }
+
+    [Fact]
     public void Covers_AreFetchedOnlyWhenTurnedOn_AndAsked()
     {
         var cut = Render<SettingsPage>();

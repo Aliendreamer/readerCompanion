@@ -43,6 +43,17 @@ public sealed class AppPreferencesTests : IDisposable
     }
 
     [Fact]
+    public void TextSize_Defaults115_AndAnOlderFileWithoutItGetsTheDefault()
+    {
+        File.WriteAllText(PreferencesFile, """{"Theme":"Dark"}""");
+
+        var preferences = _library.Services.GetRequiredService<IAppPreferences>();
+
+        Assert.Equal(ThemeChoice.Dark, preferences.Current.Theme);
+        Assert.Equal(115, preferences.Current.TextSize);
+    }
+
+    [Fact]
     public void LibraryGroupAndSort_DefaultToNoneAndTitle_AndRoundTrip()
     {
         var preferences = _library.Services.GetRequiredService<IAppPreferences>();
