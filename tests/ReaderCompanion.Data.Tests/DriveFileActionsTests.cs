@@ -101,9 +101,9 @@ public sealed class DriveFileActionsTests : IDisposable
         AddDriveBook("hobbit_final.epub", "The Hobbit", _books, "J.R.R. Tolkien", "Fantasy");
         AddDriveBook("elsewhere.epub", "Dune", Drive.Folder("Other"), "Frank Herbert", "SF");
 
-        var move = Assert.Single(await Organiser.PreviewAsync(Root, OrganiseLayout.GenreAuthorTitle, cancellationToken: Token));
+        var move = Assert.Single(await Organiser.PreviewAsync(Root, cancellationToken: Token));
 
-        Assert.Equal("Books/Fantasy/Tolkien, J.R.R/The Hobbit.epub", DrivePath.Display(move.To));
+        Assert.Equal("Books/Fantasy/J.R.R. Tolkien/The Hobbit.epub", DrivePath.Display(move.To));
     }
 
     [Fact]
@@ -111,14 +111,14 @@ public sealed class DriveFileActionsTests : IDisposable
     {
         var old = Drive.Folder("Old", _books);
         var id = AddDriveBook("hobbit_final.epub", "The Hobbit", old, "J.R.R. Tolkien", "Fantasy");
-        var moves = await Organiser.PreviewAsync(Root, OrganiseLayout.GenreAuthorTitle, cancellationToken: Token);
+        var moves = await Organiser.PreviewAsync(Root, cancellationToken: Token);
 
         var result = await Organiser.ApplyAsync(Root, moves, cancellationToken: Token);
 
         Assert.Equal((1, 0), (result.Moved, result.Failed.Count));
-        Assert.Equal("Books/Fantasy/Tolkien, J.R.R/The Hobbit.epub", Drive.PathOf(id));
-        Assert.Equal("Books/Fantasy/Tolkien, J.R.R/The Hobbit.epub", DrivePath.Display(FileOf(id).Path));
-        Assert.Equal(["Fantasy", "Tolkien, J.R.R"], Drive.CreatedFolders);
+        Assert.Equal("Books/Fantasy/J.R.R. Tolkien/The Hobbit.epub", Drive.PathOf(id));
+        Assert.Equal("Books/Fantasy/J.R.R. Tolkien/The Hobbit.epub", DrivePath.Display(FileOf(id).Path));
+        Assert.Equal(["Fantasy", "J.R.R. Tolkien"], Drive.CreatedFolders);
         Assert.True(Drive.Items[old].Trashed);
 
         var undone = await Organiser.UndoLastAsync(cancellationToken: Token);
@@ -136,7 +136,7 @@ public sealed class DriveFileActionsTests : IDisposable
         var otherBooks = Drive.Folder("Books"); // a second "Books" in My Drive
         var other = AddDriveBook("dune.epub", "Dune", otherBooks, "Frank Herbert", "SF");
 
-        var moves = await Organiser.PreviewAsync(Root, OrganiseLayout.GenreAuthorTitle, cancellationToken: Token);
+        var moves = await Organiser.PreviewAsync(Root, cancellationToken: Token);
 
         Assert.DoesNotContain(moves, m => DrivePath.Id(m.From) == other);
         Assert.Single(moves);
@@ -146,19 +146,19 @@ public sealed class DriveFileActionsTests : IDisposable
     public async Task Preview_ANameTakenOnDrive_GetsANumber()
     {
         AddDriveBook("hobbit_final.epub", "The Hobbit", _books, "J.R.R. Tolkien", "Fantasy");
-        Drive.File("The Hobbit.epub", Drive.Folder("Tolkien, J.R.R", _books), [9]); // not in the library
+        Drive.File("The Hobbit.epub", Drive.Folder("J.R.R. Tolkien", Drive.Folder("Fantasy", _books)), [9]); // not in the library
 
-        var move = Assert.Single(await Organiser.PreviewAsync(Root, OrganiseLayout.AuthorTitle, cancellationToken: Token));
+        var move = Assert.Single(await Organiser.PreviewAsync(Root, cancellationToken: Token));
 
-        Assert.Equal("Books/Tolkien, J.R.R/The Hobbit (2).epub", DrivePath.Display(move.To));
+        Assert.Equal("Books/Fantasy/J.R.R. Tolkien/The Hobbit (2).epub", DrivePath.Display(move.To));
     }
 
     [Fact]
     public async Task Apply_ATakenName_IsReportedAndNotMoved()
     {
         var id = AddDriveBook("hobbit_final.epub", "The Hobbit", _books, "J.R.R. Tolkien", "Fantasy");
-        var moves = await Organiser.PreviewAsync(Root, OrganiseLayout.AuthorTitle, cancellationToken: Token);
-        Drive.File("The Hobbit.epub", Drive.Folder("Tolkien, J.R.R", _books), [9]); // not in the library
+        var moves = await Organiser.PreviewAsync(Root, cancellationToken: Token);
+        Drive.File("The Hobbit.epub", Drive.Folder("J.R.R. Tolkien", Drive.Folder("Fantasy", _books)), [9]); // not in the library
 
         var result = await Organiser.ApplyAsync(Root, moves, cancellationToken: Token);
 
@@ -170,7 +170,7 @@ public sealed class DriveFileActionsTests : IDisposable
     public async Task Apply_WithReadOnlyAccess_IsRefused()
     {
         var id = AddDriveBook("hobbit_final.epub", "The Hobbit", _books, "J.R.R. Tolkien", "Fantasy");
-        var moves = await Organiser.PreviewAsync(Root, OrganiseLayout.AuthorTitle, cancellationToken: Token);
+        var moves = await Organiser.PreviewAsync(Root, cancellationToken: Token);
         _library.DriveAccount.Link = new DriveLink(DriveAccess.WholeDriveReadOnly, null, DateTime.UtcNow);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => Organiser.ApplyAsync(Root, moves, cancellationToken: Token));

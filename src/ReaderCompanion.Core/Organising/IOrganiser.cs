@@ -55,9 +55,9 @@ public sealed record OrganiseProgress(OrganiseStage Stage, int Done = 0, int Tot
 /// every move. Apply and undo refuse while a scan runs (and scans wait for them).</summary>
 public interface IOrganiser
 {
-    /// <summary>The moves that would put the present files under <paramref name="root"/> into the layout.</summary>
+    /// <summary>The moves that would put the present files under <paramref name="root"/> in place.</summary>
     Task<IReadOnlyList<Move>> PreviewAsync(
-        string root, OrganiseLayout layout, IProgress<OrganiseProgress>? progress = null, CancellationToken cancellationToken = default);
+        string root, IProgress<OrganiseProgress>? progress = null, CancellationToken cancellationToken = default);
 
     /// <summary>Moves the files, records the operation and removes folders left empty under the root.</summary>
     Task<OrganiseResult> ApplyAsync(

@@ -10,8 +10,9 @@
 @inject IDriveLibrary DriveBooks
 
 <h1 class="visually-hidden">Organise</h1>
-<p class="page-intro">Move and rename the files in a library folder into tidy folders built from each book's details.
-  You always see the moves first, and the last organise can be undone.</p>
+<p class="page-intro">Move and rename the files in a library folder into Group / Author / Series / Title, built from
+  each book's details: an author's books stay together under the genre they mostly write in. You always see the moves
+  first, and the last organise can be undone.</p>
 
 @if (_folders is null)
 {
@@ -35,14 +36,6 @@ else
           {
             <option value="@folder">@BookText.FileLocation(folder)</option>
           }
-        </select>
-      </label>
-      <label class="browse-select">
-        <span>Layout</span>
-        <select id="organise-layout" value="@_layout" @onchange="e => Pick(() => _layout = Enum.Parse<OrganiseLayout>((string)e.Value!))">
-          <option value="@OrganiseLayout.GenreAuthorTitle">Genre / Author / Title</option>
-          <option value="@OrganiseLayout.AuthorSeriesTitle">Author / Series / 01 - Title</option>
-          <option value="@OrganiseLayout.AuthorTitle">Author / Title</option>
         </select>
       </label>
       <button id="organise-preview" type="button" class="btn" disabled="@_busy" @onclick="PreviewAsync">Preview</button>
@@ -102,7 +95,7 @@ else
   {
     @if (moves.Count == 0)
     {
-      <p class="muted">Nothing needs to move: this folder already follows the layout.</p>
+      <p class="muted">Nothing needs to move: this folder is already in order.</p>
     }
     else
     {
@@ -116,20 +109,23 @@ else
         <thead>
           <tr>
             <th class="col-cover"><span class="visually-hidden">Move</span></th>
-            <th>Now</th>
-            <th>After</th>
+            <th>Goes to</th>
           </tr>
         </thead>
         <tbody>
           @foreach (var move in _movesPager.Page(moves))
           {
+            var to = Relative(move.To);
             <tr @key="move.FileId">
               <td class="col-cover">
                 <input type="checkbox" class="move-include" aria-label="Move this file" checked="@_included.Contains(move.FileId)"
                        @onchange="e => Toggle(move.FileId, e.Value is true)" />
               </td>
-              <td class="folder-path">@Relative(move.From)</td>
-              <td class="folder-path">@Relative(move.To)</td>
+              <td>
+                <span class="move-folder">@Folder(to)</span>
+                <span class="move-name">@Path.GetFileName(to)</span>
+                <span class="move-from">now: @Relative(move.From)</span>
+              </td>
             </tr>
           }
         </tbody>
@@ -142,7 +138,6 @@ else
 @code {
   private IReadOnlyList<string>? _folders;
   private string _folder = "";
-  private OrganiseLayout _layout;
   private IReadOnlyList<Move>? _moves;
   private readonly Pager _movesPager = new();
   private readonly Pager _failuresPager = new();
@@ -187,11 +182,15 @@ else
 
   private static string Files(int count) => BookText.Plural(count, "file");
 
+  /// <summary>A relative path's folders, as "Fantasy › J.R.R. Tolkien".</summary>
+  private static string Folder(string relative) =>
+    string.Join(" › ", (Path.GetDirectoryName(relative) ?? "").Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries));
+
   // A path as seen from the chosen folder.
   private string Relative(string path) =>
     DrivePath.IsDrive(path) ? DrivePath.Relative(path, DrivePath.Display(_folder)) : Path.GetRelativePath(_folder, path);
 
-  // A new folder or layout makes the shown preview stale.
+  // A new folder makes the shown preview stale.
   private void Pick(Action change)
   {
     change();
@@ -213,7 +212,7 @@ else
   private Task PreviewAsync() => RunAsync(async () =>
   {
     _result = null;
-    _moves = await Organiser.PreviewAsync(_folder, _layout, Progress());
+    _moves = await Organiser.PreviewAsync(_folder, Progress());
     _included.Clear();
     _included.UnionWith(_moves.Select(m => m.FileId));
   });

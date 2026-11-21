@@ -34,9 +34,9 @@ public class OrganisePageTests : BunitContext
         cut.Find("#organise-folder").Change("gdrive://books/Books");
         cut.Find("#organise-preview").Click();
 
-        cut.WaitForAssertion(() => Assert.Equal(
-            ["hobbit.epub", "Fantasy/The Hobbit.epub"],
-            cut.FindAll(".organise-moves tbody td.folder-path").Select(td => td.TextContent)));
+        cut.WaitForAssertion(() => Assert.Equal("Fantasy", cut.Find(".move-folder").TextContent));
+        Assert.Equal("The Hobbit.epub", cut.Find(".move-name").TextContent);
+        Assert.Equal("now: hobbit.epub", cut.Find(".move-from").TextContent);
     }
 
     [Fact]
@@ -67,18 +67,18 @@ public class OrganisePageTests : BunitContext
     }
 
     [Fact]
-    public void Preview_ListsMoves_RelativeToTheFolder_WithTheChosenLayout()
+    public void Preview_ShowsWhereEachFileGoes_AndWhereItIsNow_RelativeToTheFolder()
     {
-        _organiser.Planned.Add(new Move(1, "/books/hobbit.epub", "/books/Fantasy/Tolkien, J.R.R/The Hobbit.epub"));
+        _organiser.Planned.Add(new Move(1, "/books/downloads/hobbit.epub", "/books/Fantasy/J.R.R. Tolkien/The Hobbit.epub"));
         var cut = RenderPage();
+        Assert.Empty(cut.FindAll("#organise-layout")); // one layout: nothing to choose
 
-        cut.Find("#organise-layout").Change(nameof(OrganiseLayout.AuthorTitle));
         cut.Find("#organise-preview").Click();
 
         cut.WaitForAssertion(() => Assert.Single(cut.FindAll(".organise-moves tbody tr")));
-        Assert.Equal(OrganiseLayout.AuthorTitle, _organiser.LastLayout);
-        Assert.Contains("hobbit.epub", cut.Find(".organise-moves").TextContent);
-        Assert.Contains("Fantasy/Tolkien, J.R.R/The Hobbit.epub", cut.Find(".organise-moves").TextContent.Replace('\\', '/'));
+        Assert.Equal("Fantasy › J.R.R. Tolkien", cut.Find(".move-folder").TextContent);
+        Assert.Equal("The Hobbit.epub", cut.Find(".move-name").TextContent);
+        Assert.Equal("now: downloads/hobbit.epub", cut.Find(".move-from").TextContent.Replace('\\', '/'));
         Assert.DoesNotContain("/books/", cut.Find(".organise-moves tbody").TextContent);
     }
 

@@ -7,25 +7,46 @@ always previewed first and always undoable, with the library following the files
 
 ## Requirements
 
-### Requirement: Layouts and names
+### Requirement: One layout and names
 
-The user SHALL choose a layout: `Genre/Author/Title` (default), `Author/Series/NN - Title` or `Author/Title`. The author
-SHALL be written "Last, First" from the first author, the genre SHALL be the first genre, and missing values SHALL be
-"Unknown author", "Unknown genre" or "No series". Names SHALL be safe on Windows and Linux: characters not allowed
-in file names replaced, no trailing dots or spaces, and no more than 100 characters per name.
+Files SHALL be organised as `Group/Author/Series/NN - Title`. The author is the first person of the book's first
+author, given name first ("Kleppmann, Martin" is "Martin Kleppmann"; of "Mario Casciaro & Luciano Mammino" only Mario
+Casciaro). The series folder is used only when the book has a series, and "NN - " only with a series number. The group
+SHALL be the same for every book of an author: the genre most of that author's books have (ties go to the first in
+alphabetical order); when none has a genre, the top folder most of the author's files are in, if it holds books of
+several authors and does not name the author; otherwise there is no group level. A book without a usable author SHALL
+NOT be moved. Names SHALL be safe on Windows and Linux (no forbidden characters, no trailing dots or spaces, at most
+100 characters).
 
-#### Scenario: Default layout
+#### Scenario: A series book
 
-- **GIVEN** "The Hobbit" by J.R.R. Tolkien, genre Fantasy, in `/books/hobbit_final(1).epub`
-- **WHEN** the user previews the default layout for `/books`
-- **THEN** the file would move to `/books/Fantasy/Tolkien, J.R.R/The Hobbit.epub` (Windows does not allow a
-  folder name ending in a dot)
+- **GIVEN** "The Player of Games" by Iain M. Banks, Culture #2, and most of Banks's books tagged Science Fiction
+- **WHEN** the user previews
+- **THEN** the file would move to `Science Fiction/Iain M. Banks/Culture/02 - The Player of Games.epub`
 
-#### Scenario: Series layout
+#### Scenario: A standalone book of the same author
 
-- **GIVEN** "Mort" by Terry Pratchett, Discworld #4
-- **WHEN** the user previews `Author/Series/NN - Title`
-- **THEN** the file would move to `Pratchett, Terry/Discworld/04 - Mort.epub` under the library folder
+- **GIVEN** "The Algebraist" by Iain M. Banks, no series, tagged Fantasy only
+- **WHEN** the user previews
+- **THEN** it would move to `Science Fiction/Iain M. Banks/The Algebraist.epub`, with the rest of the author's books
+
+#### Scenario: Books kept together by folder
+
+- **GIVEN** "Clean Architecture" by Robert C. Martin, no genre, in `ProgramingBooks/`
+- **WHEN** the user previews
+- **THEN** it would move to `ProgramingBooks/Robert C. Martin/Clean Architecture.epub`
+
+#### Scenario: No author
+
+- **GIVEN** `ProgramingBooks/learning-docker.pdf` whose author is "Unknown"
+- **WHEN** the user previews
+- **THEN** it is not in the preview and is not moved
+
+#### Scenario: A book in its own folder
+
+- **GIVEN** `Code Complete, 2nd Edition/Code Complete - Steve McConnell.epub`, no genre, the folder holding only it
+- **WHEN** the user previews
+- **THEN** it would move to `Steve McConnell/Code Complete.epub`
 
 ### Requirement: Preview first
 

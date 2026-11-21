@@ -12,7 +12,7 @@ internal sealed class Organiser(
     IDbContextFactory<LibraryDbContext> contexts, LibraryWriteGate gate, IDriveAccount drive, GoogleDriveFiles driveFiles) : IOrganiser
 {
     public async Task<IReadOnlyList<Move>> PreviewAsync(
-        string root, OrganiseLayout layout, IProgress<OrganiseProgress>? progress = null, CancellationToken cancellationToken = default)
+        string root, IProgress<OrganiseProgress>? progress = null, CancellationToken cancellationToken = default)
     {
         progress?.Report(new OrganiseProgress(OrganiseStage.Planning));
         var onDrive = DrivePath.IsDrive(root);
@@ -33,7 +33,7 @@ internal sealed class Organiser(
             .ToListAsync(cancellationToken);
         if (!onDrive)
         {
-            return OrganisePlanner.Plan(folder, layout, [.. present.Where(f => LibraryPaths.IsSameOrUnder(f.Path, folder))], File.Exists);
+            return OrganisePlanner.Plan(folder, [.. present.Where(f => LibraryPaths.IsSameOrUnder(f.Path, folder))], File.Exists);
         }
 
         // Only files really in this Drive folder's tree count (another source may have a folder of the same name), and
@@ -45,7 +45,7 @@ internal sealed class Organiser(
         static string Local(string display) => display.Replace('/', Path.DirectorySeparatorChar);
         var planned = inside.Values.Select(f => f with { Path = Local(DrivePath.Display(f.Path)) }).ToList();
         var taken = tree.FilePaths.Select(Local).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        return [.. OrganisePlanner.Plan(Local(folder), layout, planned, taken.Contains).Select(m => new Move(
+        return [.. OrganisePlanner.Plan(Local(folder), planned, taken.Contains).Select(m => new Move(
             m.FileId,
             inside[m.FileId].Path,
             DrivePath.Make(DrivePath.Id(inside[m.FileId].Path), m.To.Replace(Path.DirectorySeparatorChar, '/'))))];

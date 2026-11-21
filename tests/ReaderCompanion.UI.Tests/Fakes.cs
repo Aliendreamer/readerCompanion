@@ -440,7 +440,6 @@ internal sealed class FakeOrganiser : IOrganiser
 
     public int Undos { get; private set; }
 
-    public OrganiseLayout? LastLayout { get; private set; }
 
     /// <summary>When set, an apply reports this and waits for <see cref="ApplyHeld"/>.</summary>
     public OrganiseProgress? ApplyReports { get; set; }
@@ -448,9 +447,8 @@ internal sealed class FakeOrganiser : IOrganiser
     public TaskCompletionSource<OrganiseResult>? ApplyHeld { get; set; }
 
     public Task<IReadOnlyList<Move>> PreviewAsync(
-        string root, OrganiseLayout layout, IProgress<OrganiseProgress>? progress = null, CancellationToken cancellationToken = default)
+        string root, IProgress<OrganiseProgress>? progress = null, CancellationToken cancellationToken = default)
     {
-        LastLayout = layout;
         return Task.FromResult<IReadOnlyList<Move>>([.. Planned]);
     }
 

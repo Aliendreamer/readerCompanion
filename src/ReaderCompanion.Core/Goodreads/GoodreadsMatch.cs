@@ -51,10 +51,11 @@ public static partial class GoodreadsMatch
     /// <summary>Whether any author of one is an author of the other, by surname.</summary>
     public static bool ShareAnAuthor(IEnumerable<string> a, IEnumerable<string> b) => Surnames(a).Intersect(Surnames(b)).Any();
 
-    /// <summary>One author field as separate names, given name first.</summary>
-    private static IEnumerable<string> Names(string author)
+    /// <summary>One author field as separate people, given name first: "Kleppmann, Martin" is "Martin Kleppmann",
+    /// "Mario Casciaro &amp; Luciano Mammino" two people, a leading "By " dropped.</summary>
+    public static IEnumerable<string> Names(string author)
     {
-        foreach (var part in Separators().Split(author))
+        foreach (var part in Separators().Split(ByPrefix().Replace(author.Trim(), "")))
         {
             var commas = part.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             if (commas is [var surname, var given] && !surname.Contains(' ', StringComparison.Ordinal))
@@ -79,4 +80,7 @@ public static partial class GoodreadsMatch
 
     [GeneratedRegex(@"\s*(?:;|&|\band\b|,\s*and\b)\s*", RegexOptions.IgnoreCase)]
     private static partial Regex Separators();
+
+    [GeneratedRegex(@"^by\s+", RegexOptions.IgnoreCase)]
+    private static partial Regex ByPrefix();
 }

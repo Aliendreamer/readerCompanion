@@ -1896,3 +1896,26 @@ main:has(> .workspace) {
     background: rgb(0 0 0 / 15%);
   }
 }
+
+/* Organise preview: where each file goes (folders, then the name), and below it where it is now. */
+.organise-moves td {
+  vertical-align: top;
+}
+
+.move-folder {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.move-name {
+  display: block;
+  font-weight: 600;
+}
+
+.move-from {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
