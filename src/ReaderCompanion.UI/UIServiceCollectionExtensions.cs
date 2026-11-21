@@ -14,6 +14,7 @@ public static class UIServiceCollectionExtensions
         services.AddScoped<IInView, JsInView>();
         services.TryAddSingleton<IAppWindow, NoAppWindow>();
         services.AddSingleton<ScanStatus>();
+        services.AddSingleton<LibraryStatus>();
         return services;
     }
 }

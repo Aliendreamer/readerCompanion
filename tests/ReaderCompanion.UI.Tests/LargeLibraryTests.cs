@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using ReaderCompanion.Core.Library;
 using ReaderCompanion.Core.Preferences;
 using ReaderCompanion.UI.Pages;
@@ -29,7 +30,7 @@ public class LargeLibraryTests : BunitContext
     {
         var cut = RenderHome();
         Assert.Equal(120, cut.FindAll(".book-card").Count);
-        Assert.Equal("300 books", cut.Find(".book-count").TextContent);
+        Assert.Equal("300 books", Services.GetRequiredService<LibraryStatus>().Count);
         Assert.Contains("Showing 120 of 300", cut.Find(".load-more").TextContent);
 
         cut.InvokeAsync(_inView.ScrollNear);

@@ -390,6 +390,21 @@ svg {
   color: var(--accent);
 }
 
+/* Along the bottom: the Library's book count and running scans. */
+.status-bar {
+  display: flex;
+  flex: none;
+  gap: 1.5rem;
+  min-height: 1.6rem;
+  padding: 0.2rem 0.75rem;
+  overflow: hidden;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
 /* Too narrow for every label: icons only (each keeps its name as a tooltip). */
 @media (max-width: 900px) {
   .toolbar-label {

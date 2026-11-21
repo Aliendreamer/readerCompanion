@@ -754,6 +754,7 @@ internal static class TestServices
     {
         services.AddSingleton<IInView>(inView ?? new FakeInView());
         services.AddSingleton<ScanStatus>();
+        services.AddSingleton<LibraryStatus>();
         services.AddSingleton<IAppWindow>(window ?? new FakeAppWindow());
         services.AddSingleton<IWindowKeys>(keys ?? new FakeWindowKeys());
         services.AddSingleton<ReaderCompanion.Core.Drive.IDriveAccount>(drive ?? new FakeDriveAccount());

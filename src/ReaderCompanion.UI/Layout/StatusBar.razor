@@ -1,0 +1,39 @@
+@using ReaderCompanion.UI.Library
+@implements IDisposable
+@inject LibraryStatus Library
+@inject ScanStatus Scans
+
+@* Along the bottom of the window: the Library's book count, and any running scan's progress (from any page). *@
+<footer class="status-bar" role="status">
+  @if (Library.Count is { } count)
+  {
+    <span class="status-count">@count</span>
+  }
+  @if (Scans.Library is { IsRunning: true } scan)
+  {
+    var progress = scan.Progress ?? new ScanProgress(0, 0);
+    <span class="status-scan">Scan @progress.FilesProcessed of @progress.FilesFound files</span>
+  }
+  @if (Scans.Drive is { IsRunning: true, Progress: { } driveProgress })
+  {
+    <span class="status-scan">Drive scan: @DriveText.ScanProgress(driveProgress)</span>
+  }
+</footer>
+
+@code {
+  protected override void OnInitialized()
+  {
+    Library.Changed += OnChanged;
+    Scans.Library.Changed += OnChanged;
+    Scans.Drive.Changed += OnChanged;
+  }
+
+  private void OnChanged() => InvokeAsync(StateHasChanged);
+
+  public void Dispose()
+  {
+    Library.Changed -= OnChanged;
+    Scans.Library.Changed -= OnChanged;
+    Scans.Drive.Changed -= OnChanged;
+  }
+}

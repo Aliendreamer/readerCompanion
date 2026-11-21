@@ -1,3 +1,4 @@
+using ReaderCompanion.Core.Scanning;
 using ReaderCompanion.Core.Drive;
 
 namespace ReaderCompanion.UI.Library;
@@ -19,4 +20,13 @@ public static class DriveText
     /// <summary>What to tell the user about an expected Drive failure.</summary>
     public static string Error(Exception e) =>
         e is OperationCanceledException ? "Google did not answer in time. Try again." : e.Message;
+
+    /// <summary>What a Drive scan is doing, e.g. "Reading new books from Drive… 3 of 20".</summary>
+    public static string ScanProgress(ScanProgress progress) => progress.Stage switch
+    {
+        ScanStage.Listing =>
+            $"Looking through Drive… {BookText.Plural(progress.FoldersListed, "folder")}, {BookText.Plural(progress.FilesFound, "book")} so far",
+        ScanStage.Checking => $"Checking books Drive has no checksum for… {progress.FilesProcessed} of {progress.FilesFound}",
+        _ => $"Reading new books from Drive… {progress.FilesProcessed} of {progress.FilesFound}",
+    };
 }

@@ -41,7 +41,7 @@ public class HomeTests : BunitContext
 
         var cut = Render<Home>();
 
-        cut.WaitForAssertion(() => Assert.Equal("2 books", cut.Find(".book-count").TextContent));
+        cut.WaitForAssertion(() => Assert.Equal("2 books", Services.GetRequiredService<LibraryStatus>().Count));
     }
 
     [Fact]

@@ -5,6 +5,8 @@
 @using ReaderCompanion.UI.Library
 @inject ILibraryBooks Books
 @inject IAppPreferences Preferences
+@inject LibraryStatus Status
+@implements IDisposable
 
 <h1 class="visually-hidden">Library</h1>
 
@@ -34,13 +36,12 @@ else
 {
   <div class="library @(_selected is null ? null : "has-panel")">
     <BrowseBar Query="Query" QueryChanged="ChangeQuery" Options="_options" View="View" ViewChanged="ChangeView" />
-    <div class="browse-summary">
-      <p class="book-count">@Count()</p>
-      @if (Query.IsNarrowed)
-      {
+    @if (Query.IsNarrowed)
+    {
+      <div class="browse-summary">
         <button id="clear-filters" type="button" class="link-button" @onclick="ClearFilters">Clear filters</button>
-      }
-    </div>
+      </div>
+    }
 
     @if (_result.Shown == 0)
     {
@@ -98,7 +99,14 @@ else
     Refresh();
   }
 
-  private void Refresh() => _result = LibraryBrowser.Browse(_books ?? [], Query);
+  // The count is shown in the status bar.
+  private void Refresh()
+  {
+    _result = LibraryBrowser.Browse(_books ?? [], Query);
+    Status.Set(_books is { Count: 0 } ? "No books" : Count());
+  }
+
+  public void Dispose() => Status.Set(null);
 
   private string Count() =>
     Query.IsNarrowed ? $"{_result.Shown} of {_result.Total} books"

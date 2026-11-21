@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using ReaderCompanion.Core.Library;
 using ReaderCompanion.Core.Preferences;
 using ReaderCompanion.UI.Pages;
@@ -177,11 +178,11 @@ public class BrowseTests : BunitContext
     public void Count_ShowsNOfMWhileNarrowed()
     {
         var cut = RenderHome();
-        Assert.Equal("3 books", cut.Find(".book-count").TextContent);
+        Assert.Equal("3 books", Services.GetRequiredService<LibraryStatus>().Count);
 
         FilterSteps.Pick(cut, "filter-genre", "Fantasy");
 
-        Assert.Equal("2 of 3 books", cut.Find(".book-count").TextContent);
+        Assert.Equal("2 of 3 books", Services.GetRequiredService<LibraryStatus>().Count);
     }
 
     [Fact]
@@ -222,7 +223,7 @@ public class BrowseTests : BunitContext
         cut.Find("#browse-search").Input("zzz");
 
         Assert.Contains("No books match", cut.Markup);
-        Assert.Equal("0 of 3 books", cut.Find(".book-count").TextContent);
+        Assert.Equal("0 of 3 books", Services.GetRequiredService<LibraryStatus>().Count);
 
         cut.Find("#clear-filters").Click();
 
