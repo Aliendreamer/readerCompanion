@@ -49,6 +49,12 @@ internal static class Program
         preferences.Changed += () => app.MainWindow.SetZoom(preferences.Current.TextSize);
 
         window.Attach(app.MainWindow, ownFrame: !preferences.Current.SystemTitleBar);
+        var icon = Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "readercompanion.ico" : "readercompanion.png");
+        if (File.Exists(icon))
+        {
+            app.MainWindow.SetIconFile(icon);
+        }
+
         app.MainWindow
             .SetZoom(preferences.Current.TextSize)
             .SetSize(1200, 800)

@@ -321,14 +321,11 @@ svg {
   white-space: nowrap;
 }
 
-.brand svg {
+.brand-logo {
   flex-shrink: 0;
-  width: 1.4rem;
-  height: 1.4rem;
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 2;
-  stroke-linejoin: round;
+  width: 1.75rem;
+  height: 1.75rem;
+  -webkit-user-drag: none; /* the brand moves the window; the image must not be dragged instead */
 }
 
 .sidebar nav {

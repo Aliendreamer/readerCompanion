@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- readerCompanion: an open book, read further on the left than the right, with a ribbon where you got to. -->
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a8f86" />
+      <stop offset="1" stop-color="#1d4f4b" />
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="108" fill="url(#tile)" />
+
+  <!-- page stacks: three layers read on the left, one still to go on the right -->
+  <g fill="#cfc4ad">
+    <path d="M256 226 C210 194 150 190 96 202 L96 392 C150 380 210 384 256 416 Z" />
+    <path d="M256 226 C302 194 362 190 416 202 L416 392 C362 380 302 384 256 416 Z" transform="translate(0 -20)" />
+  </g>
+  <path fill="#dfd6c3" d="M256 216 C210 184 150 180 100 192 L100 382 C150 370 210 374 256 406 Z" />
+  <path fill="#e9e2d2" d="M256 206 C210 174 150 170 104 182 L104 372 C150 360 210 364 256 396 Z" />
+
+  <!-- the open pages -->
+  <path fill="#f8f3e8" d="M256 196 C210 164 150 160 108 172 L108 362 C150 350 210 354 256 386 Z" />
+  <path fill="#f8f3e8" d="M256 196 C302 164 362 160 404 172 L404 362 C362 350 302 354 256 386 Z" />
+  <path d="M256 196 L256 386" stroke="#c7baa0" stroke-width="5" />
+
+  <!-- lines of text -->
+  <g stroke="#b9c7c2" stroke-width="9" stroke-linecap="round">
+    <path d="M136 212 C170 204 204 206 230 218" />
+    <path d="M136 246 C170 238 204 240 230 252" />
+    <path d="M136 280 C170 272 204 274 230 286" />
+    <path d="M136 314 C170 306 196 308 214 316" />
+    <path d="M330 218 C344 210 360 206 376 206" />
+    <path d="M330 252 C344 244 360 240 376 240" />
+  </g>
+
+  <!-- the ribbon: where you have got to -->
+  <path fill="#f0a63a" d="M292 140 L320 140 L320 312 L306 297 L292 312 Z" />
+</svg>
