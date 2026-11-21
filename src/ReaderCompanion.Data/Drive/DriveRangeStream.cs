@@ -7,7 +7,11 @@ internal sealed class DriveRangeStream(
     GoogleDriveFiles files, string id, long length, CancellationToken cancellationToken, int chunkSize = DriveRangeStream.DefaultChunkSize)
     : Stream
 {
+    /// <summary>64 KB holds an EPUB's ZIP directory or package file, or a PDF's trailer and cross-reference table,
+    /// in one request for most books; much larger would fetch bytes no reader looks at.</summary>
     public const int DefaultChunkSize = 64 * 1024;
+
+    /// <summary>Pieces kept (1 MB): enough for a reader that goes back to a part it read, as ZIP and PDF readers do.</summary>
     private const int KeptChunks = 16;
 
     private readonly Dictionary<long, byte[]> _chunks = [];

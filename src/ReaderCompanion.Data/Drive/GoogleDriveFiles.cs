@@ -211,7 +211,11 @@ internal sealed class GoogleDriveFiles(IDriveAccount account, HttpClient http)
         }
     }
 
+    /// <summary>Two retries (waits of ~0.25-0.5 s, then ~0.5-0.75 s) ride out a moment of throttling; a longer
+    /// outage then fails the scan clearly instead of stalling it.</summary>
     private const int Retries = 2;
+
+    /// <summary>A Retry-After longer than this is not waited out: the scan fails and can be run again later.</summary>
     private static readonly TimeSpan MaxRetryWait = TimeSpan.FromSeconds(10);
 
     private static DriveUnavailableException Unavailable(HttpStatusCode status) => new(status switch

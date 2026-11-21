@@ -1,9 +1,12 @@
+using Microsoft.Extensions.DependencyInjection;
 using ReaderCompanion.UI.Library;
 
 namespace ReaderCompanion.UI.Tests;
 
 public class FilterPickerTests : BunitContext
 {
+    public FilterPickerTests() => Services.AddSingleton<IInView>(new FakeInView());
+
     private static readonly string[] Authors = [.. Enumerable.Range(1, 12).Select(i => $"Author {i:00}")];
 
     [Fact]

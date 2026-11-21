@@ -1,4 +1,5 @@
 @using ReaderCompanion.Core.Library
+@using ReaderCompanion.UI.Library
 
 <table class="progress-table">
   <thead>
@@ -9,7 +10,7 @@
     </tr>
   </thead>
   <tbody>
-    @foreach (var row in Rows)
+    @foreach (var row in _pager.Page(Rows))
     {
       <tr>
         <td>@row.Name</td>
@@ -19,7 +20,10 @@
     }
   </tbody>
 </table>
+<MoreMarker Shown="_pager.Shown(Rows.Count)" Total="Rows.Count" OnMore="_pager.More" />
 
 @code {
-  [Parameter, EditorRequired] public IEnumerable<Progress> Rows { get; set; } = [];
+  [Parameter, EditorRequired] public IReadOnlyList<Progress> Rows { get; set; } = [];
+
+  private readonly Pager _pager = new();
 }

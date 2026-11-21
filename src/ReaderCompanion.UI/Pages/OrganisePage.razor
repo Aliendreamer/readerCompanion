@@ -73,11 +73,12 @@ else
       {
         <p>@Files(result.Failed.Count) could not be moved:</p>
         <ul class="organise-failures">
-          @foreach (var failure in result.Failed)
+          @foreach (var failure in _failuresPager.Page(result.Failed))
           {
             <li><span class="folder-path">@BookText.FileLocation(failure.From)</span> — @failure.Reason</li>
           }
         </ul>
+        <MoreMarker Shown="_failuresPager.Shown(result.Failed.Count)" Total="result.Failed.Count" OnMore="_failuresPager.More" />
       }
     </div>
   }
@@ -105,7 +106,7 @@ else
           </tr>
         </thead>
         <tbody>
-          @foreach (var move in moves)
+          @foreach (var move in _movesPager.Page(moves))
           {
             <tr @key="move.FileId">
               <td class="col-cover">
@@ -118,6 +119,7 @@ else
           }
         </tbody>
       </table>
+      <MoreMarker Shown="_movesPager.Shown(moves.Count)" Total="moves.Count" OnMore="_movesPager.More" />
     }
   }
 }
@@ -127,6 +129,8 @@ else
   private string _folder = "";
   private OrganiseLayout _layout;
   private IReadOnlyList<Move>? _moves;
+  private readonly Pager _movesPager = new();
+  private readonly Pager _failuresPager = new();
   private readonly HashSet<int> _included = [];
   private OrganiseResult? _result;
   private bool _undid;

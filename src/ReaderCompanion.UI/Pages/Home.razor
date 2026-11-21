@@ -74,8 +74,9 @@ else
   private int? _selected;
   private bool _reminderDismissed; // until the app restarts
 
-  // A large library is built a page at a time, more as the list nears the view; a new search starts again.
-  private const int PageSize = 120;
+  // A large library is built a page at a time, more as the list nears the view; a new search starts again. Kept here
+  // (not in a Pager) so saving an edit, which reloads the list, keeps the reader's place.
+  private const int PageSize = Pager.PageSize;
   private int _limit = PageSize;
 
   private LibraryView View => Preferences.Current.LibraryView;

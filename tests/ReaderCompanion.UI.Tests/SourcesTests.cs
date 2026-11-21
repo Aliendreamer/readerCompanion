@@ -20,6 +20,7 @@ public class SourcesTests : BunitContext
         Services.AddSingleton<ReaderCompanion.Core.Drive.IDriveAccount>(new FakeDriveAccount());
         Services.AddSingleton<ReaderCompanion.Core.Drive.IDriveLibrary>(new FakeDriveLibrary());
         Services.AddSingleton<ScanStatus>();
+        Services.AddSingleton<IInView>(new FakeInView());
         return Render<Sources>();
     }
 

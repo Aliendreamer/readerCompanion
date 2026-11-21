@@ -49,11 +49,12 @@
       {
         <p class="muted">Skipped:</p>
         <ul>
-          @foreach (var reason in summary.Skipped)
+          @foreach (var reason in _skipped.Page(summary.Skipped))
           {
             <li>@reason</li>
           }
         </ul>
+        <MoreMarker Shown="_skipped.Shown(summary.Skipped.Count)" Total="summary.Skipped.Count" OnMore="_skipped.More" />
       }
     </div>
   }
@@ -64,7 +65,7 @@
     <p class="muted">These look like a book you have, but the app is not sure: another edition, or a file whose author
       is missing or written differently.</p>
     <ul>
-      @foreach (var match in _pending)
+      @foreach (var match in _pendingPager.Page(_pending))
       {
         <li @key="match.Id">
           <span>
@@ -79,12 +80,15 @@
         </li>
       }
     </ul>
+    <MoreMarker Shown="_pendingPager.Shown(_pending.Count)" Total="_pending.Count" OnMore="_pendingPager.More" />
   </div>
 }
 </section>
 
 @code {
   private IReadOnlyList<PendingMatch> _pending = [];
+  private readonly Pager _pendingPager = new();
+  private readonly Pager _skipped = new();
   private int _reminderVersion;
   private GoodreadsSummary? _summary;
   private string? _error;

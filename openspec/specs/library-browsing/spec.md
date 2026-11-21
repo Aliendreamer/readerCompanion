@@ -234,3 +234,16 @@ the view, or when the user presses Show more; a new search, filter, grouping or 
 - **GIVEN** 3,000 books
 - **WHEN** the user opens the Library and scrolls down
 - **THEN** 120 books are shown at first, "3000 books" is the count, and more appear before the end is reached
+
+### Requirement: Every long list is paged
+
+Every list that can grow with the library (filter options, duplicates, organise moves and failures, unreadable files,
+Goodreads rows to review and skipped, the reading page's lists, Drive folders and sources) SHALL show its first 120
+items with how many there are, and SHALL show 120 more near its end or on Show more; a new list SHALL start again
+from the first 120.
+
+#### Scenario: A big organise preview
+
+- **GIVEN** a preview of 2,000 moves
+- **WHEN** it is shown
+- **THEN** the first 120 are listed with "Showing 120 of 2000", all 2,000 stay selected, and more appear on scrolling

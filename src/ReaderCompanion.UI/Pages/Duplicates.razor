@@ -20,7 +20,7 @@ else if (_groups.Count == 0)
 }
 else
 {
-  @foreach (var group in _groups)
+  @foreach (var group in _pager.Page(_groups))
   {
     var key = group.Key;
     var keep = _keep[key];
@@ -87,10 +87,12 @@ else
       }
     </section>
   }
+  <MoreMarker Shown="_pager.Shown(_groups.Count)" Total="_groups.Count" OnMore="_pager.More" />
 }
 
 @code {
   private List<DuplicateGroup>? _groups;
+  private readonly Pager _pager = new();
 
   // Per group (keyed by its first book): the book whose details to keep.
   private readonly Dictionary<int, int> _keep = [];

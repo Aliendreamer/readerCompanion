@@ -37,11 +37,12 @@ else
       @if (_stats.ThisYearBooks.Count > 0)
       {
         <ul class="plain-list">
-          @foreach (var book in _stats.ThisYearBooks)
+          @foreach (var book in _thisYear.Page(_stats.ThisYearBooks))
           {
             <li>@book.Title@(book.Reads > 1 ? $" ×{book.Reads}" : "")</li>
           }
         </ul>
+        <MoreMarker Shown="_thisYear.Shown(_stats.ThisYearBooks.Count)" Total="_stats.ThisYearBooks.Count" OnMore="_thisYear.More" />
       }
       @if (_stats.ByYear.Count > 0)
       {
@@ -66,7 +67,7 @@ else
 
   <section class="author-progress card">
     <h2>Authors</h2>
-    <ProgressTable Rows="_stats.Authors.Take(TopAuthors)" />
+    <ProgressTable Rows="[.. _stats.Authors.Take(TopAuthors)]" />
     @if (_stats.Authors.Count > TopAuthors)
     {
       <p class="muted">And @(_stats.Authors.Count - TopAuthors) more authors.</p>
@@ -75,6 +76,8 @@ else
 }
 
 @code {
+  private readonly Pager _thisYear = new();
+
   private const int TopAuthors = 20;
   private ReadingStats? _stats;
   private bool _empty;

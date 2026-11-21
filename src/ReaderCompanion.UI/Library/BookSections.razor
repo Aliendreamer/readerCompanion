@@ -1,7 +1,5 @@
 @using ReaderCompanion.Core.Library
 @using ReaderCompanion.Core.Preferences
-@inject IInView InView
-@implements IAsyncDisposable
 
 @* Ungrouped books render as a plain grid or table; grouped ones get a collapsible section each. Only the first
    Limit books are built; a marker after them asks for more when it comes near the view. *@
@@ -23,13 +21,7 @@
   }
 }
 
-@if (_shown < _total)
-{
-  <div class="load-more" @ref="_marker">
-    <span class="muted">Showing @_shown of @_total</span>
-    <button id="show-more" type="button" class="btn btn-small" @onclick="() => ShowMore.InvokeAsync()">Show more</button>
-  </div>
-}
+<MoreMarker Id="show-more" Shown="_shown" Total="_total" OnMore="() => ShowMore.InvokeAsync()" />
 
 @code {
   [Parameter, EditorRequired] public IReadOnlyList<BookSection> Sections { get; set; } = [];
@@ -47,9 +39,6 @@
   private List<(BookSection Part, IReadOnlyList<BookListItem> Books)> _visible = [];
   private int _shown;
   private int _total;
-  private ElementReference _marker;
-  private IAsyncDisposable? _watch;
-
   protected override void OnParametersSet()
   {
     _visible = [];
@@ -68,29 +57,5 @@
 
     _shown = _visible.Sum(v => v.Books.Count);
     _total = Sections.Sum(s => s.Books.Count);
-  }
-
-  // Watched again after each render: the observer reports at once if the marker is still near, so a fast scroll
-  // keeps adding books until it is out of reach.
-  protected override async Task OnAfterRenderAsync(bool firstRender)
-  {
-    if (_watch is not null)
-    {
-      await _watch.DisposeAsync();
-      _watch = null;
-    }
-
-    if (_shown < _total)
-    {
-      _watch = await InView.WatchAsync(_marker, () => InvokeAsync(() => ShowMore.InvokeAsync()));
-    }
-  }
-
-  public async ValueTask DisposeAsync()
-  {
-    if (_watch is not null)
-    {
-      await _watch.DisposeAsync();
-    }
   }
 }

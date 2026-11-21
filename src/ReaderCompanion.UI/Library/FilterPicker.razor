@@ -25,7 +25,7 @@
                  @ref="_search" @bind="_find" @bind:event="oninput" />
         }
         <ul class="filter-options">
-          @foreach (var option in Shown)
+          @foreach (var option in _pager.Page(Shown))
           {
             <li>
               <label class="filter-option">
@@ -35,6 +35,7 @@
             </li>
           }
         </ul>
+        <MoreMarker Shown="_pager.Shown(Shown.Count)" Total="Shown.Count" OnMore="_pager.More" />
         @if (Picked.Count > 0)
         {
           <button type="button" class="filter-clear btn btn-small" @onclick="ClearAsync">Clear</button>
@@ -66,9 +67,25 @@
   private string _find = "";
   private ElementReference _search;
 
-  private IEnumerable<TValue> Shown => _find.Length == 0
-    ? Options
-    : Options.Where(o => Text(o).Contains(_find, StringComparison.CurrentCultureIgnoreCase));
+  private readonly Pager _pager = new();
+  private IReadOnlyList<TValue> _shown = [];
+  private (IReadOnlyList<TValue> Options, string Find)? _shownFor;
+
+  // The same list object while the options and the search stay the same, so ticking keeps the page; a new search
+  // gives a new list, which starts again from the first page.
+  private IReadOnlyList<TValue> Shown
+  {
+    get
+    {
+      if (_shownFor is not { } key || !ReferenceEquals(key.Options, Options) || key.Find != _find)
+      {
+        _shown = _find.Length == 0 ? Options : [.. Options.Where(o => Text(o).Contains(_find, StringComparison.CurrentCultureIgnoreCase))];
+        _shownFor = (Options, _find);
+      }
+
+      return _shown;
+    }
+  }
 
   private void Toggle()
   {

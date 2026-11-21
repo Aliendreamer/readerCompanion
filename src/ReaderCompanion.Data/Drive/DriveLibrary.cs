@@ -17,14 +17,16 @@ internal sealed class DriveLibrary(
     GoogleDriveFiles files,
     IAppPreferences preferences) : IDriveLibrary
 {
-    /// <summary>Books read at once, each in a few small range requests: a few thousand requests a minute.</summary>
+    /// <summary>Books read at once. Each takes 2-4 range requests of ~0.2-0.5 s, so 10 slots make roughly 1,500-3,000
+    /// requests a minute: well within Google's 12,000 per user, with room for the user's other Drive use.</summary>
     private const int ReadsAtOnce = 10;
 
-    /// <summary>Books read but not yet written, at most (their covers wait in memory).</summary>
+    /// <summary>Books read but not yet written, at most. A slow book then holds back only its own slot while up to 10x
+    /// the slots' worth of finished books wait; their covers (typically under 300 KB) stay within ~30 MB.</summary>
     private const int ReadAhead = 100;
 
-    /// <summary>Drive folders listed at once: about 2,000–3,000 requests a minute at Drive's usual speed, well
-    /// within Google's 12,000 per user.</summary>
+    /// <summary>Drive folders listed at once. A listing takes ~0.2-0.3 s, so 10 make about 2,000-3,000 requests a
+    /// minute: well within Google's 12,000 per user.</summary>
     private const int ListingsAtOnce = 10;
 
     public async Task<IReadOnlyList<DriveSource>> ListSourcesAsync(CancellationToken cancellationToken = default)

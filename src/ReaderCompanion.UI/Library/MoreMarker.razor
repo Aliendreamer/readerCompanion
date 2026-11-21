@@ -1,0 +1,50 @@
+@inject IInView InView
+@implements IAsyncDisposable
+
+@* After the items of a long list shown so far: asks for more when it comes near the view, or on Show more. *@
+
+@if (Shown < Total)
+{
+  <div class="load-more" @ref="_marker">
+    <span class="muted">Showing @Shown of @Total</span>
+    <button id="@Id" type="button" class="btn btn-small show-more" @onclick="() => OnMore.InvokeAsync()">Show more</button>
+  </div>
+}
+
+@code {
+  [Parameter, EditorRequired] public int Shown { get; set; }
+
+  [Parameter, EditorRequired] public int Total { get; set; }
+
+  /// <summary>Asked to show more (the parent re-renders afterwards).</summary>
+  [Parameter] public EventCallback OnMore { get; set; }
+
+  [Parameter] public string? Id { get; set; }
+
+  private ElementReference _marker;
+  private IAsyncDisposable? _watch;
+
+  // Watched again after each render: the observer reports at once if the marker is still near, so a fast scroll
+  // keeps adding items until it is out of reach.
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (_watch is not null)
+    {
+      await _watch.DisposeAsync();
+      _watch = null;
+    }
+
+    if (Shown < Total)
+    {
+      _watch = await InView.WatchAsync(_marker, () => InvokeAsync(() => OnMore.InvokeAsync()));
+    }
+  }
+
+  public async ValueTask DisposeAsync()
+  {
+    if (_watch is not null)
+    {
+      await _watch.DisposeAsync();
+    }
+  }
+}

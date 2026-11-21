@@ -20,7 +20,7 @@
     @if (_sources.Count > 0)
     {
       <ul class="folder-list">
-        @foreach (var source in _sources)
+        @foreach (var source in _sourcesPager.Page(_sources))
         {
           <li>
             <span class="folder-path drive-source-name">@source.Name</span>
@@ -30,6 +30,7 @@
           </li>
         }
       </ul>
+      <MoreMarker Shown="_sourcesPager.Shown(_sources.Count)" Total="_sources.Count" OnMore="_sourcesPager.More" />
     }
     else
     {
@@ -51,11 +52,12 @@
         else
         {
           <ul class="drive-folders">
-            @foreach (var folder in _folders)
+            @foreach (var folder in _foldersPager.Page(_folders))
             {
               <li><button type="button" class="link-button drive-folder" @onclick="() => OpenFolderAsync(folder)">@folder.Name</button></li>
             }
           </ul>
+          <MoreMarker Shown="_foldersPager.Shown(_folders.Count)" Total="_folders.Count" OnMore="_foldersPager.More" />
         }
         <div class="source-actions">
           <button type="button" class="btn btn-small" disabled="@(trail.Count == 0)" @onclick="UpAsync">Up</button>
@@ -127,6 +129,8 @@
   private bool _busy;
   private string? _error;
   private IReadOnlyList<DriveSource> _sources = [];
+  private readonly Pager _sourcesPager = new();
+  private readonly Pager _foldersPager = new();
   private List<DriveFolder>? _browsing; // the folders opened so far, from My Drive down; null when not browsing
   private IReadOnlyList<DriveFolder>? _folders;
 
