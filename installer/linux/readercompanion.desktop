@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=readerCompanion
+GenericName=E-book library
+Comment=Keep track of your e-books and what you have read
+Exec=/opt/readercompanion/ReaderCompanion.Desktop
+Icon=readercompanion
+Terminal=false
+Categories=Office;Viewer;
+Keywords=ebook;epub;pdf;library;goodreads;

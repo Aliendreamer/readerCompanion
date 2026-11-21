@@ -13,6 +13,9 @@
     "release": "commit-and-tag-version",
     "release:dry": "commit-and-tag-version --dry-run",
     "package:linux": "dotnet publish src/ReaderCompanion.Desktop -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o artifacts/linux-x64",
+    "installer:deb": "pnpm package:linux && bash scripts/installer-deb.sh",
+    "installer:appimage": "pnpm package:linux && bash scripts/installer-appimage.sh",
+    "installer:windows": "pnpm package:windows && bash scripts/installer-msi.sh",
     "package:check": "python3 scripts/check-client-hidden.py artifacts",
     "package:windows": "dotnet publish src/ReaderCompanion.Desktop -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o artifacts/win-x64"
   },

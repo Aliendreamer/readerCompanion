@@ -19,7 +19,26 @@ read `0.1.0-alpha.N`, where N counts the commits since the last tag.
 - `pnpm package:windows` → `artifacts/win-x64/` (the same for Windows; it also builds from Linux).
 
 Zip the folder to share it. The Linux build needs WebKitGTK (`libwebkit2gtk-4.1`) on the machine; the Windows build
-needs the WebView2 runtime (part of Windows 11). Installers (MSI/MSIX, AppImage, .deb, Flatpak) are not set up yet.
+needs the WebView2 runtime (part of Windows 11). Installers: see below.
+
+## Installers
+
+Each builds its package first and writes `artifacts/ReaderCompanion-<version>-<kind>`, with the version from the
+git tag. Unsigned for now.
+
+- `pnpm installer:deb`: a Debian/Ubuntu package (`dpkg-deb`). The app goes to `/opt/readercompanion`, with a launcher
+  and icons; WebKitGTK is a dependency. Install with `sudo apt install ./ReaderCompanion-<version>-amd64.deb`.
+- `pnpm installer:appimage`: one file to run on any distribution with WebKitGTK. appimagetool 1.9.1 and the AppImage
+  runtime 20251108 are downloaded once to `~/.cache/readercompanion-tools` and checked against pinned checksums.
+- `pnpm installer:windows`: an MSI made with WiX 5.0.2 (pinned in `dotnet-tools.json`; newer WiX needs its Open
+  Source Maintenance Fee terms accepted). WiX only runs on Windows, so the script, run from WSL, calls Windows'
+  `dotnet.exe`; Windows needs the .NET SDK. It installs for the current user without an administrator prompt (into
+  `%LocalAppData%\Programs\readerCompanion`), adds a Start-menu shortcut and an uninstall entry; a newer MSI
+  replaces an older one. Windows shows "Windows protected your PC" for unsigned installers (More info, then Run
+  anyway) until the MSI is signed with a code-signing certificate.
+
+Uninstalling never removes the library, settings or Drive link (the data folder). Run `pnpm package:check` before
+uploading: it unpacks each installer and searches it too.
 
 ## Google Drive client
 
