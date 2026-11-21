@@ -1,6 +1,7 @@
 {
   "name": "reader-companion-devtools",
   "private": true,
+  "license": "PolyForm-Noncommercial-1.0.0",
   "description": "Dev-only tooling for readerCompanion: git hooks, formatting and Markdown linting.",
   "packageManager": "pnpm@12.10.0",
   "scripts": {
