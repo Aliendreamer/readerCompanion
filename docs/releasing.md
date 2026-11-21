@@ -20,3 +20,10 @@ read `0.1.0-alpha.N`, where N counts the commits since the last tag.
 
 Zip the folder to share it. The Linux build needs WebKitGTK (`libwebkit2gtk-4.1`) on the machine; the Windows build
 needs the WebView2 runtime (part of Windows 11). Installers (MSI/MSIX, AppImage, .deb, Flatpak) are not set up yet.
+
+## Google Drive client
+
+Drive linking needs the app's OAuth client: in Google Cloud, create an OAuth client of type **Desktop app**, enable
+the Google Drive API (and the Google Picker API), download the JSON and save it as `google-oauth-client.json` in the
+repository root. Builds and packages copy it next to the executable; it is git-ignored and must never be committed.
+Without it, the Sources page says Drive is not set up in this build. The file can also be placed in the data folder.

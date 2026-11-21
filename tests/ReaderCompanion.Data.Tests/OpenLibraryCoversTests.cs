@@ -90,10 +90,4 @@ public sealed class OpenLibraryCoversTests : IDisposable
     }
 
     public void Dispose() => _library.Dispose();
-
-    private sealed class FakeHandler(Func<HttpRequestMessage, HttpResponseMessage> answer) : HttpMessageHandler
-    {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
-            Task.FromResult(answer(request));
-    }
 }

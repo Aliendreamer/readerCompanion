@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Photino.Blazor;
+using ReaderCompanion.Core.Drive;
 using ReaderCompanion.Core.Library;
 using ReaderCompanion.Core.Preferences;
 using ReaderCompanion.Data;
@@ -33,6 +34,7 @@ internal static class Program
         builder.Services.AddSingleton<IFilePicker, PhotinoFilePicker>();
         builder.Services.AddSingleton<ICoverUrls, CoverUrls>();
         builder.Services.AddSingleton<IFileLauncher, ShellFileLauncher>();
+        builder.Services.AddSingleton<IWebBrowser, ShellWebBrowser>();
         AddCoversToAppFiles(builder.Services);
         builder.RootComponents.Add<Routes>("#app");
 

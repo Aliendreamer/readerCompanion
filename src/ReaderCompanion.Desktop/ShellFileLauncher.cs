@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using ReaderCompanion.Core.Drive;
 using ReaderCompanion.UI;
 
 namespace ReaderCompanion.Desktop;
@@ -13,7 +14,8 @@ internal sealed class ShellFileLauncher : IFileLauncher
     public bool ShowInFolder(string path) =>
         Path.GetDirectoryName(path) is { } folder && Directory.Exists(folder) && Launch(folder);
 
-    private static bool Launch(string target)
+    /// <summary>Hands a file, folder or web address to the system's default handler.</summary>
+    internal static bool Launch(string target)
     {
         try
         {
@@ -25,4 +27,10 @@ internal sealed class ShellFileLauncher : IFileLauncher
             return false;
         }
     }
+}
+
+/// <summary>Opens web pages (Google's sign-in) in the user's default browser; only https addresses.</summary>
+internal sealed class ShellWebBrowser : IWebBrowser
+{
+    public bool Open(Uri url) => url.Scheme == Uri.UriSchemeHttps && ShellFileLauncher.Launch(url.AbsoluteUri);
 }

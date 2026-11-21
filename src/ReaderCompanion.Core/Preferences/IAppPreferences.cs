@@ -1,3 +1,5 @@
+using ReaderCompanion.Core.Drive;
+
 namespace ReaderCompanion.Core.Preferences;
 
 /// <summary>Which theme the app uses: follow the system, or the user's own pick.</summary>
@@ -44,7 +46,8 @@ public sealed record AppPreferences(
     bool GoodreadsShelvesAsCollections = false,
     DateTime? GoodreadsLastImportUtc = null,
     int GoodreadsReminderMonths = 3,
-    bool OnlineCovers = false);
+    bool OnlineCovers = false,
+    DriveAccess DriveAccess = DriveAccess.PickedFiles);
 
 /// <summary>The user's remembered choices. Reads never fail: a missing or damaged store gives the defaults.</summary>
 public interface IAppPreferences

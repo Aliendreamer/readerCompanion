@@ -528,6 +528,51 @@ internal sealed class FakeCoverFetcher : ICoverFetcher
     }
 }
 
+internal sealed class FakeDriveAccount : ReaderCompanion.Core.Drive.IDriveAccount
+{
+    public bool IsConfigured { get; set; } = true;
+
+    public ReaderCompanion.Core.Drive.DriveLink? Link { get; set; }
+
+    public event Action? Changed;
+
+    /// <summary>What the next link does: null links as "Ana"; otherwise it is awaited (so a test can hold or fail it).</summary>
+    public TaskCompletionSource<ReaderCompanion.Core.Drive.DriveLink>? NextLink { get; set; }
+
+    public List<ReaderCompanion.Core.Drive.DriveAccess> LinkedWith { get; } = [];
+
+    public int Unlinks { get; private set; }
+
+    public async Task<ReaderCompanion.Core.Drive.DriveLink> LinkAsync(
+        ReaderCompanion.Core.Drive.DriveAccess access, CancellationToken cancellationToken = default)
+    {
+        LinkedWith.Add(access);
+        var link = NextLink is null
+            ? new ReaderCompanion.Core.Drive.DriveLink(access, "Ana (ana@example.com)", DateTime.UtcNow)
+            : await NextLink.Task.WaitAsync(cancellationToken);
+        Link = link;
+        Changed?.Invoke();
+        return link;
+    }
+
+    public Task UnlinkAsync(CancellationToken cancellationToken = default)
+    {
+        Unlinks++;
+        Link = null;
+        Changed?.Invoke();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Plays Google dropping the link.</summary>
+    public void Lose()
+    {
+        Link = null;
+        Changed?.Invoke();
+    }
+
+    public Task<string> GetAccessTokenAsync(CancellationToken cancellationToken = default) => Task.FromResult("token");
+}
+
 internal sealed class FakeLocation : ILibraryLocation
 {
     public string DataFolder => "/home/me/.local/share/ReaderCompanion";
@@ -578,8 +623,10 @@ internal static class TestServices
         FakeTrash? trash = null,
         FakeGoodreads? goodreads = null,
         FakeFilePicker? filePicker = null,
-        FakeCoverFetcher? covers = null)
+        FakeCoverFetcher? covers = null,
+        FakeDriveAccount? drive = null)
     {
+        services.AddSingleton<ReaderCompanion.Core.Drive.IDriveAccount>(drive ?? new FakeDriveAccount());
         services.AddSingleton<ReaderCompanion.Core.Goodreads.IGoodreadsImport>(goodreads ?? new FakeGoodreads());
         services.AddSingleton<IFilePicker>(filePicker ?? new FakeFilePicker());
         if (libraryBooks is not null && trash is not null)

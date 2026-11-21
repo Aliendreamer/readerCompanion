@@ -16,4 +16,11 @@
     <ProjectReference Include="..\ReaderCompanion.UI\ReaderCompanion.UI.csproj" />
   </ItemGroup>
 
+  <!-- The app's Google OAuth client (Google's "Desktop app" download), when the developer has one; never committed. -->
+  <ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)..\..\google-oauth-client.json')">
+    <None Include="$(MSBuildThisFileDirectory)..\..\google-oauth-client.json" Link="google-oauth-client.json"
+          CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"
+          ExcludeFromSingleFile="true" />
+  </ItemGroup>
+
 </Project>

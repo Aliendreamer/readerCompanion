@@ -9,9 +9,24 @@ public class SettingsPageTests : BunitContext
     private readonly FakeFolders _folders = new();
     private readonly FakeLauncher _launcher = new();
     private readonly FakeCoverFetcher _covers = new();
+    private readonly FakeDriveAccount _drive = new();
 
     public SettingsPageTests() =>
-        Services.AddAppFakes(preferences: _preferences, folders: _folders, launcher: _launcher, covers: _covers);
+        Services.AddAppFakes(preferences: _preferences, folders: _folders, launcher: _launcher, covers: _covers, drive: _drive);
+
+    [Fact]
+    public void DriveAccess_IsRemembered_AndALinkAtAnotherLevelIsPointedOut()
+    {
+        _drive.Link = new ReaderCompanion.Core.Drive.DriveLink(ReaderCompanion.Core.Drive.DriveAccess.PickedFiles, "Ana", DateTime.UtcNow);
+        var cut = Render<SettingsPage>();
+        Assert.True(cut.Find("#drive-access-PickedFiles").HasAttribute("checked"));
+        Assert.Empty(cut.FindAll(".drive-relink"));
+
+        cut.Find("#drive-access-WholeDrive").Change("WholeDrive");
+
+        Assert.Equal(ReaderCompanion.Core.Drive.DriveAccess.WholeDrive, _preferences.Current.DriveAccess);
+        Assert.Contains("unlink", cut.Find(".drive-relink").TextContent);
+    }
 
     [Fact]
     public void Covers_AreFetchedOnlyWhenTurnedOn_AndAsked()

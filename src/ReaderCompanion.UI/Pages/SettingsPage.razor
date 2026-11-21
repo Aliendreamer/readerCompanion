@@ -1,4 +1,5 @@
 @page "/settings"
+@using ReaderCompanion.Core.Drive
 @using ReaderCompanion.Core.Library
 @using ReaderCompanion.Core.Preferences
 @using ReaderCompanion.Core.Scanning
@@ -8,6 +9,7 @@
 @inject ILibraryFolders Folders
 @inject IFileLauncher Launcher
 @inject ICoverFetcher Covers
+@inject IDriveAccount Drive
 @implements IDisposable
 
 <h1 class="visually-hidden">Settings</h1>
@@ -66,6 +68,29 @@
   }
 </section>
 
+<section class="card settings-drive">
+  <h2>Google Drive access</h2>
+  <fieldset class="drive-access">
+    <legend class="visually-hidden">Google Drive access</legend>
+    @foreach (var access in Enum.GetValues<DriveAccess>())
+    {
+      <label class="browse-check">
+        <input id="drive-access-@access" type="radio" name="drive-access" value="@access"
+               checked="@(Preferences.Current.DriveAccess == access)"
+               @onchange="() => Preferences.Save(Preferences.Current with { DriveAccess = access })" />
+        @DriveText.AccessLabel(access)
+      </label>
+    }
+  </fieldset>
+  <p class="muted">With only books you pick, the app sees just those files. With the whole Drive it finds every book
+    in the folders you choose; read and write also lets it organise and trash them.</p>
+  @if (Drive.Link is { } link && link.Access != Preferences.Current.DriveAccess)
+  {
+    <p class="drive-relink">Drive is linked with “@DriveText.AccessLabel(link.Access)”: to use this access, unlink
+      Google Drive on <a href="sources">Sources</a> and link it again.</p>
+  }
+</section>
+
 <section class="card settings-sources">
   <h2>Linked sources</h2>
   <p>@(_folders is { } count ? $"{BookText.Plural(count, "local folder")} linked. " : "")Last Goodreads import: @(Preferences.Current.GoodreadsLastImportUtc is { } last ? BookText.Date(last) : "never").</p>
@@ -81,6 +106,7 @@
 
   protected override async Task OnInitializedAsync()
   {
+    Drive.Changed += OnDriveChanged;
     try
     {
       _folders = (await Folders.ListAsync()).Count;
@@ -133,7 +159,13 @@
   }
 
   // Leaving the page stops the fetch: it never runs without the page showing it.
-  public void Dispose() => _fetching?.Cancel();
+  public void Dispose()
+  {
+    _fetching?.Cancel();
+    Drive.Changed -= OnDriveChanged;
+  }
+
+  private void OnDriveChanged() => InvokeAsync(StateHasChanged);
 
   // The launcher shows the folder that holds a file: the database sits in the data folder.
   private void ShowDataFolder() =>

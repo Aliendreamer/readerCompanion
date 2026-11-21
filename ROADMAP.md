@@ -32,7 +32,7 @@ All data lives in a local SQLite file you can back up by hand.
 | M4 — Backup and restore | Done | `openspec/changes/archive/2026-11-20-add-backup-restore/` |
 | M5 — Organise files | Done (OS folders) | `openspec/changes/archive/2026-11-20-add-{organise-files,trash-extra-files}/` |
 | M6 — Goodreads | Done | `openspec/changes/archive/2026-11-20-add-goodreads-*` |
-| M7 — Google Drive | Next — needs a Google Cloud OAuth client from the user | this file |
+| M7 — Google Drive | In progress: linking done; Drive books, then organise and trash next | `openspec/changes/archive/2026-11-21-add-drive-link/` |
 | M8 — Polish and packaging | Done except installers (open decision) | `openspec/changes/archive/2026-11-20-add-{settings-and-startup-errors,online-covers,release-tooling}/` |
 
 ## Guiding principles
@@ -186,6 +186,11 @@ Link Goodreads from the Sources page. Goodreads closed its public API in 2020, s
 want, and read without owning — and a second import changes nothing.
 
 ### M7 — Google Drive
+
+Access level is a setting (decided 2026-11-21): **only books I pick** (Google's picker, `drive.file`, no security
+assessment needed for a public release), **whole Drive, read only**, or **whole Drive, read and write** (restricted
+scopes: a public release needs Google's verification and yearly security assessment). The app ships one OAuth
+"Desktop app" client (`google-oauth-client.json`, kept out of the repo); each user signs in with their own account.
 
 - Link Google Drive from the Sources page (desktop OAuth); token stored securely per OS.
 - Pick Drive folders to index; same metadata and matching as M1, reading only what's needed (download on open,

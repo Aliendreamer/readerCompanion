@@ -1,0 +1,102 @@
+@using ReaderCompanion.Core.Drive
+@using ReaderCompanion.Core.Preferences
+@inject IDriveAccount Drive
+@inject IAppPreferences Preferences
+@implements IDisposable
+
+<section class="source card drive-source">
+  <h2>Google Drive</h2>
+  @if (!Drive.IsConfigured)
+  {
+    <p class="muted">Google Drive is not set up in this build.</p>
+  }
+  else if (Drive.Link is { } link)
+  {
+    <p>Linked as @(link.AccountName ?? "your Google account") · @DriveText.AccessLabel(link.Access)</p>
+    <div class="source-actions">
+      <button id="drive-unlink" type="button" class="btn btn-small" disabled="@_busy" @onclick="UnlinkAsync">Unlink</button>
+    </div>
+  }
+  else if (_signingIn is not null)
+  {
+    <p>Finish signing in in your browser…</p>
+    <div class="source-actions">
+      <button id="drive-cancel" type="button" class="btn btn-small" @onclick="() => _signingIn?.Cancel()">Cancel</button>
+    </div>
+  }
+  else
+  {
+    <p class="muted">
+      Sign in with Google in your browser; the app keeps its access on this computer only. Access:
+      <strong>@DriveText.AccessLabel(Preferences.Current.DriveAccess)</strong> (change it in <a href="settings">Settings</a>).
+    </p>
+    <div class="source-actions">
+      <button id="drive-link" type="button" class="btn btn-primary" @onclick="LinkAsync">Link Google Drive</button>
+    </div>
+  }
+
+  @if (_error is not null)
+  {
+    <p class="panel-error" role="alert">@_error</p>
+  }
+</section>
+
+@code {
+  private CancellationTokenSource? _signingIn;
+  private bool _busy;
+  private string? _error;
+
+  protected override void OnInitialized() => Drive.Changed += OnDriveChanged;
+
+  private void OnDriveChanged() => InvokeAsync(StateHasChanged);
+
+  private async Task LinkAsync()
+  {
+    using var signingIn = _signingIn = new CancellationTokenSource();
+    _error = null;
+    try
+    {
+      await Drive.LinkAsync(Preferences.Current.DriveAccess, signingIn.Token);
+    }
+    catch (OperationCanceledException) when (signingIn.IsCancellationRequested)
+    {
+      // Cancelled by the user: nothing to say.
+    }
+    catch (OperationCanceledException)
+    {
+      _error = "Google did not answer in time. Try again.";
+    }
+    catch (Exception e) when (e is DriveSignInException or HttpRequestException or InvalidOperationException)
+    {
+      _error = e.Message;
+    }
+    finally
+    {
+      _signingIn = null;
+    }
+  }
+
+  private async Task UnlinkAsync()
+  {
+    _busy = true;
+    _error = null;
+    try
+    {
+      await Drive.UnlinkAsync();
+    }
+    catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException)
+    {
+      _error = $"Drive could not be unlinked: {e.Message}";
+    }
+    finally
+    {
+      _busy = false;
+    }
+  }
+
+  public void Dispose()
+  {
+    Drive.Changed -= OnDriveChanged;
+    _signingIn?.Cancel();
+  }
+}
