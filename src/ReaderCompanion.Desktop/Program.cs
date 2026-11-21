@@ -48,7 +48,7 @@ internal static class Program
         var preferences = app.Services.GetRequiredService<IAppPreferences>();
         preferences.Changed += () => app.MainWindow.SetZoom(preferences.Current.TextSize);
 
-        window.Attach(app.MainWindow, ownFrame: !preferences.Current.SystemTitleBar);
+        window.Attach(app.MainWindow, ownFrame: !preferences.Current.SystemTitleBar, remembered: preferences.Current.Window);
         var icon = Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "readercompanion.ico" : "readercompanion.png");
         if (File.Exists(icon))
         {
@@ -57,10 +57,14 @@ internal static class Program
 
         app.MainWindow
             .SetZoom(preferences.Current.TextSize)
-            .SetSize(1200, 800)
             .SetLogVerbosity(0)
             .RegisterWindowClosingHandler((_, _) =>
             {
+                if (window.Placement is { } placement)
+                {
+                    preferences.Save(preferences.Current with { Window = placement }); // reopened as it was left
+                }
+
                 BackUpOnExit(app.Services);
                 return false; // never keep the window open
             });

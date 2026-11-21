@@ -43,6 +43,17 @@ public sealed class AppPreferencesTests : IDisposable
     }
 
     [Fact]
+    public void WindowPlacement_IsRememberedAcrossRestarts()
+    {
+        var left = new WindowBounds(100, 80, 1500, 900, Maximized: true);
+        _library.Services.GetRequiredService<IAppPreferences>().Save(new AppPreferences(Window: left));
+
+        using var restarted = new ServiceCollection().AddLibraryData(_library.DatabasePath).BuildServiceProvider();
+
+        Assert.Equal(left, restarted.GetRequiredService<IAppPreferences>().Current.Window);
+    }
+
+    [Fact]
     public void TextSize_Defaults115_AndAnOlderFileWithoutItGetsTheDefault()
     {
         File.WriteAllText(PreferencesFile, """{"Theme":"Dark"}""");
