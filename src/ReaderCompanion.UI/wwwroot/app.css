@@ -1546,3 +1546,26 @@ button.book-title:hover {
   margin-top: 0;
   font-size: 1.1rem;
 }
+
+/* Help page */
+.help-contents {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.help-topic {
+  max-width: 52rem;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.help-topic ol,
+.help-topic ul {
+  padding-left: 1.4rem;
+}
+
+.help-topic li {
+  margin: 0.35rem 0;
+}

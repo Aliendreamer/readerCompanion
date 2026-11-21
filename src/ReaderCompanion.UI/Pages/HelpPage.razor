@@ -1,0 +1,68 @@
+@page "/help"
+
+<h1 class="visually-hidden">Help</h1>
+<p class="page-intro">How to bring your books in and link your accounts.</p>
+
+<nav class="help-contents card" aria-label="Help topics">
+  <a href="#help-books">Add your books</a>
+  <a href="#help-drive">Link Google Drive</a>
+  <a href="#help-goodreads">Import from Goodreads</a>
+  <a href="#help-text-size">Make text larger</a>
+</nav>
+
+<section id="help-books" class="help-topic card">
+  <h2>Add your books</h2>
+  <ol>
+    <li>Open <a href="sources">Sources</a> and press <strong>Link folder…</strong>.</li>
+    <li>Choose the folder that holds your EPUB and PDF files. Its subfolders are included.</li>
+    <li>The folder is scanned straight away and its books appear in the <a href="">Library</a>.</li>
+  </ol>
+  <p>When you add, move or rename files later, press <strong>Scan</strong> on Sources to bring the library up to date.
+    Books whose files are gone are kept and marked as missing, never deleted.</p>
+</section>
+
+<section id="help-drive" class="help-topic card">
+  <h2>Link Google Drive</h2>
+  <ol>
+    <li>In <a href="settings">Settings</a>, choose how much of your Drive the app may see:
+      <ul>
+        <li><strong>Only books I pick</strong>: the app sees just the files you choose in Google’s picker.</li>
+        <li><strong>Whole Drive, read only</strong>: the app finds every book in the Drive folders you choose.</li>
+        <li><strong>Whole Drive, read and write</strong>: as above, and it can also organise and trash Drive files.</li>
+      </ul>
+    </li>
+    <li>On <a href="sources">Sources</a>, press <strong>Link Google Drive</strong>. Your browser opens Google’s
+      sign-in.</li>
+    <li>Sign in and allow access. If Google says <em>“Google hasn’t verified this app”</em>, press
+      <strong>Advanced</strong> and then <strong>Go to readerCompanion</strong>: the app is not yet reviewed by Google,
+      and it only ever talks to Google from your computer.</li>
+    <li>Back in the app, the Google Drive card shows your account. Press <strong>Add folder…</strong> to choose a
+      Drive folder, or <strong>Add books from Drive…</strong> when you picked “Only books I pick”.</li>
+    <li>Drive is scanned straight away. Press <strong>Scan Drive</strong> later to pick up new or changed books.</li>
+  </ol>
+  <p>To change the access level, pick it in Settings, then <strong>Unlink</strong> and link again. Unlinking removes
+    the app’s access at Google; your library keeps its books.</p>
+</section>
+
+<section id="help-goodreads" class="help-topic card">
+  <h2>Import from Goodreads</h2>
+  <p>Goodreads lets you download your shelves as a file (a <code>.csv</code> spreadsheet). To get it:</p>
+  <ol>
+    <li>Sign in at <strong>goodreads.com</strong> in a browser (the website, not the phone app).</li>
+    <li>Open <strong>My Books</strong>. In the left column, under <strong>Tools</strong>, choose
+      <strong>Import and export</strong>.</li>
+    <li>Press <strong>Export library</strong>. Goodreads prepares the file; this can take a few minutes. Reload the
+      page until a link <em>“Your export from …”</em> appears.</li>
+    <li>Click the link to download <code>goodreads_library_export.csv</code>.</li>
+    <li>In the app, open <a href="sources">Sources</a> and press <strong>Import export file…</strong> on the
+      Goodreads card, then choose the downloaded file.</li>
+  </ol>
+  <p>To update, download a new export the same way and import it again. Nothing you changed in this app is
+    overwritten. The app reminds you on the Library page when your last import is getting old.</p>
+</section>
+
+<section id="help-text-size" class="help-topic card">
+  <h2>Make text larger</h2>
+  <p>In <a href="settings">Settings</a>, choose a <strong>Text size</strong>. The whole window grows or shrinks at
+    once: menu, pages and covers.</p>
+</section>
