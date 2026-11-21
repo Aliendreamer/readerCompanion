@@ -102,7 +102,7 @@ internal sealed class DriveLibrary(
         }
     }
 
-    public async Task<string> DownloadAsync(int bookFileId, CancellationToken cancellationToken = default)
+    public async Task<string> DownloadAsync(int bookFileId, IProgress<int>? percent = null, CancellationToken cancellationToken = default)
     {
         await using var db = await contexts.CreateDbContextAsync(cancellationToken);
         var file = await db.BookFiles.AsNoTracking().FirstOrDefaultAsync(f => f.Id == bookFileId, cancellationToken);
@@ -136,7 +136,8 @@ internal sealed class DriveLibrary(
             TryDelete(old); // earlier versions of this file
         }
 
-        await DownloadToAsync(driveId, local, cancellationToken);
+        await DownloadToAsync(driveId, local, cancellationToken, percent is null ? null : new Percent(item.Size, percent));
+        percent?.Report(100);
         return local;
     }
 
@@ -151,17 +152,21 @@ internal sealed class DriveLibrary(
         }
 
         // Everything is listed before anything changes: a source that cannot be read stops the scan here.
-        var listed = await ListAsync(sources, cancellationToken);
+        var listed = await ListAsync(sources, progress, cancellationToken);
         var knownByPath = known.ToDictionary(k => k.Path, StringComparer.Ordinal);
         var found = new List<FoundFile>(listed.Count);
         var filesRead = 0;
+        string? KnownHash(DriveItem item, string path) =>
+            item.Sha256 ?? (knownByPath.TryGetValue(path, out var k) && ScanReconciler.IsUnchanged(k, item.Size, item.ModifiedUtc) ? k.ContentHash : null);
+        var toCheck = listed.Values.Count(l => KnownHash(l.Item, DrivePath.Make(l.Item.Id, l.Display)) is null);
+        var checkedFiles = 0;
         foreach (var (item, display) in listed.Values)
         {
             var path = DrivePath.Make(item.Id, display);
-            knownByPath.TryGetValue(path, out var k);
-            var hash = item.Sha256 ?? (ScanReconciler.IsUnchanged(k, item.Size, item.ModifiedUtc) ? k!.ContentHash : null);
+            var hash = KnownHash(item, path);
             if (hash is null)
             {
+                progress?.Report(new ScanProgress(checkedFiles++, toCheck) { Stage = ScanStage.Checking });
                 // No checksum from Drive: download to hash, and delete at once (it is downloaded again if it is read).
                 var copy = await DownloadToTempAsync(item, temp, cancellationToken);
                 await using (var stream = File.OpenRead(copy))
@@ -174,6 +179,11 @@ internal sealed class DriveLibrary(
             }
 
             found.Add(new FoundFile(path, item.Size, item.ModifiedUtc, hash, item.Id));
+        }
+
+        if (toCheck > 0)
+        {
+            progress?.Report(new ScanProgress(toCheck, toCheck) { Stage = ScanStage.Checking });
         }
 
         var plan = ScanReconciler.Plan(known, found, [], local);
@@ -223,9 +233,16 @@ internal sealed class DriveLibrary(
 
     /// <summary>Every supported file in the sources, once, by Drive id, with its display path.</summary>
     private async Task<Dictionary<string, (DriveItem Item, string Display)>> ListAsync(
-        List<DriveSource> sources, CancellationToken cancellationToken)
+        List<DriveSource> sources, IProgress<ScanProgress>? progress, CancellationToken cancellationToken)
     {
         var listed = new Dictionary<string, (DriveItem, string)>(StringComparer.Ordinal);
+        var folders = 0;
+        void Listed(bool folder)
+        {
+            folders += folder ? 1 : 0;
+            progress?.Report(new ScanProgress(0, listed.Count) { Stage = ScanStage.Listing, FoldersListed = folders });
+        }
+
         foreach (var source in sources)
         {
             try
@@ -233,10 +250,11 @@ internal sealed class DriveLibrary(
                 if (source.Kind == DriveSourceKind.File)
                 {
                     await ListPickedFileAsync(source, listed, cancellationToken);
+                    Listed(folder: false);
                 }
                 else
                 {
-                    await ListFolderAsync(source, listed, cancellationToken);
+                    await ListFolderAsync(source, listed, () => Listed(folder: true), cancellationToken);
                 }
             }
             catch (DriveUnavailableException e)
@@ -259,7 +277,7 @@ internal sealed class DriveLibrary(
     }
 
     private async Task ListFolderAsync(
-        DriveSource source, Dictionary<string, (DriveItem, string)> listed, CancellationToken cancellationToken)
+        DriveSource source, Dictionary<string, (DriveItem, string)> listed, Action folderListed, CancellationToken cancellationToken)
     {
         var folders = new Queue<(string Id, string Display)>([(source.DriveId, source.Name)]);
         while (folders.TryDequeue(out var folder))
@@ -276,6 +294,8 @@ internal sealed class DriveLibrary(
                     listed.TryAdd(child.Id, (child, display));
                 }
             }
+
+            folderListed();
         }
     }
 
@@ -304,12 +324,13 @@ internal sealed class DriveLibrary(
 
     /// <summary>Downloads beside <paramref name="local"/> and moves it in place, so a broken download never looks
     /// complete.</summary>
-    private async Task DownloadToAsync(string driveId, string local, CancellationToken cancellationToken)
+    private async Task DownloadToAsync(string driveId, string local, CancellationToken cancellationToken, Percent? percent = null)
     {
         var partial = $"{local}.{Guid.NewGuid():N}.partial"; // two opens of one file never share a partial
         try
         {
-            await using (var stream = File.Create(partial))
+            await using (var file = File.Create(partial))
+            await using (Stream stream = percent is null ? file : new CountingStream(file, percent.Written))
             {
                 await files.DownloadAsync(driveId, stream, cancellationToken);
             }
@@ -320,5 +341,66 @@ internal sealed class DriveLibrary(
         {
             File.Delete(partial);
         }
+    }
+
+    /// <summary>Turns bytes written into a percentage of <paramref name="size"/>, reported only when it changes.</summary>
+    private sealed class Percent(long size, IProgress<int> report)
+    {
+        private int _last = -1;
+
+        public void Written(long bytes)
+        {
+            var percent = size <= 0 ? 0 : (int)Math.Min(99, bytes * 100 / size); // 100 once the file is in place
+            if (percent != _last)
+            {
+                _last = percent;
+                report.Report(percent);
+            }
+        }
+    }
+
+    /// <summary>Passes writes through and says how many bytes have been written so far.</summary>
+    private sealed class CountingStream(Stream inner, Action<long> written) : Stream
+    {
+        private long _total;
+
+        public override bool CanRead => false;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => true;
+
+        public override long Length => inner.Length;
+
+        public override long Position
+        {
+            get => inner.Position;
+            set => throw new NotSupportedException();
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            inner.Write(buffer, offset, count);
+            written(_total += count);
+        }
+
+        public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            await inner.WriteAsync(buffer, cancellationToken);
+            written(_total += buffer.Length);
+        }
+
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
+            WriteAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
+
+        public override void Flush() => inner.Flush();
+
+        public override Task FlushAsync(CancellationToken cancellationToken) => inner.FlushAsync(cancellationToken);
+
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
     }
 }

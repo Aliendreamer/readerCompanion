@@ -77,9 +77,13 @@
       <button id="drive-unlink" type="button" class="btn btn-small" disabled="@_busy" @onclick="UnlinkAsync">Unlink</button>
     </div>
 
-    @if (_progress is not null)
+    @if (_progress is { } progress)
     {
-      <p class="progress">Reading new books from Drive… @_progress.FilesProcessed of @_progress.FilesFound</p>
+      <p class="progress progress-text">@ProgressText(progress)</p>
+      @if (progress.Stage != ScanStage.Listing && progress.FilesFound > 0)
+      {
+        <progress class="scan-bar" max="@progress.FilesFound" value="@progress.FilesProcessed"></progress>
+      }
     }
     else if (_busy)
     {
@@ -132,6 +136,14 @@
   }
 
   private void OnDriveChanged() => InvokeAsync(StateHasChanged);
+
+  private static string ProgressText(ScanProgress progress) => progress.Stage switch
+  {
+    ScanStage.Listing =>
+      $"Looking through Drive… {BookText.Plural(progress.FoldersListed, "folder")}, {BookText.Plural(progress.FilesFound, "book")} so far",
+    ScanStage.Checking => $"Checking books Drive has no checksum for… {progress.FilesProcessed} of {progress.FilesFound}",
+    _ => $"Reading new books from Drive… {progress.FilesProcessed} of {progress.FilesFound}",
+  };
 
   private async Task LoadSourcesAsync() => _sources = await DriveBooks.ListSourcesAsync();
 

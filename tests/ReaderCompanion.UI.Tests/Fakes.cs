@@ -610,6 +610,14 @@ internal sealed class FakeDriveLibrary : ReaderCompanion.Core.Drive.IDriveLibrar
 
     public List<int> Downloaded { get; } = [];
 
+    /// <summary>When set, a download reports 45% and waits for this to finish.</summary>
+    public TaskCompletionSource<string>? DownloadHeld { get; set; }
+
+    /// <summary>When set, a scan reports this and waits for <see cref="ScanHeld"/>.</summary>
+    public ScanProgress? ScanReports { get; set; }
+
+    public TaskCompletionSource<ScanSummary>? ScanHeld { get; set; }
+
     /// <summary>When set, the next folder add is refused with this reason.</summary>
     public string? RefuseAdd { get; set; }
 
@@ -652,12 +660,24 @@ internal sealed class FakeDriveLibrary : ReaderCompanion.Core.Drive.IDriveLibrar
     public Task<ScanSummary> ScanAsync(IProgress<ScanProgress>? progress = null, CancellationToken cancellationToken = default)
     {
         Scans++;
+        if (ScanHeld is { } held)
+        {
+            progress?.Report(ScanReports!);
+            return held.Task;
+        }
+
         return ScanFails is { } error ? Task.FromException<ScanSummary>(error) : Task.FromResult(new ScanSummary { Added = 1 });
     }
 
-    public Task<string> DownloadAsync(int bookFileId, CancellationToken cancellationToken = default)
+    public Task<string> DownloadAsync(int bookFileId, IProgress<int>? percent = null, CancellationToken cancellationToken = default)
     {
         Downloaded.Add(bookFileId);
+        if (DownloadHeld is { } held)
+        {
+            percent?.Report(45);
+            return held.Task;
+        }
+
         return DownloadFails is { } error ? Task.FromException<string>(error) : Task.FromResult($"/cache/{bookFileId}.epub");
     }
 }

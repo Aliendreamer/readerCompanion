@@ -76,6 +76,21 @@ public class BookPanelTests : BunitContext
     }
 
     [Fact]
+    public void ADriveDownload_ShowsItsPercentage()
+    {
+        _drive.DownloadHeld = new TaskCompletionSource<string>();
+        var cut = RenderHome();
+        OpenBook(cut, "Dune");
+
+        cut.FindAll(".file-list li")[0].QuerySelector(".file-open")!.Click();
+
+        cut.WaitForAssertion(() => Assert.Equal("Downloading… 45%", cut.FindAll(".file-list li")[0].QuerySelector(".file-open")!.TextContent));
+        cut.InvokeAsync(() => _drive.DownloadHeld.SetResult("/cache/11.epub"));
+        cut.WaitForAssertion(() => Assert.Equal(["/cache/11.epub"], _launcher.Opened));
+        Assert.Equal("Open", cut.FindAll(".file-list li")[0].QuerySelector(".file-open")!.TextContent);
+    }
+
+    [Fact]
     public void ADriveFile_GoesToDrivesTrash_OrSaysAccessIsReadOnly()
     {
         var cut = RenderHome();

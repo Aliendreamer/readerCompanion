@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using ReaderCompanion.Core.Drive;
 using ReaderCompanion.Core.Preferences;
+using ReaderCompanion.Core.Scanning;
 using ReaderCompanion.UI.Library;
 
 namespace ReaderCompanion.UI.Tests;
@@ -80,6 +81,25 @@ public class GoogleDriveSourceTests : BunitContext
         _library.ScanFails = new DriveUnavailableException("“Books” could not be read on Google Drive, so nothing was changed.");
         cut.Find("#drive-scan").Click();
         cut.WaitForAssertion(() => Assert.Contains("“Books” could not be read", cut.Find(".drive-source [role=alert]").TextContent));
+    }
+
+    [Theory]
+    [InlineData(ScanStage.Listing, 0, 340, 12, "Looking through Drive… 12 folders, 340 books so far", false)]
+    [InlineData(ScanStage.Checking, 3, 10, 0, "Checking books Drive has no checksum for… 3 of 10", true)]
+    [InlineData(ScanStage.Reading, 3, 20, 0, "Reading new books from Drive… 3 of 20", true)]
+    public void ScanDrive_ShowsWhatItIsDoing(ScanStage stage, int processed, int found, int folders, string text, bool bar)
+    {
+        _library.Sources.Add(new DriveSource { Id = 1, DriveId = "books", Name = "Books", Kind = DriveSourceKind.Folder });
+        _library.ScanReports = new ScanProgress(processed, found) { Stage = stage, FoldersListed = folders };
+        _library.ScanHeld = new TaskCompletionSource<ScanSummary>();
+        var cut = RenderLinked(DriveAccess.WholeDrive);
+
+        cut.Find("#drive-scan").Click();
+
+        cut.WaitForAssertion(() => Assert.Equal(text, cut.Find(".drive-source .progress-text").TextContent));
+        Assert.Equal(bar, cut.FindAll(".drive-source progress").Count == 1);
+        cut.InvokeAsync(() => _library.ScanHeld.SetResult(new ScanSummary { Added = 1 }));
+        cut.WaitForAssertion(() => Assert.Empty(cut.FindAll(".drive-source .progress-text")));
     }
 
     [Fact]

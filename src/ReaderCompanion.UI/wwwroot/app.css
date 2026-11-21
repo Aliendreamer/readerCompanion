@@ -1741,3 +1741,11 @@ button.book-title:hover {
   flex-wrap: wrap;
   gap: 0.5rem 1.5rem;
 }
+
+/* A scan's progress bar, under its "x of y" line. */
+.scan-bar {
+  width: 100%;
+  max-width: 28rem;
+  height: 0.5rem;
+  accent-color: var(--accent);
+}

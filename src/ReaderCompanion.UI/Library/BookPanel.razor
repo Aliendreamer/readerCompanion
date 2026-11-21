@@ -97,7 +97,7 @@
               @if (file.DriveFileId is { } driveId)
               {
                 <button type="button" class="link-button file-open" disabled="@(_downloading == file.Id)"
-                        @onclick="() => OpenDriveFileAsync(file)">@(_downloading == file.Id ? "Downloading…" : "Open")</button>
+                        @onclick="() => OpenDriveFileAsync(file)">@(_downloading == file.Id ? DownloadingText : "Open")</button>
                 <button type="button" class="link-button file-folder" @onclick="() => ShowInDrive(driveId)">Show in Drive</button>
               }
               else
@@ -149,6 +149,9 @@
   private string _newCollection = "";
   private int? _trashing;
   private int? _downloading;
+  private int? _downloadPercent;
+
+  private string DownloadingText => _downloadPercent is { } percent ? $"Downloading… {percent}%" : "Downloading…";
   private bool _changingCollections;
   private bool _refocus = true;
 
@@ -293,10 +296,19 @@
   private async Task OpenDriveFileAsync(BookFileInfo file)
   {
     _downloading = file.Id;
+    _downloadPercent = null;
     _error = null;
     try
     {
-      OpenFile(await DriveBooks.DownloadAsync(file.Id));
+      var percent = new Progress<int>(p =>
+      {
+        if (_downloading == file.Id)
+        {
+          _downloadPercent = p;
+          InvokeAsync(StateHasChanged);
+        }
+      });
+      OpenFile(await DriveBooks.DownloadAsync(file.Id, percent));
     }
     catch (ReaderCompanion.Core.Drive.DriveLinkLostException)
     {
@@ -309,6 +321,7 @@
     finally
     {
       _downloading = null;
+      _downloadPercent = null;
     }
   }
 

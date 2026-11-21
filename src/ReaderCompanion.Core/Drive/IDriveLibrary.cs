@@ -51,8 +51,9 @@ public interface IDriveLibrary
     /// (nothing is changed then).</summary>
     Task<ScanSummary> ScanAsync(IProgress<ScanProgress>? progress = null, CancellationToken cancellationToken = default);
 
-    /// <summary>A local copy of the Drive file to open, downloaded unless the cached copy is current.</summary>
-    Task<string> DownloadAsync(int bookFileId, CancellationToken cancellationToken = default);
+    /// <summary>A local copy of the Drive file to open, downloaded unless the cached copy is current;
+    /// <paramref name="percent"/> follows the download.</summary>
+    Task<string> DownloadAsync(int bookFileId, IProgress<int>? percent = null, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Drive could not be read; the message says what, for the user.</summary>

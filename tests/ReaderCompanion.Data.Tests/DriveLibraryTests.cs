@@ -37,6 +37,47 @@ public sealed class DriveLibraryTests : IDisposable
     }
 
     [Fact]
+    public async Task Scan_ReportsListingThenCheckingThenReading()
+    {
+        var books = await AddBooksFolderAsync();
+        var fantasy = _drive.Folder("Fantasy", books);
+        _drive.File("A.epub", books, Epub("Alpha"));
+        _drive.File("B.epub", fantasy, Epub("Beta"));
+        _drive.GivesChecksums = false; // so each file is checked by downloading it
+        var reports = new List<ReaderCompanion.Core.Scanning.ScanProgress>();
+
+        await Drive.ScanAsync(new Reports<ReaderCompanion.Core.Scanning.ScanProgress>(reports.Add), Token);
+
+        var listing = reports.Where(r => r.Stage == ReaderCompanion.Core.Scanning.ScanStage.Listing).ToList();
+        Assert.Equal((2, 2), (listing[^1].FoldersListed, listing[^1].FilesFound));
+        var checking = reports.Where(r => r.Stage == ReaderCompanion.Core.Scanning.ScanStage.Checking).ToList();
+        Assert.Equal((2, 2), (checking[^1].FilesProcessed, checking[^1].FilesFound));
+        Assert.Equal(new ReaderCompanion.Core.Scanning.ScanProgress(2, 2), reports[^1]); // reading, done
+        Assert.True(reports.IndexOf(listing[^1]) < reports.IndexOf(checking[0]));
+    }
+
+    [Fact]
+    public async Task Download_ReportsThePercentage_UpToAHundred()
+    {
+        var books = await AddBooksFolderAsync();
+        _drive.File("A.epub", books, Epub("Alpha"));
+        await Drive.ScanAsync(cancellationToken: Token);
+        var percents = new List<int>();
+
+        await Drive.DownloadAsync(Books().Single().Files.Single().Id, new Reports<int>(percents.Add), Token);
+
+        Assert.NotEmpty(percents);
+        Assert.Equal(100, percents[^1]);
+        Assert.Equal(percents.Order(), percents);
+    }
+
+    /// <summary>Reports on the calling thread, unlike <see cref="Progress{T}"/>.</summary>
+    private sealed class Reports<T>(Action<T> report) : IProgress<T>
+    {
+        public void Report(T value) => report(value);
+    }
+
+    [Fact]
     public async Task Folders_AreBrowsed_AndAdded()
     {
         var books = _drive.Folder("Books");
@@ -237,12 +278,12 @@ public sealed class DriveLibraryTests : IDisposable
         var a = _drive.File("A.epub", books, Epub("Alpha"));
         await Drive.ScanAsync(cancellationToken: Token);
         var fileId = Books().Single().Files.Single().Id;
-        await Drive.DownloadAsync(fileId, Token);
+        await Drive.DownloadAsync(fileId, cancellationToken: Token);
 
         var edited = Epub("Alpha");
         edited[^1] ^= 0xFF; // same size, other content
         _drive.Items[a] = _drive.Items[a] with { Content = edited };
-        var path = await Drive.DownloadAsync(fileId, Token);
+        var path = await Drive.DownloadAsync(fileId, cancellationToken: Token);
 
         Assert.Equal(edited, await File.ReadAllBytesAsync(path, Token));
     }
@@ -255,7 +296,7 @@ public sealed class DriveLibraryTests : IDisposable
         await Drive.ScanAsync(cancellationToken: Token);
 
         _drive.Rename(a, "A.exe");
-        var path = await Drive.DownloadAsync(Books().Single().Files.Single().Id, Token);
+        var path = await Drive.DownloadAsync(Books().Single().Files.Single().Id, cancellationToken: Token);
 
         Assert.EndsWith(".epub", path, StringComparison.Ordinal);
     }
@@ -282,8 +323,8 @@ public sealed class DriveLibraryTests : IDisposable
         var fileId = Books().Single().Files.Single().Id;
         _drive.Downloads.Clear();
 
-        var path = await Drive.DownloadAsync(fileId, Token);
-        var again = await Drive.DownloadAsync(fileId, Token);
+        var path = await Drive.DownloadAsync(fileId, cancellationToken: Token);
+        var again = await Drive.DownloadAsync(fileId, cancellationToken: Token);
 
         Assert.Equal(path, again);
         Assert.EndsWith(".epub", path, StringComparison.Ordinal);
