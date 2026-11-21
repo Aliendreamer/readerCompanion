@@ -39,7 +39,9 @@ public static class DataServiceCollectionExtensions
         // Tests register their own Drive first.
         services.TryAddSingleton<IDriveAccount>(sp => new GoogleDriveAccount(
             GoogleClientConfig.TryLoad(AppContext.BaseDirectory, paths.DataFolder),
-            new DriveTokenFile(Path.Combine(paths.DataFolder, "drive-token.json")),
+            new DriveTokenFile(
+                Path.Combine(paths.DataFolder, "drive-token.json"),
+                OperatingSystem.IsLinux() ? new LibsecretKeyring() : null), // Windows: DPAPI file
             GoogleHttp.Value,
             new LoopbackSignIn(sp.GetService<IWebBrowser>(), TimeSpan.FromMinutes(5)), // none outside the desktop app
             () => DateTime.UtcNow));

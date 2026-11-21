@@ -331,7 +331,116 @@ public sealed class DriveTokenFileTests : IDisposable
         Assert.False(File.Exists(FilePath));
     }
 
+    [Fact]
+    public void WithAKeyring_TheLinkIsKeptThere_AndNotInTheFile()
+    {
+        var keyring = new FakeKeyring();
+        var token = new DriveToken("rt", DriveAccess.WholeDrive, "Ana", new DateTime(2026, 11, 21, 0, 0, 0, DateTimeKind.Utc));
+
+        new DriveTokenFile(FilePath, keyring).Save(token);
+
+        Assert.False(File.Exists(FilePath));
+        Assert.Contains("\"rt\"", keyring.Secrets[FilePath], StringComparison.Ordinal);
+        Assert.Equal(token, new DriveTokenFile(FilePath, keyring).Load());
+    }
+
+    [Fact]
+    public void ALinkInTheFile_MovesIntoTheKeyring()
+    {
+        var token = new DriveToken("rt", DriveAccess.PickedFiles, null, new DateTime(2026, 11, 21, 0, 0, 0, DateTimeKind.Utc));
+        new DriveTokenFile(FilePath).Save(token); // an older version's file
+        var keyring = new FakeKeyring();
+
+        Assert.Equal(token, new DriveTokenFile(FilePath, keyring).Load());
+
+        Assert.False(File.Exists(FilePath));
+        Assert.True(keyring.Secrets.ContainsKey(FilePath));
+        Assert.Equal(token, new DriveTokenFile(FilePath, keyring).Load());
+    }
+
+    [Fact]
+    public void KeyringUnavailable_UsesTheFile()
+    {
+        var keyring = new FakeKeyring { Available = false };
+        var token = new DriveToken("rt", DriveAccess.PickedFiles, null, new DateTime(2026, 11, 21, 0, 0, 0, DateTimeKind.Utc));
+
+        new DriveTokenFile(FilePath, keyring).Save(token);
+
+        Assert.True(File.Exists(FilePath));
+        Assert.Equal(token, new DriveTokenFile(FilePath, keyring).Load());
+    }
+
+    [Fact]
+    public void Delete_ClearsTheKeyringAndTheFile_AndADamagedSecretReadsAsNotLinked()
+    {
+        var keyring = new FakeKeyring();
+        var file = new DriveTokenFile(FilePath, keyring);
+        file.Save(new DriveToken("rt", DriveAccess.PickedFiles, null, DateTime.UtcNow));
+
+        file.Delete();
+
+        Assert.Empty(keyring.Secrets);
+        keyring.Secrets[FilePath] = "{ not json";
+        Assert.Null(file.Load());
+    }
+
+    [Fact]
+    public void Libsecret_WithoutASessionBus_IsUnavailable_AndDoesNotThrow()
+    {
+        var keyring = new LibsecretKeyring(hasSessionBus: () => false);
+
+        Assert.False(keyring.TryLoad("rc-test", out _));
+        Assert.False(keyring.TrySave("rc-test", "test", "secret"));
+        keyring.Delete("rc-test");
+    }
+
+    /// <summary>Uses the real keyring, so it runs only when asked: RC_KEYRING_TEST=1.</summary>
+    [Fact]
+    public void Libsecret_RoundTrip_OnARealKeyring()
+    {
+        if (!OperatingSystem.IsLinux() || Environment.GetEnvironmentVariable("RC_KEYRING_TEST") != "1")
+        {
+            return;
+        }
+
+        var keyring = new LibsecretKeyring();
+        var key = $"rc-test-{Guid.NewGuid():N}";
+        Assert.True(keyring.TrySave(key, "readerCompanion test", "secret-1"));
+        Assert.True(keyring.TryLoad(key, out var secret));
+        Assert.Equal("secret-1", secret);
+
+        keyring.Delete(key);
+
+        Assert.True(keyring.TryLoad(key, out secret));
+        Assert.Null(secret);
+    }
+
     public void Dispose() => Directory.Delete(_folder, recursive: true);
+}
+
+internal sealed class FakeKeyring : IKeyring
+{
+    public bool Available { get; set; } = true;
+
+    public Dictionary<string, string> Secrets { get; } = [];
+
+    public bool TryLoad(string key, out string? secret)
+    {
+        secret = Available ? Secrets.GetValueOrDefault(key) : null;
+        return Available;
+    }
+
+    public bool TrySave(string key, string label, string secret)
+    {
+        if (Available)
+        {
+            Secrets[key] = secret;
+        }
+
+        return Available;
+    }
+
+    public void Delete(string key) => Secrets.Remove(key);
 }
 
 public sealed class GoogleClientConfigTests : IDisposable

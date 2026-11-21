@@ -9,13 +9,66 @@ namespace ReaderCompanion.Data;
 /// <summary>What is kept of a Drive link: the user's refresh token and how it was made.</summary>
 internal sealed record DriveToken(string RefreshToken, DriveAccess Access, string? AccountName, DateTime LinkedUtc);
 
-/// <summary>The Drive link on disk, readable only by the user: encrypted for the current user on Windows, a file
-/// with mode 0600 elsewhere.</summary>
-internal sealed class DriveTokenFile(string path)
+/// <summary>The Drive link, kept from others: in the system keyring when one is given and usable (Linux);
+/// otherwise in a file, encrypted for the current user on Windows, with mode 0600 elsewhere. A link found in the
+/// file moves into the keyring.</summary>
+internal sealed class DriveTokenFile(string path, IKeyring? keyring = null)
 {
+    private const string KeyringLabel = "readerCompanion Google Drive link";
     private static readonly JsonSerializerOptions Options = new() { Converters = { new JsonStringEnumConverter() } };
 
     public DriveToken? Load()
+    {
+        if (keyring is null || !keyring.TryLoad(path, out var secret))
+        {
+            return LoadFile();
+        }
+
+        if (secret is not null)
+        {
+            return Parse(Encoding.UTF8.GetBytes(secret));
+        }
+
+        // Nothing in the keyring yet: a link an older version left in the file moves in.
+        var old = LoadFile();
+        if (old is not null && keyring.TrySave(path, KeyringLabel, JsonSerializer.Serialize(old, Options)))
+        {
+            DeleteFile();
+        }
+
+        return old;
+    }
+
+    public void Save(DriveToken token)
+    {
+        if (keyring?.TrySave(path, KeyringLabel, JsonSerializer.Serialize(token, Options)) == true)
+        {
+            DeleteFile(); // an older plain copy must not linger
+            return;
+        }
+
+        SaveFile(token);
+    }
+
+    public void Delete()
+    {
+        keyring?.Delete(path);
+        DeleteFile();
+    }
+
+    private static DriveToken? Parse(byte[] json)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<DriveToken>(json, Options) is { RefreshToken.Length: > 0 } token ? token : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private DriveToken? LoadFile()
     {
         try
         {
@@ -30,15 +83,15 @@ internal sealed class DriveTokenFile(string path)
                 bytes = ProtectedData.Unprotect(bytes, null, DataProtectionScope.CurrentUser);
             }
 
-            return JsonSerializer.Deserialize<DriveToken>(bytes, Options) is { RefreshToken.Length: > 0 } token ? token : null;
+            return Parse(bytes);
         }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException or CryptographicException)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or CryptographicException)
         {
             return null;
         }
     }
 
-    public void Save(DriveToken token)
+    private void SaveFile(DriveToken token)
     {
         var bytes = JsonSerializer.SerializeToUtf8Bytes(token, Options);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -63,5 +116,5 @@ internal sealed class DriveTokenFile(string path)
         File.Move(partial, path, overwrite: true);
     }
 
-    public void Delete() => File.Delete(path);
+    private void DeleteFile() => File.Delete(path);
 }
