@@ -30,7 +30,7 @@ All data lives in a local SQLite file you can back up by hand.
 | M2 — Library views and duplicates | Done | `openspec/changes/archive/2026-11-20-add-*` (browse, book details, duplicates, user collections) |
 | M3 — Reading tracking | Done | `openspec/changes/archive/2026-11-20-add-reading-*` |
 | M4 — Backup and restore | Done | `openspec/changes/archive/2026-11-20-add-backup-restore/` |
-| M5 — Organise files | Done (OS folders) | `openspec/changes/archive/2026-11-20-add-{organise-files,trash-extra-files}/` |
+| M5 — Organise files | Done (OS and Drive folders) | `openspec/changes/archive/2026-11-20-add-{organise-files,trash-extra-files}/` |
 | M6 — Goodreads | Done | `openspec/changes/archive/2026-11-20-add-goodreads-*` |
 | M7 — Google Drive | Done in code; needs a manual check with the real OAuth client | `openspec/changes/archive/2026-11-21-add-drive-{link,books,file-actions}/` |
 | M8 — Polish and packaging | Done except installers (open decision) | `openspec/changes/archive/2026-11-20-add-{settings-and-startup-errors,online-covers,release-tooling}/` |
@@ -219,8 +219,8 @@ disconnecting Drive leaves the catalog and reading history intact.
 
 ## Open decisions
 
-- **M7 — Google Drive:** needs a Google Cloud project with an OAuth "desktop app" client ID (only the account owner
-  can create it), a choice of read-only or write access, and agreement on adding Google's .NET API library.
+- **Google Drive for a public release:** whole-Drive access uses restricted scopes, so Google's verification and a
+  yearly security assessment are needed before more than 100 people can link it; "only books I pick" needs neither.
 - **Installers:** Windows (MSI or MSIX) and Linux (AppImage, .deb or Flatpak) — which, if any. Today the packages are
   self-contained folders (`pnpm package:linux` / `pnpm package:windows`, see `docs/releasing.md`).
 - **First release:** when to tag `v0.1.0` (`pnpm release --release-as 0.1.0`).
@@ -275,3 +275,7 @@ disconnecting Drive leaves the catalog and reading history intact.
 - **2026-11-20** — M8 done apart from installers: versions from git tags (MinVer), changelog and local tags from
   Conventional Commits (commit-and-tag-version), self-contained Linux and Windows builds. M7 and installers wait on
   the open decisions above.
+- **2026-11-21** — M7: the access level is a setting (only books I pick, whole Drive read only, or read and write);
+  each user links their own Google account through the app's one OAuth desktop client, kept out of the repo. Plain
+  HTTPS calls instead of Google's .NET library. Drive books join local ones by SHA-256; organise and trash work on
+  Drive folders with write access. Done in code; the user checks it with the real client.
