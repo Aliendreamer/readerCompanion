@@ -147,8 +147,18 @@ internal sealed class FakeBooks(List<BookListItem> books) : ILibraryBooks
     /// <summary>When true, saving throws, as when the database is busy.</summary>
     public bool FailUpdates { get; set; }
 
-    public Task<IReadOnlyList<BookListItem>> ListAsync(CancellationToken cancellationToken = default) =>
-        Task.FromResult<IReadOnlyList<BookListItem>>([.. books]);
+    /// <summary>When set, the book list arrives only when this finishes.</summary>
+    public TaskCompletionSource? ListHeld { get; set; }
+
+    public async Task<IReadOnlyList<BookListItem>> ListAsync(CancellationToken cancellationToken = default)
+    {
+        if (ListHeld is { } held)
+        {
+            await held.Task;
+        }
+
+        return [.. books];
+    }
 
     public Task<BookDetails?> GetAsync(int id, CancellationToken cancellationToken = default) =>
         Task.FromResult(books.FirstOrDefault(b => b.Id == id) is { } book

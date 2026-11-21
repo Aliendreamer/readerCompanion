@@ -1294,8 +1294,10 @@ main:has(> .workspace) {
   padding: 0.5rem;
 }
 
-/* The Filters button is only for narrow windows, where the tree hides. */
-.filters-toggle {
+/* The Filters button, its Close and the backdrop are only for narrow windows, where the tree hides. */
+.filters-toggle,
+.filters-close,
+.tree-backdrop {
   display: none;
 }
 
@@ -1306,16 +1308,18 @@ main:has(> .workspace) {
 }
 
 .workspace-details {
-  overflow-y: auto;
+  overflow: hidden;
   background: var(--surface);
   border-left: 1px solid var(--border);
 }
 
-/* Inside its pane the panel is part of the page, not a sheet over it. */
+/* Inside its pane the panel is part of the page, not a sheet over it. It scrolls itself (so another book starts at
+   its top) and anchors its close button. */
 .workspace-details .book-panel {
-  position: static;
+  position: relative;
   width: auto;
-  min-height: 100%;
+  height: 100%;
+  overflow-y: auto;
   border-left: 0;
   box-shadow: none;
 }
@@ -1877,5 +1881,18 @@ main:has(> .workspace) {
 
   .filters-toggle {
     display: inline-flex;
+  }
+
+  .workspace.tree-open .filters-close {
+    display: inline-flex;
+    margin: 0 0 0.5rem 0.5rem;
+  }
+
+  .workspace.tree-open .tree-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    display: block;
+    background: rgb(0 0 0 / 15%);
   }
 }

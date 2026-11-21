@@ -56,4 +56,18 @@ public class StatusBarTests : BunitContext
             cut.FindAll(".status-bar .status-scan").Select(s => s.TextContent));
         Assert.Empty(cut.FindAll(".status-bar .status-count")); // only the Library has a count
     }
+
+    [Fact]
+    public async Task LeavingTheLibrary_BeforeItLoads_LeavesNoCountBehind()
+    {
+        var books = new FakeBooks([new(1, "Dune", ["Frank Herbert"], null, null, false)]) { ListHeld = new TaskCompletionSource() };
+        Services.AddAppFakes(libraryBooks: books);
+        Render<ReaderCompanion.UI.Pages.Home>();
+
+        await DisposeComponentsAsync(); // the user opened another page
+        books.ListHeld.SetResult();
+        await Renderer.Dispatcher.InvokeAsync(() => { }); // let the late list arrive
+
+        Assert.Null(Services.GetRequiredService<LibraryStatus>().Count);
+    }
 }

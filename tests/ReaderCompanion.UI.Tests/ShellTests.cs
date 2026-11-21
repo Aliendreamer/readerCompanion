@@ -117,4 +117,16 @@ public class ShellTests : BunitContext
         cut.Find("#theme-toggle").Click();
         Assert.Equal("dark", cut.Find(".app").GetAttribute("data-theme"));
     }
+
+    [Fact]
+    public void FlippingTheSwitch_WhileOnSettings_UpdatesItsThemeSection()
+    {
+        Services.GetRequiredService<NavigationManager>().NavigateTo("settings");
+        var cut = Render<Routes>();
+        Assert.Empty(cut.FindAll("#use-system-theme"));
+
+        cut.Find("#theme-toggle").Click();
+
+        cut.WaitForAssertion(() => Assert.Single(cut.FindAll("#use-system-theme")));
+    }
 }

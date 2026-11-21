@@ -30,7 +30,12 @@ else
 {
   @* The Library as panes: the books (the only part that scrolls), and the details of the chosen book on the right. *@
   <div class="workspace @(_selected is null ? null : "has-selection") @(_treeOpen ? "tree-open" : null)">
+    @if (_treeOpen)
+    {
+      <div class="tree-backdrop" @onclick="() => _treeOpen = false"></div>
+    }
     <div class="workspace-tree">
+      <button id="filters-close" type="button" class="btn btn-small filters-close" @onclick="() => _treeOpen = false">Close filters</button>
       <FilterTree Query="Query" QueryChanged="ChangeQuery" Options="_options" Clear="ClearFilters" />
     </div>
     <div class="workspace-books">
@@ -108,10 +113,19 @@ else
   private void Refresh()
   {
     _result = LibraryBrowser.Browse(_books ?? [], Query);
-    Status.Set(_books is { Count: 0 } ? "No books" : Count());
+    if (!_disposed) // a list arriving after the user left must not put its count on another page
+    {
+      Status.Set(_books is { Count: 0 } ? "No books" : Count());
+    }
   }
 
-  public void Dispose() => Status.Set(null);
+  private bool _disposed;
+
+  public void Dispose()
+  {
+    _disposed = true;
+    Status.Set(null);
+  }
 
   private string Count() =>
     Query.IsNarrowed ? $"{_result.Shown} of {_result.Total} books"

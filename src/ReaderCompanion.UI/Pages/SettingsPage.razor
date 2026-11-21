@@ -149,6 +149,7 @@
   protected override async Task OnInitializedAsync()
   {
     Drive.Changed += OnDriveChanged;
+    Preferences.Changed += OnDriveChanged; // the toolbar's theme switch changes what the Theme section says
     try
     {
       _folders = (await Folders.ListAsync()).Count;
@@ -205,9 +206,10 @@
   {
     _fetching?.Cancel();
     Drive.Changed -= OnDriveChanged;
+    Preferences.Changed -= OnDriveChanged;
   }
 
-  private void OnDriveChanged() => InvokeAsync(StateHasChanged);
+  private void OnDriveChanged() => InvokeAsync(StateHasChanged); // also for preference changes made elsewhere
 
   // The launcher shows the folder that holds a file: the database sits in the data folder.
   private void ShowDataFolder() =>

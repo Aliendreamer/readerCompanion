@@ -61,13 +61,19 @@ public class FilterTreeTests : BunitContext
     }
 
     [Fact]
-    public void NarrowWindow_FiltersButtonShowsTheTree()
+    public void NarrowWindow_FiltersButtonShowsTheTree_AndItClosesFromInside()
     {
         var cut = RenderHome();
         Assert.DoesNotContain("tree-open", cut.Find(".workspace").ClassList);
 
         cut.Find("#filters-toggle").Click();
-
         Assert.Contains("tree-open", cut.Find(".workspace").ClassList);
+
+        // Open over the books it covers the Filters button, so it closes from inside, or by a click beside it.
+        cut.Find(".workspace-tree #filters-close").Click();
+        Assert.DoesNotContain("tree-open", cut.Find(".workspace").ClassList);
+        cut.Find("#filters-toggle").Click();
+        cut.Find(".tree-backdrop").Click();
+        Assert.DoesNotContain("tree-open", cut.Find(".workspace").ClassList);
     }
 }
