@@ -1,13 +1,16 @@
 @using ReaderCompanion.Core.Library
 @using ReaderCompanion.Core.Preferences
+@inject IInView InView
+@implements IAsyncDisposable
 
-@* Ungrouped books render as a plain grid or table; grouped ones get a collapsible section each. *@
+@* Ungrouped books render as a plain grid or table; grouped ones get a collapsible section each. Only the first
+   Limit books are built; a marker after them asks for more when it comes near the view. *@
 
-@foreach (var part in Sections)
+@foreach (var (part, books) in _visible)
 {
   if (part.Name is null)
   {
-    <BookView Books="part.Books" View="View" OnSelect="OnSelect" />
+    <BookView Books="books" View="View" OnSelect="OnSelect" />
   }
   else
   {
@@ -15,9 +18,17 @@
       <summary>
         <span class="section-name">@part.Name</span> <span class="section-count">(@part.Books.Count)</span>
       </summary>
-      <BookView Books="part.Books" View="View" OnSelect="OnSelect" />
+      <BookView Books="books" View="View" OnSelect="OnSelect" />
     </details>
   }
+}
+
+@if (_shown < _total)
+{
+  <div class="load-more" @ref="_marker">
+    <span class="muted">Showing @_shown of @_total</span>
+    <button id="show-more" type="button" class="btn btn-small" @onclick="() => ShowMore.InvokeAsync()">Show more</button>
+  </div>
 }
 
 @code {
@@ -26,4 +37,60 @@
   [Parameter] public LibraryView View { get; set; }
 
   [Parameter] public EventCallback<BookListItem> OnSelect { get; set; }
+
+  /// <summary>How many books to build, across all sections.</summary>
+  [Parameter] public int Limit { get; set; } = int.MaxValue;
+
+  /// <summary>Asked when more books should be built (the marker came near the view, or Show more).</summary>
+  [Parameter] public EventCallback ShowMore { get; set; }
+
+  private List<(BookSection Part, IReadOnlyList<BookListItem> Books)> _visible = [];
+  private int _shown;
+  private int _total;
+  private ElementReference _marker;
+  private IAsyncDisposable? _watch;
+
+  protected override void OnParametersSet()
+  {
+    _visible = [];
+    var left = Limit;
+    foreach (var part in Sections)
+    {
+      if (left <= 0)
+      {
+        break;
+      }
+
+      IReadOnlyList<BookListItem> books = part.Books.Count <= left ? part.Books : [.. part.Books.Take(left)];
+      _visible.Add((part, books));
+      left -= books.Count;
+    }
+
+    _shown = _visible.Sum(v => v.Books.Count);
+    _total = Sections.Sum(s => s.Books.Count);
+  }
+
+  // Watched again after each render: the observer reports at once if the marker is still near, so a fast scroll
+  // keeps adding books until it is out of reach.
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (_watch is not null)
+    {
+      await _watch.DisposeAsync();
+      _watch = null;
+    }
+
+    if (_shown < _total)
+    {
+      _watch = await InView.WatchAsync(_marker, () => InvokeAsync(() => ShowMore.InvokeAsync()));
+    }
+  }
+
+  public async ValueTask DisposeAsync()
+  {
+    if (_watch is not null)
+    {
+      await _watch.DisposeAsync();
+    }
+  }
 }

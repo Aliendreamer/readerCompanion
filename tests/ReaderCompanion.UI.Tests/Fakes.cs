@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using ReaderCompanion.Core.Library;
 using ReaderCompanion.Core.Organising;
@@ -737,8 +738,10 @@ internal static class TestServices
         FakeDriveLibrary? driveLibrary = null,
         FakeWebBrowser? browser = null,
         FakeAppWindow? window = null,
-        FakeWindowKeys? keys = null)
+        FakeWindowKeys? keys = null,
+        FakeInView? inView = null)
     {
+        services.AddSingleton<IInView>(inView ?? new FakeInView());
         services.AddSingleton<ScanStatus>();
         services.AddSingleton<IAppWindow>(window ?? new FakeAppWindow());
         services.AddSingleton<IWindowKeys>(keys ?? new FakeWindowKeys());
@@ -820,5 +823,31 @@ internal sealed class FakeWindowKeys : IWindowKeys
     private sealed class Nothing : IAsyncDisposable
     {
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+}
+
+/// <summary>Says an element is near the view when the test says so.</summary>
+internal sealed class FakeInView : IInView
+{
+    private Action? _onInView;
+
+    public int Watches { get; private set; }
+
+    public void ScrollNear() => _onInView?.Invoke();
+
+    public ValueTask<IAsyncDisposable> WatchAsync(ElementReference element, Action onInView)
+    {
+        Watches++;
+        _onInView = onInView;
+        return ValueTask.FromResult<IAsyncDisposable>(new Stop(this));
+    }
+
+    private sealed class Stop(FakeInView view) : IAsyncDisposable
+    {
+        public ValueTask DisposeAsync()
+        {
+            view._onInView = null;
+            return ValueTask.CompletedTask;
+        }
     }
 }

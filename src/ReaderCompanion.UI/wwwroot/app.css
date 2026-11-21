@@ -1749,3 +1749,12 @@ button.book-title:hover {
   height: 0.5rem;
   accent-color: var(--accent);
 }
+
+/* After the books built so far: more are added as this comes near the view. */
+.load-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem 0 0.5rem;
+}

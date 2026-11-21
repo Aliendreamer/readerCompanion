@@ -52,7 +52,8 @@ else
     else
     {
       @* Keyed on the grouping so a new grouping starts with every section open. *@
-      <BookSections @key="Query.Group" Sections="_result.Sections" View="View" OnSelect="b => _selected = b.Id" />
+      <BookSections @key="Query.Group" Sections="_result.Sections" View="View" OnSelect="b => _selected = b.Id"
+                    Limit="_limit" ShowMore="() => _limit += PageSize" />
     }
   </div>
 
@@ -72,6 +73,10 @@ else
   private BrowseResult _result = new(0, 0, []);
   private int? _selected;
   private bool _reminderDismissed; // until the app restarts
+
+  // A large library is built a page at a time, more as the list nears the view; a new search starts again.
+  private const int PageSize = 120;
+  private int _limit = PageSize;
 
   private LibraryView View => Preferences.Current.LibraryView;
 
@@ -108,12 +113,14 @@ else
       Preferences.Save(current with { LibraryGroup = query.Group, LibrarySort = query.Sort });
     }
 
+    _limit = PageSize;
     Refresh();
   }
 
   private void ClearFilters()
   {
     _filters = new();
+    _limit = PageSize;
     Refresh();
   }
 
