@@ -14,6 +14,7 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        GLibNoise.Silence();
         try
         {
             Start(args);
