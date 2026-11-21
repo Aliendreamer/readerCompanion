@@ -222,7 +222,7 @@ disconnecting Drive leaves the catalog and reading history intact.
 - **Google Drive for a public release:** whole-Drive access uses restricted scopes, so Google's verification and a
   yearly security assessment are needed before more than 100 people can link it; "only books I pick" needs neither.
 - **Installers:** Windows (MSI or MSIX) and Linux (AppImage, .deb or Flatpak) — which, if any. Today the packages are
-  self-contained folders (`pnpm package:linux` / `pnpm package:windows`, see `docs/releasing.md`).
+  self-contained folders (`pnpm package:linux` / `pnpm package:windows`, see `RELEASING.md`).
 - **First release:** when to tag `v0.1.0` (`pnpm release --release-as 0.1.0`).
 
 ## Decision log
