@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using ReaderCompanion.Core.Scanning;
 
 namespace ReaderCompanion.Data.Tests;
@@ -5,6 +6,37 @@ namespace ReaderCompanion.Data.Tests;
 public sealed class CatalogWriterTests : IDisposable
 {
     private readonly TempLibrary _library = new();
+
+    [Fact]
+    public void AScannedBook_GetsItsSubjectsAsGenresFromTheList()
+    {
+        using var db = _library.NewContext();
+        var epub = ReaderCompanion.Core.Tests.TestEpub.Build(
+            "<dc:title>Mort</dc:title><dc:subject>Fiction - Fantasy</dc:subject><dc:subject>General</dc:subject>"
+            + "<dc:subject>Fantasy Fiction</dc:subject><dc:subject>Saga of Drizzt Do'Urden</dc:subject>").ToArray();
+        var writer = new CatalogWriter(db, Path.Combine(_library.Root, "covers"), DateTime.UtcNow, _ => new MemoryStream(epub));
+
+        writer.Apply(new AddBook([new FoundFile("/b/mort.epub", epub.Length, DateTime.UtcNow, "h1")]));
+        db.SaveChanges();
+
+        Assert.Equal(["Fantasy"], db.Books.Include(b => b.Genres).ThenInclude(l => l.Genre).Single().Genres.Select(l => l.Genre.Name));
+        Assert.Equal(["Fantasy"], db.Genres.Select(g => g.Name));
+    }
+
+    [Fact]
+    public void AScannedBook_WithAReleaseTaggedSeries_GetsTheRealSeries()
+    {
+        using var db = _library.NewContext();
+        var epub = ReaderCompanion.Core.Tests.TestEpub.Build(
+            "<dc:title>Storm Front</dc:title><meta name=\"calibre:series\" content=\"Serified.Dresden Files.SciFan.(#01 of 14)._.ICA Serified\"/>").ToArray();
+        var writer = new CatalogWriter(db, Path.Combine(_library.Root, "covers"), DateTime.UtcNow, _ => new MemoryStream(epub));
+
+        writer.Apply(new AddBook([new FoundFile("/b/storm.epub", epub.Length, DateTime.UtcNow, "h1")]));
+        db.SaveChanges();
+
+        var book = db.Books.Include(b => b.Series).Single();
+        Assert.Equal(("Dresden Files", 1m), (book.Series!.Name, book.SeriesIndex!.Value));
+    }
 
     [Fact]
     public void FileGoneBeforeItIsRead_BookKeptAsUnreadable()

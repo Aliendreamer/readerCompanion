@@ -69,7 +69,11 @@ public static class DataServiceCollectionExtensions
     {
         Directory.CreateDirectory(services.GetRequiredService<LibraryDataPaths>().DataFolder);
 
-        using var scope = services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<LibraryDbContext>().Database.Migrate();
+        using (var scope = services.CreateScope())
+        {
+            scope.ServiceProvider.GetRequiredService<LibraryDbContext>().Database.Migrate();
+        }
+
+        CatalogCleanup.Run(services);
     }
 }

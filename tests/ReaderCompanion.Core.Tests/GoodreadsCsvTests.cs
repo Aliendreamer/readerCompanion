@@ -58,6 +58,8 @@ public class GoodreadsCsvTests
     [InlineData("Mistborn (Mistborn, #1)", "Mistborn", "Mistborn", 1.0)]
     [InlineData("The Light Fantastic (Discworld, #2)", "The Light Fantastic", "Discworld", 2.0)]
     [InlineData("Interesting Times (Discworld #17.5)", "Interesting Times", "Discworld", 17.5)]
+    [InlineData("Guards! Guards! (Discworld, #8; City Watch, #1)", "Guards! Guards!", "Discworld", 8.0)] // the first series is the main one
+    [InlineData("Going Postal (Discworld, #33; Moist von Lipwig, #1)", "Going Postal", "Discworld", 33.0)]
     [InlineData("Gödel, Escher, Bach (20th Anniversary Edition)", "Gödel, Escher, Bach (20th Anniversary Edition)", null, null)]
     public void SeriesSuffix_IsSplitOffTheTitle(string raw, string title, string? series, double? index)
     {

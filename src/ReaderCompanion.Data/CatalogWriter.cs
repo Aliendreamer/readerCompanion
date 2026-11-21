@@ -212,11 +212,12 @@ internal sealed class CatalogWriter
         book.Title = m.Title!;
         book.Language = m.Language;
         book.Isbn = m.Isbn;
-        book.Series = _names.Series(m.Series);
-        book.SeriesIndex = book.Series is null ? null : m.SeriesIndex;
+        var (series, index) = m.Series is null ? (null, m.SeriesIndex) : SeriesName.Clean(m.Series, m.SeriesIndex);
+        book.Series = _names.Series(series);
+        book.SeriesIndex = book.Series is null ? null : index;
 
         _names.SetAuthors(book, m.Authors);
-        _names.SetGenres(book, m.Genres);
+        _names.SetGenres(book, GenreMap.Map(m.Genres)); // the file's subjects, mapped onto the app's genre list
 
         return result.Unreadable;
     }

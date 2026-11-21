@@ -17,9 +17,7 @@
   <FilterSection TValue="BookFormat" Id="filter-format" Label="Formats" Options="Options.Formats" Picked="Query.Formats"
                  Text="BookText.FormatLabel" PickedChanged="v => Change(Query with { Formats = v })" />
   <FilterSection TValue="ReadStatus" Id="filter-status" Label="Status" Options="AllStatuses" Picked="Query.Statuses"
-                 Text="BookText.StatusLabel" PickedChanged="v => Change(Query with { Statuses = v })" />
-  <FilterSection TValue="Shelf" Id="filter-shelf" Label="Owned / wanted" Options="AllShelves" Picked="Query.Shelves"
-                 PickedChanged="v => Change(Query with { Shelves = v })" />
+                 Text="BookText.StatusLabel" Note="StatusNote" PickedChanged="v => Change(Query with { Statuses = v })" />
   <label class="browse-check filter-missing">
     <input id="browse-missing" type="checkbox" checked="@Query.MissingOnly"
            @onchange="e => Change(Query with { MissingOnly = e.Value is true })" />
@@ -38,7 +36,19 @@
   [Parameter] public EventCallback Clear { get; set; }
 
   private static readonly IReadOnlyList<ReadStatus> AllStatuses = Enum.GetValues<ReadStatus>();
-  private static readonly IReadOnlyList<Shelf> AllShelves = Enum.GetValues<Shelf>();
+
+  // "3", and for want to read "3 · 1 with files, 2 without": which wanted books are already on disk.
+  private string? StatusNote(ReadStatus status)
+  {
+    if (!Options.StatusCounts.TryGetValue(status, out var count))
+    {
+      return null;
+    }
+
+    return status == ReadStatus.WantToRead
+      ? $"{count} · {Options.WantToReadWithFiles} with files, {count - Options.WantToReadWithFiles} without"
+      : $"{count}";
+  }
 
   private Task Change(BrowseQuery query) => QueryChanged.InvokeAsync(query);
 }

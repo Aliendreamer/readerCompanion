@@ -22,15 +22,15 @@ public class FilterTreeTests : BunitContext
     private static IReadOnlyList<string> Titles(IRenderedComponent<Home> cut) => [.. cut.FindAll(".book-title").Select(t => t.TextContent)];
 
     [Fact]
-    public void Sections_InOrder_LongOnesStartClosed()
+    public void Sections_InOrder_AllStartClosed()
     {
         var cut = RenderHome();
 
         var headers = cut.FindAll(".workspace-tree .filter-section-header");
         Assert.Equal(
-            ["Genres", "Authors", "Collections", "Formats", "Status", "Owned / wanted"],
+            ["Genres", "Authors", "Collections", "Formats", "Status"],
             headers.Select(h => h.QuerySelector(".filter-section-name")!.TextContent));
-        Assert.Equal(["true", "false", "false", "true", "true", "true"], headers.Select(h => h.GetAttribute("aria-expanded")));
+        Assert.All(headers, h => Assert.Equal("false", h.GetAttribute("aria-expanded")));
         Assert.Contains("(2)", cut.Find("#filter-genre").TextContent); // how many values the section has
         Assert.Single(cut.FindAll(".workspace-tree #browse-missing"));
     }

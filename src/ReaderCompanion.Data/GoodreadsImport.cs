@@ -43,6 +43,12 @@ internal sealed class GoodreadsImport(IDbContextFactory<LibraryDbContext> contex
         }
 
         int matched = 0, added = 0, updated = 0, forReview = 0;
+
+        // How far each book got from an entry in this import: Goodreads may list a book twice (two editions), and a
+        // later entry must not move it back (a to-read edition after the read one).
+        var reached = new Dictionary<Book, int>(ReferenceEqualityComparer.Instance);
+        bool MovesFurther(Book target, GoodreadsRow entry) =>
+            Progress(entry.Status) > reached.GetValueOrDefault(target, -1);
         var skipped = new List<string>();
         var seen = new HashSet<string>();
         foreach (var row in rows)
@@ -60,9 +66,16 @@ internal sealed class GoodreadsImport(IDbContextFactory<LibraryDbContext> contex
             {
                 if (candidate.GoodreadsId is not null)
                 {
-                    DropPending(row.GoodreadsId); // a newer export replaces the waiting row
-                    db.GoodreadsPending.Add(GoodreadsPending.From(row, candidate.Id));
-                    forReview++;
+                    // Another Goodreads entry for a book already linked (an edition shelved twice): reading either is
+                    // reading the book, so the entry applies only when it moves the book further (read beats to-read).
+                    DropPending(row.GoodreadsId);
+                    matched++;
+                    if (Progress(row.Status) > Progress(candidate.ReadStatus) && MovesFurther(candidate, row))
+                    {
+                        reached[candidate] = Progress(row.Status);
+                        updated += context.Apply(candidate, row) ? 1 : 0;
+                    }
+
                     continue;
                 }
 
@@ -99,6 +112,13 @@ internal sealed class GoodreadsImport(IDbContextFactory<LibraryDbContext> contex
                 byId[row.GoodreadsId] = book;
             }
 
+            if (!MovesFurther(book, row))
+            {
+                continue; // another entry for this book already took it as far or further
+            }
+
+            reached[book] = Progress(row.Status);
+            context.RefreshWanted(book, row);
             if (context.Apply(book, row))
             {
                 updated++;
@@ -106,6 +126,11 @@ internal sealed class GoodreadsImport(IDbContextFactory<LibraryDbContext> contex
         }
 
         await db.SaveChangesAsync(cancellationToken);
+
+        // Series collections no book is in any more (e.g. names an earlier import read wrongly) are removed.
+        await db.Collections
+            .Where(c => c.Kind == CollectionKind.Series && !db.Books.Any(b => b.SeriesId == c.Id))
+            .ExecuteDeleteAsync(cancellationToken);
         if (rows.Count > 0) // an empty export does not count as keeping in sync
         {
             preferences.Save(preferences.Current with { GoodreadsLastImportUtc = DateTime.UtcNow });
@@ -174,7 +199,7 @@ internal sealed class GoodreadsImport(IDbContextFactory<LibraryDbContext> contex
     /// <summary>Books with what an import reads; their collections only when shelves become collections.</summary>
     private static IQueryable<Book> Books(LibraryDbContext db, bool withCollections)
     {
-        var books = db.Books.Include(b => b.Sessions).Include(b => b.Authors).ThenInclude(a => a.Author);
+        var books = db.Books.Include(b => b.Sessions).Include(b => b.Files).Include(b => b.Authors).ThenInclude(a => a.Author);
         return withCollections ? books.Include(b => b.Collections).ThenInclude(c => c.Collection) : books;
     }
 
@@ -184,6 +209,15 @@ internal sealed class GoodreadsImport(IDbContextFactory<LibraryDbContext> contex
         && books.Where(b => b.GoodreadsId is null).ToList() is [var only]
             ? only
             : null;
+
+    /// <summary>How far along a status is: wanting to read, then reading (or having stopped), then read.</summary>
+    private static int Progress(ReadStatus? status) => status switch
+    {
+        ReadStatus.Read => 3,
+        ReadStatus.Reading or ReadStatus.Abandoned => 2,
+        ReadStatus.WantToRead => 1,
+        _ => 0,
+    };
 
     private static string? FirstAuthor(Book book) => book.Authors.OrderBy(a => a.Order).Select(a => a.Author.Name).FirstOrDefault();
 
@@ -207,6 +241,16 @@ internal sealed class GoodreadsImport(IDbContextFactory<LibraryDbContext> contex
             db.Books.Add(book);
             Apply(book, row);
             return book;
+        }
+
+        /// <summary>A wanted book (no files) the user has not edited is Goodreads' own: its series follows the row.</summary>
+        public void RefreshWanted(Book book, GoodreadsRow row)
+        {
+            if (book.Files.Count == 0 && book.EditedUtc is null)
+            {
+                book.Series = names.Series(row.Series);
+                book.SeriesIndex = book.Series is null ? null : row.SeriesIndex;
+            }
         }
 
         /// <summary>Takes the row's status, rating and read date where the user has not set their own, and its shelves

@@ -62,10 +62,10 @@ public static partial class GoodreadsCsv
                 continue; // a blank or broken line
             }
 
-            var series = SeriesSuffix().Match(title);
+            var (bareTitle, series, seriesIndex) = SplitSeries(title);
             rows.Add(new GoodreadsRow(
                 id,
-                series.Success ? series.Groups["title"].Value : title,
+                bareTitle,
                 [.. new[] { Field("Author") }.Concat((Field("Additional Authors") ?? "").Split(','))
                     .Select(NameNormalizer.Clean).OfType<string>()],
                 Isbn(Field("ISBN13")) ?? Isbn(Field("ISBN")),
@@ -81,17 +81,34 @@ public static partial class GoodreadsCsv
                 },
                 [.. (Field("Bookshelves") ?? "").Split(',').Select(NameNormalizer.Clean).OfType<string>().Where(s => !StatusShelves.Contains(s))])
             {
-                Series = series.Success ? series.Groups["series"].Value : null,
-                SeriesIndex = series.Success ? decimal.Parse(series.Groups["n"].Value, CultureInfo.InvariantCulture) : null,
+                Series = series,
+                SeriesIndex = seriesIndex,
             });
         }
 
         return rows;
     }
 
-    /// <summary>"Title (Series, #2)" or "Title (Series #2.5)".</summary>
-    [System.Text.RegularExpressions.GeneratedRegex(@"^(?<title>.+?)\s*\((?<series>[^()]+?),?\s+#(?<n>\d+(?:\.\d+)?)\)$")]
-    private static partial System.Text.RegularExpressions.Regex SeriesSuffix();
+    /// <summary>The title without Goodreads' series note, and the series: "Title (Series, #2)", "Title (Series #2.5)",
+    /// or for a book in two series "Guards! Guards! (Discworld, #8; City Watch, #1)", where the first is the main one.
+    /// A title without such a note is returned whole.</summary>
+    private static (string Title, string? Series, decimal? Index) SplitSeries(string title)
+    {
+        var note = SeriesNote().Match(title);
+        if (note.Success
+            && note.Groups["inner"].Value.Split(';').Select(p => SeriesPart().Match(p.Trim())).FirstOrDefault(m => m.Success) is { } part)
+        {
+            return (note.Groups["title"].Value, part.Groups["series"].Value, decimal.Parse(part.Groups["n"].Value, CultureInfo.InvariantCulture));
+        }
+
+        return (title, null, null);
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"^(?<title>.+?)\s*\((?<inner>[^()]+)\)$")]
+    private static partial System.Text.RegularExpressions.Regex SeriesNote();
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"^(?<series>.+?),?\s+#(?<n>\d+(?:\.\d+)?)$")]
+    private static partial System.Text.RegularExpressions.Regex SeriesPart();
 
     /// <summary>Goodreads writes ISBNs as <c>="9780552131063"</c> so spreadsheets keep the leading zeros.</summary>
     private static string Unwrap(string value) =>

@@ -4,13 +4,6 @@ using ReaderCompanion.Core.Preferences;
 
 namespace ReaderCompanion.UI.Library;
 
-/// <summary>Whether a book is on the user's shelf (has files) or only wanted.</summary>
-public enum Shelf
-{
-    Owned,
-    Wanted,
-}
-
 /// <summary>What the user is looking for on the Library page. Several values in one filter match any of them;
 /// every active filter and the search must match.</summary>
 public sealed record BrowseQuery
@@ -27,8 +20,6 @@ public sealed record BrowseQuery
 
     public IReadOnlyCollection<ReadStatus> Statuses { get; init; } = [];
 
-    public IReadOnlyCollection<Shelf> Shelves { get; init; } = [];
-
     public bool MissingOnly { get; init; }
 
     public LibraryGroup Group { get; init; }
@@ -38,7 +29,7 @@ public sealed record BrowseQuery
     /// <summary>True when a filter or the search hides books.</summary>
     public bool IsNarrowed => !string.IsNullOrWhiteSpace(Search)
         || Genres.Count > 0 || Authors.Count > 0 || Collections.Count > 0 || Formats.Count > 0 || MissingOnly
-        || Statuses.Count > 0 || Shelves.Count > 0;
+        || Statuses.Count > 0;
 }
 
 /// <summary>A run of books under one heading; <see cref="Name"/> is null when the books are not grouped.
@@ -57,6 +48,12 @@ public sealed record BrowseOptions(
     IReadOnlyList<BookFormat> Formats)
 {
     public static readonly BrowseOptions Empty = new([], [], [], []);
+
+    /// <summary>How many books have each status; a status no book has is left out.</summary>
+    public IReadOnlyDictionary<ReadStatus, int> StatusCounts { get; init; } = new Dictionary<ReadStatus, int>();
+
+    /// <summary>How many want-to-read books the user already has files for.</summary>
+    public int WantToReadWithFiles { get; init; }
 }
 
 /// <summary>Filters, searches, sorts and groups the library's books for the Library page.</summary>
@@ -69,7 +66,11 @@ public static class LibraryBrowser
         Distinct(books.SelectMany(b => b.Genres)),
         Distinct(books.SelectMany(b => b.Authors)),
         Distinct(books.SelectMany(Collections)),
-        [.. books.SelectMany(b => b.Formats).Distinct().Order()]);
+        [.. books.SelectMany(b => b.Formats).Distinct().Order()])
+    {
+        StatusCounts = books.CountBy(b => b.ReadStatus).ToDictionary(),
+        WantToReadWithFiles = books.Count(b => b.ReadStatus == ReadStatus.WantToRead && b.Owned),
+    };
 
     /// <summary>The user's own collections present in the library (series not included), sorted.</summary>
     public static IReadOnlyList<string> UserCollections(IReadOnlyList<BookListItem> books) =>
@@ -97,7 +98,6 @@ public static class LibraryBrowser
         && (query.Formats.Count == 0 || book.Formats.Any(query.Formats.Contains))
         && (!query.MissingOnly || book.FileMissing)
         && (query.Statuses.Count == 0 || query.Statuses.Contains(book.ReadStatus))
-        && (query.Shelves.Count == 0 || query.Shelves.Contains(book.Owned ? Shelf.Owned : Shelf.Wanted))
         && MatchesSearch(book, query.Search.Trim());
 
     private static bool AnyOf(IReadOnlyCollection<string> picked, IEnumerable<string> values) =>

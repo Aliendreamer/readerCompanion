@@ -34,6 +34,10 @@
                 <input type="checkbox" checked="@Picked.Contains(option)" @onchange="e => SetAsync(option, e.Value is true)" />
                 @Text(option)
               </label>
+              @if (Note(option) is { } note)
+              {
+                <span class="filter-note">@note</span>
+              }
             </li>
           }
         </ul>
@@ -59,6 +63,9 @@
 
   /// <summary>How a value reads on screen.</summary>
   [Parameter] public Func<TValue, string> Text { get; set; } = v => v.ToString() ?? "";
+
+  /// <summary>A short note shown after a value, such as how many books have it; none when null.</summary>
+  [Parameter] public Func<TValue, string?> Note { get; set; } = _ => null;
 
   [Parameter] public IReadOnlyCollection<TValue> Picked { get; set; } = [];
 

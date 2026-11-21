@@ -106,18 +106,31 @@ public class LibraryBrowserTests
     }
 
     [Fact]
-    public void StatusAndShelfFilters_HaveButNotRead()
+    public void StatusFilter_MatchesAnyPickedStatus()
     {
         var read = Dune with { ReadStatus = ReadStatus.Read };
-        var wanted = Book("Wanted") with { Owned = false };
+        var wanted = Book("Wanted") with { ReadStatus = ReadStatus.WantToRead, Owned = false };
 
-        var result = LibraryBrowser.Browse(
-            [read, Mort, wanted],
-            new BrowseQuery { Statuses = [ReadStatus.NotStarted, ReadStatus.WantToRead], Shelves = [Shelf.Owned] });
+        var result = LibraryBrowser.Browse([read, Mort, wanted], new BrowseQuery { Statuses = [ReadStatus.NotStarted, ReadStatus.WantToRead] });
 
-        Assert.Equal(["Mort"], Titles(result));
-        Assert.True(new BrowseQuery { Shelves = [Shelf.Wanted] }.IsNarrowed);
-        Assert.Equal(["Wanted"], Titles(LibraryBrowser.Browse([read, Mort, wanted], new BrowseQuery { Shelves = [Shelf.Wanted] })));
+        Assert.Equal(["Mort", "Wanted"], Titles(result));
+    }
+
+    [Fact]
+    public void Options_CountEachStatus_AndWhichWantToReadBooksHaveFiles()
+    {
+        var options = LibraryBrowser.Options(
+        [
+            Dune with { ReadStatus = ReadStatus.Read },
+            Mort with { ReadStatus = ReadStatus.WantToRead },
+            Book("Wanted") with { ReadStatus = ReadStatus.WantToRead, Owned = false },
+            Book("Also wanted") with { ReadStatus = ReadStatus.WantToRead, Owned = false },
+        ]);
+
+        Assert.Equal(1, options.StatusCounts[ReadStatus.Read]);
+        Assert.Equal(3, options.StatusCounts[ReadStatus.WantToRead]);
+        Assert.False(options.StatusCounts.ContainsKey(ReadStatus.Reading));
+        Assert.Equal(1, options.WantToReadWithFiles);
     }
 
     [Fact]

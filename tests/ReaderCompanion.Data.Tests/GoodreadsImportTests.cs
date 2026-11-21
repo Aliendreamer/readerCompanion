@@ -325,15 +325,63 @@ public sealed class GoodreadsImportTests : IDisposable
     }
 
     [Fact]
-    public async Task ASecondGoodreadsEntryForALinkedBook_WaitsForReview_AndConfirmingKeepsTheFirstId()
+    public async Task TwoGoodreadsEntriesForOneBook_TheFurthestStatusWins_WhateverTheOrder()
     {
-        AddOwned("Mort", "Terry Pratchett", "9780552131063");
-        await Import.ImportAsync([Row("1", "Mort", "Terry Pratchett", ReadStatus.Read, isbn: "9780552131063")], Token);
-        await Import.ImportAsync([Row("2", "Mort", "Terry Pratchett", ReadStatus.Read, isbn: "9780061020681")], Token);
+        // Seen in a real export: "Twelve Months" as an old to-read entry and as a read one.
+        AddOwned("Twelve Months", "Jim Butcher", "9780593199350");
+        AddOwned("Mort", "Terry Pratchett");
 
-        await Import.ConfirmAsync(Assert.Single(await Import.PendingAsync(Token)).Id, Token);
+        var summary = await Import.ImportAsync(
+            [Row("56143881", "Twelve Months", "Jim  Butcher", ReadStatus.WantToRead),
+             Row("230337028", "Twelve Months", "Jim  Butcher", ReadStatus.Read, isbn: "9780593199336", read: new DateOnly(2026, 6, 27)),
+             Row("2", "Mort", "Terry Pratchett", ReadStatus.Read, read: new DateOnly(2024, 3, 2)),
+             Row("3", "Mort", "Terry Pratchett", ReadStatus.WantToRead)],
+            Token);
 
-        Assert.Equal("1", Load("Mort").GoodreadsId);
+        Assert.Equal(0, summary.ForReview);
+        Assert.Empty(await Import.PendingAsync(Token));
+        var twelve = Load("Twelve Months");
+        Assert.Equal(ReadStatus.Read, twelve.ReadStatus);
+        Assert.Equal(new DateOnly(2026, 6, 27), Assert.Single(twelve.Sessions).FinishedOn);
+        var mort = Load("Mort");
+        Assert.Equal(ReadStatus.Read, mort.ReadStatus); // the later to-read entry does not move it back
+        Assert.Single(mort.Sessions);
+    }
+
+    [Fact]
+    public async Task AWantedBooksSeries_IsCorrectedByTheNextImport_AndTheWrongCollectionGoes()
+    {
+        // An earlier import read "(Discworld, #8; City Watch, #1)" as the series "Discworld, #8; City Watch" #1.
+        using (var db = _library.NewContext())
+        {
+            var names = new CatalogNames(db);
+            var book = new Book { Title = "Guards! Guards!", GoodreadsId = "1", Series = names.Series("Discworld, #8; City Watch"), SeriesIndex = 1 };
+            names.SetAuthors(book, ["Terry Pratchett"]);
+            db.Books.Add(book);
+            db.SaveChanges();
+        }
+
+        await Import.ImportAsync([Row("1", "Guards! Guards!", "Terry Pratchett", ReadStatus.WantToRead, series: "Discworld", index: 8)], Token);
+
+        using var check = _library.NewContext();
+        var guards = check.Books.Include(b => b.Series).Single(b => b.Title == "Guards! Guards!");
+        Assert.Equal(("Discworld", 8m), (guards.Series!.Name, guards.SeriesIndex!.Value));
+        Assert.DoesNotContain(check.Collections, c => c.Name.Contains('#', StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task ABookLinkedToTheToReadEntry_BecomesRead_WhenTheReadEntryComesFirst()
+    {
+        // The real export's order: the read entry first, then the to-read entry the book was linked to earlier.
+        AddOwned("Twelve Months", "Jim Butcher", "9780593199350");
+        await Import.ImportAsync([Row("56143881", "Twelve Months", "Jim Butcher", ReadStatus.WantToRead)], Token);
+
+        await Import.ImportAsync(
+            [Row("230337028", "Twelve Months", "Jim Butcher", ReadStatus.Read, isbn: "9780593199336", read: new DateOnly(2026, 6, 27)),
+             Row("56143881", "Twelve Months", "Jim Butcher", ReadStatus.WantToRead)],
+            Token);
+
+        Assert.Equal(ReadStatus.Read, Load("Twelve Months").ReadStatus);
     }
 
     private List<string> Collections(string title)

@@ -235,7 +235,7 @@ public sealed class LibraryScannerTests : IDisposable
     [Fact]
     public async Task Rescan_ReplacedContent_KeepsAnEditedBooksDetails_ButUpdatesItsCover()
     {
-        var path = WriteEpub("a.epub", "First Title", "<dc:creator>File Author</dc:creator><dc:subject>File Genre</dc:subject>");
+        var path = WriteEpub("a.epub", "First Title", "<dc:creator>File Author</dc:creator><dc:subject>Fantasy</dc:subject>");
         await Scan();
         using (var db = _library.NewContext())
         {
@@ -258,7 +258,7 @@ public sealed class LibraryScannerTests : IDisposable
         var kept = Assert.Single(Books());
         Assert.Equal("The Real Title", kept.Title);
         Assert.Equal(["File Author"], kept.Authors.Select(a => a.Author.Name));
-        Assert.Equal(["File Genre"], kept.Genres.Select(g => g.Genre.Name));
+        Assert.Equal(["Fantasy"], kept.Genres.Select(g => g.Genre.Name));
         Assert.NotNull(kept.CoverFileName);
     }
 
