@@ -248,6 +248,31 @@ public sealed class DriveLibraryTests : IDisposable
     }
 
     [Fact]
+    public async Task Download_RenamedToAnotherTypeOnDrive_StillOpensAsTheBook()
+    {
+        var books = await AddBooksFolderAsync();
+        var a = _drive.File("A.epub", books, Epub("Alpha"));
+        await Drive.ScanAsync(cancellationToken: Token);
+
+        _drive.Rename(a, "A.exe");
+        var path = await Drive.DownloadAsync(Books().Single().Files.Single().Id, Token);
+
+        Assert.EndsWith(".epub", path, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Scan_PickedFilesThatAreNotBooks_AreLeftOut()
+    {
+        _account.Picks.Add(_drive.File("tool.exe", "root", [1, 2, 3]));
+        await Drive.AddPickedFilesAsync(Token);
+
+        var summary = await Drive.ScanAsync(cancellationToken: Token);
+
+        Assert.Equal(0, summary.Added);
+        Assert.Empty(Books());
+    }
+
+    [Fact]
     public async Task Download_FetchesOnce_ThenUsesTheCachedCopy()
     {
         var books = await AddBooksFolderAsync();

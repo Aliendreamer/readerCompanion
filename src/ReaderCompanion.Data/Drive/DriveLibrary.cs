@@ -111,12 +111,20 @@ internal sealed class DriveLibrary(
             throw new InvalidOperationException("This file is not on Google Drive.");
         }
 
+        if (!driveId.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_'))
+        {
+            throw new DriveUnavailableException("This Drive file has an id the app does not accept."); // it names a local file
+        }
+
         // The cached copy is named after the file's current version on Drive, so an edit there is never missed.
         var item = await files.GetAsync(driveId, cancellationToken)
             ?? throw new DriveUnavailableException($"{Path.GetFileName(DrivePath.Display(file.Path))} is no longer on Google Drive.");
         var version = item.Sha256 is { Length: >= 16 } sha ? sha[..16] : $"{item.ModifiedUtc.Ticks:x}-{item.Size:x}";
         var cache = Path.Combine(paths.DataFolder, "drive-cache");
-        var local = Path.Combine(cache, $"{driveId}-{version}{Path.GetExtension(item.Name).ToLowerInvariant()}");
+        // The extension comes from the book's known format, never from the name on Drive (which could have been
+        // renamed to something the system would run).
+        var extension = file.Format == BookFormat.Pdf ? ".pdf" : ".epub";
+        var local = Path.Combine(cache, $"{driveId}-{version}{extension}");
         if (File.Exists(local))
         {
             return local;
@@ -244,7 +252,7 @@ internal sealed class DriveLibrary(
     private async Task ListPickedFileAsync(
         DriveSource source, Dictionary<string, (DriveItem, string)> listed, CancellationToken cancellationToken)
     {
-        if (await files.GetAsync(source.DriveId, cancellationToken) is { IsFolder: false } item)
+        if (await files.GetAsync(source.DriveId, cancellationToken) is { IsFolder: false } item && BookMetadataReader.IsSupported(item.Name))
         {
             listed.TryAdd(item.Id, (item, item.Name));
         }
@@ -289,7 +297,7 @@ internal sealed class DriveLibrary(
 
     private async Task<string> DownloadToTempAsync(DriveItem item, string temp, CancellationToken cancellationToken)
     {
-        var local = Path.Combine(temp, item.Id + Path.GetExtension(item.Name).ToLowerInvariant());
+        var local = Path.Combine(temp, item.Id + ".download"); // read by the app only, never opened by the system
         await DownloadToAsync(item.Id, local, cancellationToken);
         return local;
     }
