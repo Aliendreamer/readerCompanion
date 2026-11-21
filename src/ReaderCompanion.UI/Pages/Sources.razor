@@ -74,10 +74,15 @@
     }
 
     var result = await Folders.LinkAsync(path);
-    _message = result.Linked
-      ? result.Replaced.Count > 0 ? $"Linked. It now also covers {string.Join(", ", result.Replaced)}." : null
-      : result.RefusedReason;
     _folders = await Folders.ListAsync();
+    if (!result.Linked)
+    {
+      _message = result.RefusedReason;
+      return;
+    }
+
+    // A new folder is scanned at once, so its books show up without a second step.
+    await ScanAsync(result.Replaced.Count > 0 ? $"Linked. It now also covers {string.Join(", ", result.Replaced)}." : null);
   }
 
   private async Task UnlinkAsync(string folder)
@@ -87,10 +92,12 @@
     _folders = await Folders.ListAsync();
   }
 
-  private async Task ScanAsync()
+  private Task ScanAsync() => ScanAsync(null);
+
+  private async Task ScanAsync(string? message)
   {
     _scanning = true;
-    _message = null;
+    _message = message;
     _summary = null;
     _progress = new ScanProgress(0, 0);
     try

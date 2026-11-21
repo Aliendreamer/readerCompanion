@@ -51,6 +51,12 @@ public class SourcesTests : BunitContext
 
         cut.WaitForAssertion(() => Assert.Equal(["/books"], cut.FindAll(".folder-path").Select(e => e.TextContent)));
         Assert.Equal(1, picker.Calls);
+
+        // The new folder is scanned at once.
+        cut.WaitForAssertion(() => Assert.True(_scanner.IsScanning));
+        Assert.NotEmpty(cut.FindAll(".progress"));
+        cut.InvokeAsync(() => _scanner.Finish(new ScanSummary { Added = 2 }));
+        cut.WaitForAssertion(() => Assert.Contains("2 added", cut.Find(".summary").TextContent));
     }
 
     [Fact]
@@ -74,6 +80,7 @@ public class SourcesTests : BunitContext
         cut.Find("#link-folder").Click();
 
         cut.WaitForAssertion(() => Assert.Contains("This folder is already linked.", cut.Find(".message").TextContent));
+        Assert.False(_scanner.IsScanning);
     }
 
     [Fact]

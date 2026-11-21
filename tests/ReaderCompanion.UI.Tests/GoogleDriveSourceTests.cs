@@ -34,6 +34,23 @@ public class GoogleDriveSourceTests : BunitContext
         cut.WaitForAssertion(() => Assert.Equal(["Books"], cut.FindAll(".drive-source-name").Select(e => e.TextContent)));
         Assert.Equal("books", _library.Sources.Single().DriveId);
         Assert.Empty(cut.FindAll(".drive-browser"));
+        cut.WaitForAssertion(() => Assert.Contains("1 added", cut.Find(".drive-source .summary").TextContent)); // scanned at once
+        Assert.Equal(1, _library.Scans);
+    }
+
+    [Fact]
+    public void RefusedFolder_SaysWhy_AndDoesNotScan()
+    {
+        _library.RefuseAdd = "This Drive folder is already added.";
+        var cut = RenderLinked(DriveAccess.WholeDrive);
+
+        cut.Find("#drive-add-folder").Click();
+        cut.WaitForAssertion(() => cut.FindAll(".drive-folder").Single(b => b.TextContent == "Books").Click());
+        cut.WaitForAssertion(() => Assert.False(cut.Find("#drive-choose").HasAttribute("disabled")));
+        cut.Find("#drive-choose").Click();
+
+        cut.WaitForAssertion(() => Assert.Contains("already added", cut.Find(".drive-source [role=alert]").TextContent));
+        Assert.Equal(0, _library.Scans);
     }
 
     [Fact]
@@ -44,6 +61,7 @@ public class GoogleDriveSourceTests : BunitContext
 
         cut.Find("#drive-pick").Click();
         cut.WaitForAssertion(() => Assert.Equal(["Picked.epub"], cut.FindAll(".drive-source-name").Select(e => e.TextContent)));
+        cut.WaitForAssertion(() => Assert.Contains("1 added", cut.Find(".drive-source .summary").TextContent)); // scanned at once
         cut.Find(".drive-source-remove").Click();
 
         cut.WaitForAssertion(() => Assert.Empty(cut.FindAll(".drive-source-name")));

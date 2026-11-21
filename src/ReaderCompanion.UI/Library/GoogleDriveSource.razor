@@ -189,7 +189,13 @@
   {
     var added = await DriveBooks.AddPickedFilesAsync();
     await LoadSourcesAsync();
-    _error = added == 0 ? "No new books were picked." : null;
+    if (added == 0)
+    {
+      _error = "No new books were picked.";
+      return;
+    }
+
+    await ScanCoreAsync(); // picked books show up at once
   });
 
   private Task RemoveAsync(DriveSource source) => RunAsync(async () =>
@@ -238,10 +244,18 @@
     var result = await DriveBooks.AddFolderAsync(folderId, string.Join("/", _browsing!.Select(f => f.Name)));
     _browsing = null;
     await LoadSourcesAsync();
-    _error = result.Linked ? null : result.RefusedReason;
+    if (!result.Linked)
+    {
+      _error = result.RefusedReason;
+      return;
+    }
+
+    await ScanCoreAsync(); // the folder's books show up at once
   });
 
-  private Task ScanAsync() => RunAsync(async () =>
+  private Task ScanAsync() => RunAsync(ScanCoreAsync);
+
+  private async Task ScanCoreAsync()
   {
     _summary = null;
     _summary = await DriveBooks.ScanAsync(new Progress<ScanProgress>(p =>
@@ -252,7 +266,7 @@
         InvokeAsync(StateHasChanged);
       }
     }));
-  });
+  }
 
   public void Dispose()
   {

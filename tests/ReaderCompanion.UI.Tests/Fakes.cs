@@ -610,6 +610,11 @@ internal sealed class FakeDriveLibrary : ReaderCompanion.Core.Drive.IDriveLibrar
 
     public List<int> Downloaded { get; } = [];
 
+    /// <summary>When set, the next folder add is refused with this reason.</summary>
+    public string? RefuseAdd { get; set; }
+
+    public int Scans { get; private set; }
+
     public Task<IReadOnlyList<ReaderCompanion.Core.Drive.DriveSource>> ListSourcesAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<ReaderCompanion.Core.Drive.DriveSource>>([.. Sources]);
 
@@ -623,6 +628,11 @@ internal sealed class FakeDriveLibrary : ReaderCompanion.Core.Drive.IDriveLibrar
 
     public Task<LinkFolderResult> AddFolderAsync(string folderId, string path, CancellationToken cancellationToken = default)
     {
+        if (RefuseAdd is { } reason)
+        {
+            return Task.FromResult(new LinkFolderResult(false, reason));
+        }
+
         Sources.Add(new() { Id = ++_nextId, DriveId = folderId, Name = path, Kind = ReaderCompanion.Core.Drive.DriveSourceKind.Folder });
         return Task.FromResult(new LinkFolderResult(true));
     }
@@ -639,8 +649,11 @@ internal sealed class FakeDriveLibrary : ReaderCompanion.Core.Drive.IDriveLibrar
         return Task.CompletedTask;
     }
 
-    public Task<ScanSummary> ScanAsync(IProgress<ScanProgress>? progress = null, CancellationToken cancellationToken = default) =>
-        ScanFails is { } error ? Task.FromException<ScanSummary>(error) : Task.FromResult(new ScanSummary { Added = 1 });
+    public Task<ScanSummary> ScanAsync(IProgress<ScanProgress>? progress = null, CancellationToken cancellationToken = default)
+    {
+        Scans++;
+        return ScanFails is { } error ? Task.FromException<ScanSummary>(error) : Task.FromResult(new ScanSummary { Added = 1 });
+    }
 
     public Task<string> DownloadAsync(int bookFileId, CancellationToken cancellationToken = default)
     {
