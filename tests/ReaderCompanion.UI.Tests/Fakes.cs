@@ -571,6 +571,74 @@ internal sealed class FakeDriveAccount : ReaderCompanion.Core.Drive.IDriveAccoun
     }
 
     public Task<string> GetAccessTokenAsync(CancellationToken cancellationToken = default) => Task.FromResult("token");
+
+    public Task<IReadOnlyList<string>> PickFilesAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<string>>(["f1"]);
+}
+
+internal sealed class FakeWebBrowser : ReaderCompanion.Core.Drive.IWebBrowser
+{
+    public List<Uri> Opened { get; } = [];
+
+    public bool Open(Uri url)
+    {
+        Opened.Add(url);
+        return true;
+    }
+}
+
+/// <summary>A Drive with a "Books" folder holding "Fantasy", and a picker that picks "Picked.epub".</summary>
+internal sealed class FakeDriveLibrary : ReaderCompanion.Core.Drive.IDriveLibrary
+{
+    private int _nextId;
+
+    public List<ReaderCompanion.Core.Drive.DriveSource> Sources { get; } = [];
+
+    /// <summary>What the next scan does: null gives one added book.</summary>
+    public Exception? ScanFails { get; set; }
+
+    /// <summary>What the next download does: null gives a local copy.</summary>
+    public Exception? DownloadFails { get; set; }
+
+    public List<int> Downloaded { get; } = [];
+
+    public Task<IReadOnlyList<ReaderCompanion.Core.Drive.DriveSource>> ListSourcesAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<ReaderCompanion.Core.Drive.DriveSource>>([.. Sources]);
+
+    public Task<IReadOnlyList<ReaderCompanion.Core.Drive.DriveFolder>> ListFoldersAsync(string? parentId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<ReaderCompanion.Core.Drive.DriveFolder>>(parentId switch
+        {
+            null => [new("books", "Books")],
+            "books" => [new("fantasy", "Fantasy")],
+            _ => [],
+        });
+
+    public Task<LinkFolderResult> AddFolderAsync(string folderId, string path, CancellationToken cancellationToken = default)
+    {
+        Sources.Add(new() { Id = ++_nextId, DriveId = folderId, Name = path, Kind = ReaderCompanion.Core.Drive.DriveSourceKind.Folder });
+        return Task.FromResult(new LinkFolderResult(true));
+    }
+
+    public Task<int> AddPickedFilesAsync(CancellationToken cancellationToken = default)
+    {
+        Sources.Add(new() { Id = ++_nextId, DriveId = "p1", Name = "Picked.epub", Kind = ReaderCompanion.Core.Drive.DriveSourceKind.File });
+        return Task.FromResult(1);
+    }
+
+    public Task RemoveSourceAsync(int sourceId, CancellationToken cancellationToken = default)
+    {
+        Sources.RemoveAll(s => s.Id == sourceId);
+        return Task.CompletedTask;
+    }
+
+    public Task<ScanSummary> ScanAsync(IProgress<ScanProgress>? progress = null, CancellationToken cancellationToken = default) =>
+        ScanFails is { } error ? Task.FromException<ScanSummary>(error) : Task.FromResult(new ScanSummary { Added = 1 });
+
+    public Task<string> DownloadAsync(int bookFileId, CancellationToken cancellationToken = default)
+    {
+        Downloaded.Add(bookFileId);
+        return DownloadFails is { } error ? Task.FromException<string>(error) : Task.FromResult($"/cache/{bookFileId}.epub");
+    }
 }
 
 internal sealed class FakeLocation : ILibraryLocation
@@ -624,9 +692,13 @@ internal static class TestServices
         FakeGoodreads? goodreads = null,
         FakeFilePicker? filePicker = null,
         FakeCoverFetcher? covers = null,
-        FakeDriveAccount? drive = null)
+        FakeDriveAccount? drive = null,
+        FakeDriveLibrary? driveLibrary = null,
+        FakeWebBrowser? browser = null)
     {
         services.AddSingleton<ReaderCompanion.Core.Drive.IDriveAccount>(drive ?? new FakeDriveAccount());
+        services.AddSingleton<ReaderCompanion.Core.Drive.IDriveLibrary>(driveLibrary ?? new FakeDriveLibrary());
+        services.AddSingleton<ReaderCompanion.Core.Drive.IWebBrowser>(browser ?? new FakeWebBrowser());
         services.AddSingleton<ReaderCompanion.Core.Goodreads.IGoodreadsImport>(goodreads ?? new FakeGoodreads());
         services.AddSingleton<IFilePicker>(filePicker ?? new FakeFilePicker());
         if (libraryBooks is not null && trash is not null)

@@ -31,7 +31,11 @@ public sealed record BookListItem(
 }
 
 /// <summary>One file of a book. <see cref="Present"/> is false when the last scan did not find it.</summary>
-public sealed record BookFileInfo(string Path, BookFormat Format, long SizeBytes, bool Present, int Id = 0);
+public sealed record BookFileInfo(string Path, BookFormat Format, long SizeBytes, bool Present, int Id = 0)
+{
+    /// <summary>Set for a file on Google Drive.</summary>
+    public string? DriveFileId { get; init; }
+}
 
 /// <summary>Everything about one book. <see cref="Edited"/> is true once the user saved its details.</summary>
 public sealed record BookDetails(

@@ -16,9 +16,13 @@ internal sealed class CatalogWriter
     private readonly CatalogNames _names;
     private readonly BookIndex<int> _wanted = new(); // ids of books without files (from an import), by match keys
     private readonly List<UnreadableFile> _unreadable = [];
+    private readonly Func<string, Stream> _open;
 
-    public CatalogWriter(LibraryDbContext db, string coversFolder, DateTime now)
+    /// <param name="open">Opens a found file's content by its path; the default reads the local file. A Drive scan
+    /// passes its downloaded copies.</param>
+    public CatalogWriter(LibraryDbContext db, string coversFolder, DateTime now, Func<string, Stream>? open = null)
     {
+        _open = open ?? File.OpenRead;
         _db = db;
         _coversFolder = coversFolder;
         _now = now;
@@ -34,6 +38,15 @@ internal sealed class CatalogWriter
     }
 
     public IReadOnlyList<UnreadableFile> Unreadable => _unreadable;
+
+    /// <summary>The file <see cref="Apply"/> reads for this action, or null when it reads none.</summary>
+    public static FoundFile? FileToRead(ScanAction action) => action switch
+    {
+        AddBook add => add.Files[0],
+        UpdateContent update => update.Now,
+        SplitToNewBook split => split.Now,
+        _ => null,
+    };
 
     public void Apply(ScanAction action)
     {
@@ -158,7 +171,7 @@ internal sealed class CatalogWriter
         MetadataResult result;
         try
         {
-            using var stream = File.OpenRead(file.Path);
+            using var stream = _open(file.Path);
             result = BookMetadataReader.Read(stream, file.Path);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -210,6 +223,7 @@ internal sealed class CatalogWriter
     {
         BookId = bookId,
         Path = f.Path,
+        DriveFileId = f.DriveFileId,
         Format = BookMetadataReader.FormatOf(f.Path),
         SizeBytes = f.SizeBytes,
         LastWriteUtc = f.LastWriteUtc,
@@ -222,6 +236,7 @@ internal sealed class CatalogWriter
     private void Refresh(BookFile file, FoundFile f)
     {
         file.Path = f.Path;
+        file.DriveFileId = f.DriveFileId;
         file.SizeBytes = f.SizeBytes;
         file.LastWriteUtc = f.LastWriteUtc;
         file.ContentHash = f.ContentHash;

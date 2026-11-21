@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using ReaderCompanion.Core.Drive;
 using ReaderCompanion.Core.Library;
 using ReaderCompanion.Core.Organising;
 
@@ -17,6 +18,8 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
     public DbSet<BookFile> BookFiles => Set<BookFile>();
 
     public DbSet<LibraryFolder> LibraryFolders => Set<LibraryFolder>();
+
+    public DbSet<DriveSource> DriveSources => Set<DriveSource>();
 
     public DbSet<DismissedDuplicate> DismissedDuplicates => Set<DismissedDuplicate>();
 
@@ -71,12 +74,19 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
         {
             file.HasIndex(f => f.Path).IsUnique();
             file.HasIndex(f => f.ContentHash);
+            file.HasIndex(f => f.DriveFileId);
             file.HasOne(f => f.Book).WithMany(b => b.Files).HasForeignKey(f => f.BookId);
             file.Property(f => f.Format).HasConversion<string>();
             file.Property(f => f.Status).HasConversion<string>();
         });
 
         modelBuilder.Entity<LibraryFolder>().HasIndex(f => f.Path).IsUnique();
+
+        modelBuilder.Entity<DriveSource>(source =>
+        {
+            source.HasIndex(s => s.DriveId).IsUnique();
+            source.Property(s => s.Kind).HasConversion<string>();
+        });
 
         modelBuilder.Entity<ReaderCompanion.Core.Goodreads.GoodreadsPending>(pending =>
         {

@@ -44,36 +44,11 @@
 
   @if (_summary is not null)
   {
-    <div class="summary">
-      <p>
-        Scan finished: @_summary.Added added, @_summary.Moved moved, @_summary.Updated updated,
-        @_summary.MarkedMissing marked missing.
-      </p>
-      @if (_summary.Unreadable.Count > 0)
-      {
-        <p>Could not be read (kept, titled from the file name):</p>
-        <ul>
-          @foreach (var file in _summary.Unreadable)
-          {
-            <li>@file.Path</li>
-          }
-        </ul>
-      }
-      @if (_summary.UnavailableFolders.Count > 0)
-      {
-        <p>Not available, skipped (nothing was marked missing):</p>
-        <ul>
-          @foreach (var folder in _summary.UnavailableFolders)
-          {
-            <li>@folder</li>
-          }
-        </ul>
-      }
-    </div>
+    <ScanSummaryView Summary="_summary" />
   }
 </section>
 
-<DriveSource />
+<GoogleDriveSource />
 
 <GoodreadsSource />
 

@@ -54,7 +54,7 @@ internal sealed class LibraryFolders(IDbContextFactory<LibraryDbContext> context
             return;
         }
 
-        var present = await db.BookFiles.Where(f => f.Status == FileStatus.Present).ToListAsync(cancellationToken);
+        var present = await db.BookFiles.Where(f => f.Status == FileStatus.Present && f.DriveFileId == null).ToListAsync(cancellationToken);
         foreach (var file in present.Where(f => LibraryPaths.IsSameOrUnder(f.Path, folder)))
         {
             file.Status = FileStatus.Missing;

@@ -46,6 +46,42 @@ public sealed class LibraryScannerTests : IDisposable
     }
 
     [Fact]
+    public async Task Scan_LeavesDriveFilesAlone()
+    {
+        using (var db = _library.NewContext())
+        {
+            var file = TestFiles.File(ReaderCompanion.Core.Drive.DrivePath.Make("d1", "Books/a.epub"));
+            file.DriveFileId = "d1";
+            db.Books.Add(new Book { Title = "On Drive", Files = [file] });
+            db.SaveChanges();
+        }
+
+        var summary = await Scan();
+
+        Assert.Equal(0, summary.MarkedMissing);
+        Assert.Equal(FileStatus.Present, Books().Single().Files.Single().Status);
+    }
+
+    [Fact]
+    public async Task Scan_ALocalCopyOfADriveBook_JoinsIt()
+    {
+        var path = WriteEpub("a.epub", "Alpha");
+        using (var db = _library.NewContext())
+        {
+            var file = TestFiles.File(ReaderCompanion.Core.Drive.DrivePath.Make("d1", "Books/a.epub"));
+            file.DriveFileId = "d1";
+            file.ContentHash = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(path)));
+            db.Books.Add(new Book { Title = "Alpha", Files = [file] });
+            db.SaveChanges();
+        }
+
+        var summary = await Scan();
+
+        Assert.Equal(0, summary.Added);
+        Assert.Equal(2, Books().Single().Files.Count);
+    }
+
+    [Fact]
     public async Task Scan_NestedAndMixedFiles_AddsOnlyEbooks()
     {
         WriteEpub("a/b/c/book.EPUB", "Deep");

@@ -1,0 +1,33 @@
+@* What a scan (local or Drive) changed, and what it could not read. *@
+<div class="summary">
+  <p>
+    @Label finished: @Summary.Added added, @Summary.Moved moved, @Summary.Updated updated,
+    @Summary.MarkedMissing marked missing.
+  </p>
+  @if (Summary.Unreadable.Count > 0)
+  {
+    <p>Could not be read (kept, titled from the file name):</p>
+    <ul>
+      @foreach (var file in Summary.Unreadable)
+      {
+        <li>@BookText.FileLocation(file.Path)</li>
+      }
+    </ul>
+  }
+  @if (Summary.UnavailableFolders.Count > 0)
+  {
+    <p>Not available, skipped (nothing was marked missing):</p>
+    <ul>
+      @foreach (var folder in Summary.UnavailableFolders)
+      {
+        <li>@folder</li>
+      }
+    </ul>
+  }
+</div>
+
+@code {
+  [Parameter, EditorRequired] public ScanSummary Summary { get; set; } = null!;
+
+  [Parameter] public string Label { get; set; } = "Scan";
+}

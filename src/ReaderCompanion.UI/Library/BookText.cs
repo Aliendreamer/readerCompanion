@@ -46,4 +46,27 @@ public static class BookText
 
     /// <summary>A series position as people write it: 4, 2.5.</summary>
     public static string SeriesNumber(decimal index) => index.ToString("0.##", CultureInfo.InvariantCulture);
+
+    /// <summary>The file's name, for a local path or a Drive file.</summary>
+    public static string FileName(string path) =>
+        ReaderCompanion.Core.Drive.DrivePath.IsDrive(path)
+            ? ReaderCompanion.Core.Drive.DrivePath.Display(path).Split('/')[^1]
+            : Path.GetFileName(path);
+
+    /// <summary>Where the file is: its folder, or "Google Drive › folder" for a Drive file.</summary>
+    public static string FileFolder(string path)
+    {
+        if (!ReaderCompanion.Core.Drive.DrivePath.IsDrive(path))
+        {
+            return Path.GetDirectoryName(path) ?? "";
+        }
+
+        var display = ReaderCompanion.Core.Drive.DrivePath.Display(path);
+        var slash = display.LastIndexOf('/');
+        return slash < 0 ? "Google Drive" : $"Google Drive › {display[..slash]}";
+    }
+
+    /// <summary>The whole path as the user knows it: a local path, or "Google Drive › Books/x.epub".</summary>
+    public static string FileLocation(string path) =>
+        ReaderCompanion.Core.Drive.DrivePath.IsDrive(path) ? $"Google Drive › {ReaderCompanion.Core.Drive.DrivePath.Display(path)}" : path;
 }

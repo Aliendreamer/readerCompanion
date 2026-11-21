@@ -9,8 +9,13 @@ public static class ScanReconciler
     public static bool IsUnchanged(KnownFile? known, long sizeBytes, DateTime lastWriteUtc) =>
         known is not null && known.SizeBytes == sizeBytes && known.LastWriteUtc == lastWriteUtc;
 
+    /// <param name="elsewhere">Files the library has in places this scan does not cover (Drive, for a local scan, and
+    /// the other way round): new content identical to one of them joins its book; they are never changed.</param>
     public static ScanPlan Plan(
-        IReadOnlyList<KnownFile> known, IReadOnlyList<FoundFile> found, IReadOnlyCollection<string> unavailableRoots)
+        IReadOnlyList<KnownFile> known,
+        IReadOnlyList<FoundFile> found,
+        IReadOnlyCollection<string> unavailableRoots,
+        IReadOnlyList<KnownFile>? elsewhere = null)
     {
         var actions = new List<ScanAction>();
         var knownByPath = known.ToDictionary(k => k.Path, LibraryPaths.Comparer);
@@ -18,7 +23,7 @@ public static class ScanReconciler
         bool Offline(KnownFile k) => unavailableRoots.Any(root => LibraryPaths.IsSameOrUnder(k.Path, root));
 
         // Book that owns each content, preferring a present file.
-        var bookByHash = known
+        var bookByHash = known.Concat(elsewhere ?? [])
             .OrderBy(k => k.Status == FileStatus.Present ? 0 : 1)
             .GroupBy(k => k.ContentHash)
             .ToDictionary(g => g.Key, g => g.First().BookId);

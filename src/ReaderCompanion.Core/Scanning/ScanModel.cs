@@ -5,8 +5,8 @@ namespace ReaderCompanion.Core.Scanning;
 /// <summary>A file location the library already knows about.</summary>
 public sealed record KnownFile(int FileId, int BookId, string Path, long SizeBytes, DateTime LastWriteUtc, string ContentHash, FileStatus Status);
 
-/// <summary>A supported file found on disk during this scan.</summary>
-public sealed record FoundFile(string Path, long SizeBytes, DateTime LastWriteUtc, string ContentHash);
+/// <summary>A supported file found during this scan, on disk or (with <paramref name="DriveFileId"/>) on Drive.</summary>
+public sealed record FoundFile(string Path, long SizeBytes, DateTime LastWriteUtc, string ContentHash, string? DriveFileId = null);
 
 /// <summary>What a scan must do to bring the library in line with the disk.</summary>
 public abstract record ScanAction;

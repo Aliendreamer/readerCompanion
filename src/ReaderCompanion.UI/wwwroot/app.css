@@ -754,7 +754,33 @@ svg {
 
 .source-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.6rem;
+}
+
+/* Browsing Drive for a folder to add */
+.drive-browser {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.drive-trail {
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+}
+
+.drive-folders {
+  margin: 0 0 0.75rem;
+  padding: 0;
+  max-height: 16rem;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.drive-folders li {
+  padding: 0.3rem 0;
 }
 
 .message {

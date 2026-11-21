@@ -16,6 +16,16 @@ public class ScanReconcilerTests
         ScanReconciler.Plan([.. known], [.. found], unavailable);
 
     [Fact]
+    public void ContentOfABookElsewhere_JoinsIt_AndThoseFilesAreNeverMarkedMissing()
+    {
+        var onDrive = Known(1, 7, "gdrive://d1/Books/a.epub", "h1");
+
+        var plan = ScanReconciler.Plan([], [Found("/b/a.epub", "h1")], [], elsewhere: [onDrive]);
+
+        Assert.Equal([new JoinBook(7, Found("/b/a.epub", "h1"))], plan.Actions);
+    }
+
+    [Fact]
     public void SamePathSameContent_IsKept()
     {
         var file = Known(1, 1, "/b/a.epub", "h1");

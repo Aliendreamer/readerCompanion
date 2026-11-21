@@ -42,6 +42,8 @@ public static class DataServiceCollectionExtensions
             GoogleHttp.Value,
             new LoopbackSignIn(sp.GetRequiredService<IWebBrowser>(), TimeSpan.FromMinutes(5)),
             () => DateTime.UtcNow));
+        services.AddSingleton(sp => new GoogleDriveFiles(sp.GetRequiredService<IDriveAccount>(), GoogleHttp.Value));
+        services.AddSingleton<IDriveLibrary, DriveLibrary>();
         // The factory gives services a fresh context per operation (desktop scopes live as long as the app);
         // it also registers LibraryDbContext itself as scoped.
         return services.AddDbContextFactory<LibraryDbContext>(options => options.UseSqlite(connectionString));

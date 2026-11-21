@@ -1,6 +1,8 @@
 @using ReaderCompanion.Core.Library
 @inject ILibraryBooks Books
 @inject IFileLauncher Launcher
+@inject ReaderCompanion.Core.Drive.IDriveLibrary DriveBooks
+@inject ReaderCompanion.Core.Drive.IWebBrowser Browser
 
 <aside class="book-panel" aria-label="Book details" tabindex="-1" @ref="_panel" @onkeydown="KeyDown">
   <button id="panel-close" type="button" class="panel-close" aria-label="Close details" @onclick="OnClose">×</button>
@@ -83,17 +85,26 @@
       @foreach (var file in _details.Files)
       {
         <li class="@(file.Present ? null : "file-missing")">
-          <span class="file-name">@Path.GetFileName(file.Path)</span>
-          <span class="file-folder-path">@Path.GetDirectoryName(file.Path)</span>
+          <span class="file-name">@BookText.FileName(file.Path)</span>
+          <span class="file-folder-path">@BookText.FileFolder(file.Path)</span>
           <span class="file-meta">
             @BookText.FormatLabel(file.Format) · @BookText.FileSize(file.SizeBytes)@(file.Present ? "" : " · missing")
           </span>
           @if (file.Present)
           {
             <span class="file-actions">
-              <button type="button" class="link-button file-open" @onclick="() => OpenFile(file.Path)">Open</button>
-              <button type="button" class="link-button file-folder" @onclick="() => ShowFolder(file.Path)">Show in folder</button>
-              @if (_details.Files.Count > 1)
+              @if (file.DriveFileId is { } driveId)
+              {
+                <button type="button" class="link-button file-open" disabled="@(_downloading == file.Id)"
+                        @onclick="() => OpenDriveFileAsync(file)">@(_downloading == file.Id ? "Downloading…" : "Open")</button>
+                <button type="button" class="link-button file-folder" @onclick="() => ShowInDrive(driveId)">Show in Drive</button>
+              }
+              else
+              {
+                <button type="button" class="link-button file-open" @onclick="() => OpenFile(file.Path)">Open</button>
+                <button type="button" class="link-button file-folder" @onclick="() => ShowFolder(file.Path)">Show in folder</button>
+              }
+              @if (_details.Files.Count > 1 && file.DriveFileId is null)
               {
                 <button type="button" class="link-button file-trash" @onclick="() => _trashing = file.Id">Move to trash…</button>
               }
@@ -101,7 +112,7 @@
             @if (_trashing == file.Id)
             {
               <span class="file-trash-question">
-                Move @Path.GetFileName(file.Path) to the trash? The book keeps its other files.
+                Move @BookText.FileName(file.Path) to the trash? The book keeps its other files.
                 <button type="button" class="btn btn-small file-trash-confirm" @onclick="() => TrashAsync(file)">Move to trash</button>
                 <button type="button" class="btn btn-small" @onclick="() => _trashing = null">Cancel</button>
               </span>
@@ -136,6 +147,7 @@
   private bool _gone;
   private string _newCollection = "";
   private int? _trashing;
+  private int? _downloading;
   private bool _changingCollections;
   private bool _refocus = true;
 
@@ -263,17 +275,45 @@
       {
         TrashResult.Trashed => null,
         TrashResult.LastFile => "A book's last file is never moved to the trash.",
-        _ => $"{Path.GetFileName(file.Path)} could not be moved to the trash.",
+        _ => $"{BookText.FileName(file.Path)} could not be moved to the trash.",
       };
     }
     catch (Exception e) when (e is not OperationCanceledException)
     {
-      _error = $"{Path.GetFileName(file.Path)} could not be moved to the trash: {e.Message}";
+      _error = $"{BookText.FileName(file.Path)} could not be moved to the trash: {e.Message}";
     }
 
     await LoadAsync();
     await OnSaved.InvokeAsync();
   }
+
+  // A Drive file opens from a local copy, downloaded once and reused while unchanged.
+  private async Task OpenDriveFileAsync(BookFileInfo file)
+  {
+    _downloading = file.Id;
+    _error = null;
+    try
+    {
+      OpenFile(await DriveBooks.DownloadAsync(file.Id));
+    }
+    catch (ReaderCompanion.Core.Drive.DriveLinkLostException)
+    {
+      _error = "Google Drive needs linking again on Sources to open this file.";
+    }
+    catch (Exception e) when (DriveText.IsExpected(e))
+    {
+      _error = $"{BookText.FileName(file.Path)} could not be downloaded: {DriveText.Error(e)}";
+    }
+    finally
+    {
+      _downloading = null;
+    }
+  }
+
+  private void ShowInDrive(string driveId) =>
+    _error = Browser.Open(new Uri($"https://drive.google.com/file/d/{Uri.EscapeDataString(driveId)}/view"))
+      ? null
+      : "Google Drive could not be opened in the browser.";
 
   private void OpenFile(string path) =>
     _error = Launcher.Open(path) ? null : $"Could not open {Path.GetFileName(path)}.";

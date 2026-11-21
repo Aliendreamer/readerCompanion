@@ -25,11 +25,27 @@ internal sealed class GoogleDriveAccount(
 
     public event Action? Changed;
 
-    public async Task<DriveLink> LinkAsync(DriveAccess access, CancellationToken cancellationToken = default)
+    public async Task<DriveLink> LinkAsync(DriveAccess access, CancellationToken cancellationToken = default) =>
+        (await SignInAsync(access, pickFiles: false, cancellationToken)).Link;
+
+    public async Task<IReadOnlyList<string>> PickFilesAsync(CancellationToken cancellationToken = default)
+    {
+        if (Link?.Access != DriveAccess.PickedFiles)
+        {
+            throw new InvalidOperationException("Picking books needs the Google Drive access “Only books I pick”.");
+        }
+
+        return (await SignInAsync(DriveAccess.PickedFiles, pickFiles: true, cancellationToken)).Picked;
+    }
+
+    /// <summary>Signs in through the browser (with Google's picker when <paramref name="pickFiles"/>) and keeps the
+    /// new link.</summary>
+    private async Task<(DriveLink Link, IReadOnlyList<string> Picked)> SignInAsync(
+        DriveAccess access, bool pickFiles, CancellationToken cancellationToken)
     {
         var app = RequireClient();
         var (request, answer) = await signIn.SignInAsync(
-            redirectUri => GoogleOAuth.NewRequest(access, app.ClientId, redirectUri), cancellationToken);
+            redirectUri => GoogleOAuth.NewRequest(access, app.ClientId, redirectUri, pickFiles), cancellationToken);
         if (answer.Code is not { } code)
         {
             throw new DriveSignInException(answer.Error == "access_denied"
@@ -77,7 +93,7 @@ internal sealed class GoogleDriveAccount(
         }
 
         Changed?.Invoke();
-        return Link!;
+        return (Link!, answer.PickedFileIds);
     }
 
     public async Task UnlinkAsync(CancellationToken cancellationToken = default)

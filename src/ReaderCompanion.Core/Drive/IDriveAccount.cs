@@ -25,6 +25,10 @@ public interface IDriveAccount
     /// when no access was given; cancelling stops waiting for the browser.</summary>
     Task<DriveLink> LinkAsync(DriveAccess access, CancellationToken cancellationToken = default);
 
+    /// <summary>Opens Google's file picker in the browser (only with <see cref="DriveAccess.PickedFiles"/>) and returns
+    /// the ids of the files picked; the new sign-in replaces the stored one.</summary>
+    Task<IReadOnlyList<string>> PickFilesAsync(CancellationToken cancellationToken = default);
+
     /// <summary>Revokes the token at Google when it can, and always forgets it.</summary>
     Task UnlinkAsync(CancellationToken cancellationToken = default);
 

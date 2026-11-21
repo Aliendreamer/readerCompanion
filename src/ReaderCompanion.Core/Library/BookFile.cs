@@ -21,7 +21,11 @@ public sealed class BookFile
 
     public Book Book { get; set; } = null!;
 
+    /// <summary>A local path, or for a Drive file a <see cref="Drive.DrivePath"/>.</summary>
     public string Path { get; set; } = "";
+
+    /// <summary>The Google Drive file id, for a file on Drive; null for a local file.</summary>
+    public string? DriveFileId { get; set; }
 
     public BookFormat Format { get; set; }
 

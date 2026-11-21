@@ -17,6 +17,35 @@ namespace ReaderCompanion.Data.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.15");
 
+            modelBuilder.Entity("ReaderCompanion.Core.Drive.DriveSource", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("AddedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DriveId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DriveId")
+                        .IsUnique();
+
+                    b.ToTable("DriveSources");
+                });
+
             modelBuilder.Entity("ReaderCompanion.Core.Goodreads.GoodreadsPending", b =>
                 {
                     b.Property<int>("Id")
@@ -201,6 +230,9 @@ namespace ReaderCompanion.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("DriveFileId")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Format")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -230,6 +262,8 @@ namespace ReaderCompanion.Data.Migrations
                     b.HasIndex("BookId");
 
                     b.HasIndex("ContentHash");
+
+                    b.HasIndex("DriveFileId");
 
                     b.HasIndex("Path")
                         .IsUnique();

@@ -60,7 +60,7 @@ else
             <span class="dup-files">
               @foreach (var file in details.Files)
               {
-                <span class="@(file.Present ? null : "file-missing")">@file.Path@(file.Present ? "" : " (missing)")</span>
+                <span class="@(file.Present ? null : "file-missing")">@BookText.FileLocation(file.Path)@(file.Present ? "" : " (missing)")</span>
               }
             </span>
           </label>

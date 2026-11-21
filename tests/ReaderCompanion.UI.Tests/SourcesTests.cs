@@ -18,6 +18,7 @@ public class SourcesTests : BunitContext
         Services.AddSingleton<IFilePicker>(new FakeFilePicker());
         Services.AddSingleton<ReaderCompanion.Core.Preferences.IAppPreferences>(new FakePreferences());
         Services.AddSingleton<ReaderCompanion.Core.Drive.IDriveAccount>(new FakeDriveAccount());
+        Services.AddSingleton<ReaderCompanion.Core.Drive.IDriveLibrary>(new FakeDriveLibrary());
         return Render<Sources>();
     }
 

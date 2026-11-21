@@ -54,7 +54,7 @@ internal sealed class LibraryBooks(IDbContextFactory<LibraryDbContext> contexts,
                 b.Isbn,
                 Edited = b.EditedUtc != null,
                 Files = b.Files.OrderBy(f => f.Path)
-                    .Select(f => new BookFileInfo(f.Path, f.Format, f.SizeBytes, f.Status == FileStatus.Present, f.Id))
+                    .Select(f => new BookFileInfo(f.Path, f.Format, f.SizeBytes, f.Status == FileStatus.Present, f.Id) { DriveFileId = f.DriveFileId })
                     .ToList(),
             })
             .ToListAsync(cancellationToken);

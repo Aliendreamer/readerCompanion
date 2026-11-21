@@ -67,6 +67,23 @@ public sealed class BookDetailsTests : IDisposable
     }
 
     [Fact]
+    public async Task Get_SaysWhichFilesAreOnDrive()
+    {
+        int id;
+        using (var db = _library.NewContext())
+        {
+            var file = TestFiles.File(ReaderCompanion.Core.Drive.DrivePath.Make("d1", "Books/a.epub"));
+            file.DriveFileId = "d1";
+            var book = new Book { Title = "On Drive", Files = [file] };
+            db.Books.Add(book);
+            db.SaveChanges();
+            id = book.Id;
+        }
+
+        Assert.Equal("d1", Assert.Single((await Books.GetAsync(id, Token))!.Files).DriveFileId);
+    }
+
+    [Fact]
     public async Task GetMany_GivesKnownBooksInIdOrder()
     {
         var id = AddMort();

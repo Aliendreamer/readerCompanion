@@ -32,7 +32,7 @@ All data lives in a local SQLite file you can back up by hand.
 | M4 — Backup and restore | Done | `openspec/changes/archive/2026-11-20-add-backup-restore/` |
 | M5 — Organise files | Done (OS folders) | `openspec/changes/archive/2026-11-20-add-{organise-files,trash-extra-files}/` |
 | M6 — Goodreads | Done | `openspec/changes/archive/2026-11-20-add-goodreads-*` |
-| M7 — Google Drive | In progress: linking done; Drive books, then organise and trash next | `openspec/changes/archive/2026-11-21-add-drive-link/` |
+| M7 — Google Drive | In progress: linking and Drive books done; organise and trash on Drive next | `openspec/changes/archive/2026-11-21-add-drive-{link,books}/` |
 | M8 — Polish and packaging | Done except installers (open decision) | `openspec/changes/archive/2026-11-20-add-{settings-and-startup-errors,online-covers,release-tooling}/` |
 
 ## Guiding principles

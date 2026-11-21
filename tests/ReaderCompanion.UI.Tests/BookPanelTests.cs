@@ -18,6 +18,8 @@ public class BookPanelTests : BunitContext
     private readonly FakePreferences _preferences = new();
     private readonly FakeReading _reading;
     private readonly FakeTrash _trash = new();
+    private readonly FakeDriveLibrary _drive = new();
+    private readonly FakeWebBrowser _browser = new();
 
     public BookPanelTests()
     {
@@ -28,7 +30,13 @@ public class BookPanelTests : BunitContext
             new BookFileInfo("/books/mort.epub", BookFormat.Epub, 1_500_000, Present: true, Id: 21),
             new BookFileInfo("/old/mort.pdf", BookFormat.Pdf, 900, Present: false, Id: 22),
         ];
-        Services.AddAppFakes(preferences: _preferences, libraryBooks: _libraryBooks, launcher: _launcher, reading: _reading, trash: _trash);
+        _libraryBooks.Files[1] =
+        [
+            new BookFileInfo("gdrive://d1/Books/SF/dune.epub", BookFormat.Epub, 1000, Present: true, Id: 11) { DriveFileId = "d1" },
+            new BookFileInfo("/books/dune.pdf", BookFormat.Pdf, 2000, Present: true, Id: 12),
+        ];
+        Services.AddAppFakes(preferences: _preferences, libraryBooks: _libraryBooks, launcher: _launcher, reading: _reading, trash: _trash,
+            driveLibrary: _drive, browser: _browser);
     }
 
     private IRenderedComponent<Home> RenderHome()
@@ -45,6 +53,37 @@ public class BookPanelTests : BunitContext
     }
 
     // ---------- 3.1 view ----------
+
+    [Fact]
+    public void ADriveFile_IsShownAsOnDrive_OpensThroughADownload_AndShowsInDrive()
+    {
+        var cut = RenderHome();
+        OpenBook(cut, "Dune");
+
+        var drive = cut.FindAll(".file-list li")[0];
+        Assert.Equal("dune.epub", drive.QuerySelector(".file-name")!.TextContent);
+        Assert.Equal("Google Drive › Books/SF", drive.QuerySelector(".file-folder-path")!.TextContent);
+        Assert.Null(drive.QuerySelector(".file-trash")); // Drive files are not trashed from here (yet)
+        drive.QuerySelector(".file-open")!.Click();
+        cut.WaitForAssertion(() => Assert.Equal(["/cache/11.epub"], _launcher.Opened));
+        Assert.Equal([11], _drive.Downloaded);
+
+        cut.FindAll(".file-list li")[0].QuerySelector(".file-folder")!.Click();
+        Assert.Equal("https://drive.google.com/file/d/d1/view", Assert.Single(_browser.Opened).AbsoluteUri);
+    }
+
+    [Fact]
+    public void ADriveFile_ThatCannotBeDownloaded_SaysWhy()
+    {
+        _drive.DownloadFails = new ReaderCompanion.Core.Drive.DriveLinkLostException();
+        var cut = RenderHome();
+        OpenBook(cut, "Dune");
+
+        cut.FindAll(".file-list li")[0].QuerySelector(".file-open")!.Click();
+
+        cut.WaitForAssertion(() => Assert.Contains("needs linking again", cut.Find(".book-panel [role=alert]").TextContent));
+        Assert.Empty(_launcher.Opened);
+    }
 
     [Theory]
     [InlineData(LibraryView.Grid)]

@@ -5,19 +5,79 @@ using ReaderCompanion.UI.Library;
 
 namespace ReaderCompanion.UI.Tests;
 
-public class DriveSourceTests : BunitContext
+public class GoogleDriveSourceTests : BunitContext
 {
     private readonly FakeDriveAccount _drive = new();
     private readonly FakePreferences _preferences = new(new AppPreferences(DriveAccess: DriveAccess.WholeDrive));
+    private readonly FakeDriveLibrary _library = new();
 
-    public DriveSourceTests() => Services.AddAppFakes(preferences: _preferences, drive: _drive);
+    public GoogleDriveSourceTests() => Services.AddAppFakes(preferences: _preferences, drive: _drive, driveLibrary: _library);
+
+    private IRenderedComponent<GoogleDriveSource> RenderLinked(DriveAccess access)
+    {
+        _drive.Link = new DriveLink(access, "Ana", DateTime.UtcNow);
+        return Render<GoogleDriveSource>();
+    }
+
+    [Fact]
+    public void WholeDrive_AFolderIsBrowsedTo_AndAdded()
+    {
+        var cut = RenderLinked(DriveAccess.WholeDrive);
+        Assert.Empty(cut.FindAll("#drive-pick"));
+
+        cut.Find("#drive-add-folder").Click();
+        cut.WaitForAssertion(() => Assert.True(cut.Find("#drive-choose").HasAttribute("disabled"))); // not My Drive itself
+        cut.FindAll(".drive-folder").Single(b => b.TextContent == "Books").Click();
+        cut.WaitForAssertion(() => Assert.Contains("My Drive / Books", cut.Find(".drive-browser").TextContent));
+        cut.Find("#drive-choose").Click();
+
+        cut.WaitForAssertion(() => Assert.Equal(["Books"], cut.FindAll(".drive-source-name").Select(e => e.TextContent)));
+        Assert.Equal("books", _library.Sources.Single().DriveId);
+        Assert.Empty(cut.FindAll(".drive-browser"));
+    }
+
+    [Fact]
+    public void PickedFiles_AreAddedWithGooglesPicker_AndRemovable()
+    {
+        var cut = RenderLinked(DriveAccess.PickedFiles);
+        Assert.Empty(cut.FindAll("#drive-add-folder"));
+
+        cut.Find("#drive-pick").Click();
+        cut.WaitForAssertion(() => Assert.Equal(["Picked.epub"], cut.FindAll(".drive-source-name").Select(e => e.TextContent)));
+        cut.Find(".drive-source-remove").Click();
+
+        cut.WaitForAssertion(() => Assert.Empty(cut.FindAll(".drive-source-name")));
+        Assert.Empty(_library.Sources);
+    }
+
+    [Fact]
+    public void ScanDrive_ShowsTheSummary_OrWhyItStopped()
+    {
+        _library.Sources.Add(new DriveSource { Id = 1, DriveId = "books", Name = "Books", Kind = DriveSourceKind.Folder });
+        var cut = RenderLinked(DriveAccess.WholeDrive);
+
+        cut.Find("#drive-scan").Click();
+        cut.WaitForAssertion(() => Assert.Contains("1 added", cut.Find(".drive-source .summary").TextContent));
+
+        _library.ScanFails = new DriveUnavailableException("“Books” could not be read on Google Drive, so nothing was changed.");
+        cut.Find("#drive-scan").Click();
+        cut.WaitForAssertion(() => Assert.Contains("“Books” could not be read", cut.Find(".drive-source [role=alert]").TextContent));
+    }
+
+    [Fact]
+    public void ScanDrive_NeedsASource()
+    {
+        var cut = RenderLinked(DriveAccess.WholeDrive);
+
+        Assert.True(cut.Find("#drive-scan").HasAttribute("disabled"));
+    }
 
     [Fact]
     public void NotSetUp_SaysSo_AndOffersNoLink()
     {
         _drive.IsConfigured = false;
 
-        var cut = Render<DriveSource>();
+        var cut = Render<GoogleDriveSource>();
 
         Assert.Contains("not set up in this build", cut.Find(".drive-source").TextContent);
         Assert.Empty(cut.FindAll("#drive-link"));
@@ -26,7 +86,7 @@ public class DriveSourceTests : BunitContext
     [Fact]
     public void Link_UsesTheChosenAccess_AndShowsWhoIsLinked()
     {
-        var cut = Render<DriveSource>();
+        var cut = Render<GoogleDriveSource>();
         Assert.Contains("Whole Drive, read and write", cut.Find(".drive-source").TextContent);
 
         cut.Find("#drive-link").Click();
@@ -40,7 +100,7 @@ public class DriveSourceTests : BunitContext
     public void WhileSigningIn_TheUserCanCancel()
     {
         _drive.NextLink = new TaskCompletionSource<DriveLink>();
-        var cut = Render<DriveSource>();
+        var cut = Render<GoogleDriveSource>();
 
         cut.Find("#drive-link").Click();
         Assert.Contains("Finish signing in in your browser", cut.Find(".drive-source").TextContent);
@@ -56,7 +116,7 @@ public class DriveSourceTests : BunitContext
     {
         _drive.NextLink = new TaskCompletionSource<DriveLink>();
         _drive.NextLink.SetException(new DriveSignInException("Access to Google Drive was not given."));
-        var cut = Render<DriveSource>();
+        var cut = Render<GoogleDriveSource>();
 
         cut.Find("#drive-link").Click();
 
@@ -69,7 +129,7 @@ public class DriveSourceTests : BunitContext
     {
         _drive.NextLink = new TaskCompletionSource<DriveLink>();
         _drive.NextLink.SetException(new TaskCanceledException("timeout"));
-        var cut = Render<DriveSource>();
+        var cut = Render<GoogleDriveSource>();
 
         cut.Find("#drive-link").Click();
 
@@ -80,7 +140,7 @@ public class DriveSourceTests : BunitContext
     public void Unlink_ForgetsTheLink()
     {
         _drive.Link = new DriveLink(DriveAccess.PickedFiles, null, DateTime.UtcNow);
-        var cut = Render<DriveSource>();
+        var cut = Render<GoogleDriveSource>();
         Assert.Contains("Linked as your Google account", cut.Find(".drive-source").TextContent);
         Assert.Contains("Only books I pick", cut.Find(".drive-source").TextContent);
 
@@ -94,7 +154,7 @@ public class DriveSourceTests : BunitContext
     public void LinkLostElsewhere_IsShown()
     {
         _drive.Link = new DriveLink(DriveAccess.PickedFiles, "Ana", DateTime.UtcNow);
-        var cut = Render<DriveSource>();
+        var cut = Render<GoogleDriveSource>();
 
         cut.InvokeAsync(_drive.Lose);
 

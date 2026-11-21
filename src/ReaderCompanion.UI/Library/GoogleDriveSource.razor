@@ -1,0 +1,262 @@
+@using ReaderCompanion.Core.Drive
+@using ReaderCompanion.Core.Preferences
+@inject IDriveAccount Drive
+@inject IDriveLibrary DriveBooks
+@inject IAppPreferences Preferences
+@implements IDisposable
+
+<section class="source card drive-source">
+  <h2>Google Drive</h2>
+  @if (!Drive.IsConfigured)
+  {
+    <p class="muted">Google Drive is not set up in this build.</p>
+  }
+  else if (Drive.Link is { } link)
+  {
+    <p>Linked as @(link.AccountName ?? "your Google account") · @DriveText.AccessLabel(link.Access)</p>
+
+    @if (_sources.Count > 0)
+    {
+      <ul class="folder-list">
+        @foreach (var source in _sources)
+        {
+          <li>
+            <span class="folder-path drive-source-name">@source.Name</span>
+            <button type="button" class="btn btn-small drive-source-remove" disabled="@_busy"
+                    @onclick="() => RemoveAsync(source)">Remove</button>
+          </li>
+        }
+      </ul>
+    }
+    else
+    {
+      <p class="muted">@(link.Access == DriveAccess.PickedFiles ? "No books picked yet." : "No Drive folders added yet.")</p>
+    }
+
+    @if (_browsing is { } trail)
+    {
+      <div class="drive-browser">
+        <p class="drive-trail">@string.Join(" / ", ["My Drive", .. trail.Select(f => f.Name)])</p>
+        @if (_folders is null)
+        {
+          <p class="muted">Loading folders…</p>
+        }
+        else if (_folders.Count == 0)
+        {
+          <p class="muted">No folders here.</p>
+        }
+        else
+        {
+          <ul class="drive-folders">
+            @foreach (var folder in _folders)
+            {
+              <li><button type="button" class="link-button drive-folder" @onclick="() => OpenFolderAsync(folder)">@folder.Name</button></li>
+            }
+          </ul>
+        }
+        <div class="source-actions">
+          <button type="button" class="btn btn-small" disabled="@(trail.Count == 0)" @onclick="UpAsync">Up</button>
+          <button id="drive-choose" type="button" class="btn btn-small btn-primary" disabled="@(trail.Count == 0)"
+                  @onclick="ChooseAsync">Choose this folder</button>
+          <button type="button" class="btn btn-small" @onclick="() => _browsing = null">Cancel</button>
+        </div>
+      </div>
+    }
+
+    <div class="source-actions">
+      @if (link.Access == DriveAccess.PickedFiles)
+      {
+        <button id="drive-pick" type="button" class="btn" disabled="@_busy" @onclick="PickAsync">Add books from Drive…</button>
+      }
+      else if (_browsing is null)
+      {
+        <button id="drive-add-folder" type="button" class="btn" disabled="@_busy" @onclick="BrowseAsync">Add folder…</button>
+      }
+      <button id="drive-scan" type="button" class="btn btn-primary" disabled="@(_busy || _sources.Count == 0)"
+              @onclick="ScanAsync">Scan Drive</button>
+      <button id="drive-unlink" type="button" class="btn btn-small" disabled="@_busy" @onclick="UnlinkAsync">Unlink</button>
+    </div>
+
+    @if (_progress is not null)
+    {
+      <p class="progress">Reading new books from Drive… @_progress.FilesProcessed of @_progress.FilesFound</p>
+    }
+    else if (_busy)
+    {
+      <p class="progress">Working with Google Drive…</p>
+    }
+
+    @if (_summary is not null)
+    {
+      <ScanSummaryView Summary="_summary" Label="Drive scan" />
+    }
+  }
+  else if (_signingIn is not null)
+  {
+    <p>Finish signing in in your browser…</p>
+    <div class="source-actions">
+      <button id="drive-cancel" type="button" class="btn btn-small" @onclick="() => _signingIn?.Cancel()">Cancel</button>
+    </div>
+  }
+  else
+  {
+    <p class="muted">
+      Sign in with Google in your browser; the app keeps its access on this computer only. Access:
+      <strong>@DriveText.AccessLabel(Preferences.Current.DriveAccess)</strong> (change it in <a href="settings">Settings</a>).
+    </p>
+    <div class="source-actions">
+      <button id="drive-link" type="button" class="btn btn-primary" @onclick="LinkAsync">Link Google Drive</button>
+    </div>
+  }
+
+  @if (_error is not null)
+  {
+    <p class="panel-error" role="alert">@_error</p>
+  }
+</section>
+
+@code {
+  private CancellationTokenSource? _signingIn;
+  private bool _busy;
+  private string? _error;
+  private IReadOnlyList<DriveSource> _sources = [];
+  private List<DriveFolder>? _browsing; // the folders opened so far, from My Drive down; null when not browsing
+  private IReadOnlyList<DriveFolder>? _folders;
+  private ScanProgress? _progress;
+  private ScanSummary? _summary;
+
+  protected override async Task OnInitializedAsync()
+  {
+    Drive.Changed += OnDriveChanged;
+    await RunAsync(LoadSourcesAsync);
+  }
+
+  private void OnDriveChanged() => InvokeAsync(StateHasChanged);
+
+  private async Task LoadSourcesAsync() => _sources = await DriveBooks.ListSourcesAsync();
+
+  /// <summary>Runs one Drive action at a time and turns its failure into a message.</summary>
+  private async Task RunAsync(Func<Task> work)
+  {
+    _busy = true;
+    _error = null;
+    try
+    {
+      await work();
+    }
+    catch (Exception e) when (DriveText.IsExpected(e))
+    {
+      _error = DriveText.Error(e);
+    }
+    finally
+    {
+      _busy = false;
+      _progress = null;
+    }
+  }
+
+  private async Task LinkAsync()
+  {
+    using var signingIn = _signingIn = new CancellationTokenSource();
+    _error = null;
+    try
+    {
+      await Drive.LinkAsync(Preferences.Current.DriveAccess, signingIn.Token);
+      await LoadSourcesAsync();
+    }
+    catch (OperationCanceledException) when (signingIn.IsCancellationRequested)
+    {
+      // Cancelled by the user: nothing to say.
+    }
+    catch (Exception e) when (DriveText.IsExpected(e))
+    {
+      _error = DriveText.Error(e);
+    }
+    finally
+    {
+      _signingIn = null;
+    }
+  }
+
+  private Task UnlinkAsync() => RunAsync(async () =>
+  {
+    await Drive.UnlinkAsync();
+    _browsing = null;
+    _summary = null;
+  });
+
+  private Task PickAsync() => RunAsync(async () =>
+  {
+    var added = await DriveBooks.AddPickedFilesAsync();
+    await LoadSourcesAsync();
+    _error = added == 0 ? "No new books were picked." : null;
+  });
+
+  private Task RemoveAsync(DriveSource source) => RunAsync(async () =>
+  {
+    await DriveBooks.RemoveSourceAsync(source.Id);
+    await LoadSourcesAsync();
+  });
+
+  private Task BrowseAsync()
+  {
+    _browsing = [];
+    return LoadFoldersAsync();
+  }
+
+  private string? CurrentFolderId => _browsing is { Count: > 0 } trail ? trail[^1].Id : null;
+
+  private Task OpenFolderAsync(DriveFolder folder)
+  {
+    _browsing?.Add(folder);
+    return LoadFoldersAsync();
+  }
+
+  private Task UpAsync()
+  {
+    if (_browsing is { Count: > 0 } trail)
+    {
+      trail.RemoveAt(trail.Count - 1);
+    }
+
+    return LoadFoldersAsync();
+  }
+
+  private Task LoadFoldersAsync() => RunAsync(async () =>
+  {
+    _folders = null;
+    _folders = await DriveBooks.ListFoldersAsync(CurrentFolderId);
+  });
+
+  private Task ChooseAsync() => RunAsync(async () =>
+  {
+    if (CurrentFolderId is not { } folderId)
+    {
+      return;
+    }
+
+    var result = await DriveBooks.AddFolderAsync(folderId, string.Join("/", _browsing!.Select(f => f.Name)));
+    _browsing = null;
+    await LoadSourcesAsync();
+    _error = result.Linked ? null : result.RefusedReason;
+  });
+
+  private Task ScanAsync() => RunAsync(async () =>
+  {
+    _summary = null;
+    _summary = await DriveBooks.ScanAsync(new Progress<ScanProgress>(p =>
+    {
+      if (_busy)
+      {
+        _progress = p;
+        InvokeAsync(StateHasChanged);
+      }
+    }));
+  });
+
+  public void Dispose()
+  {
+    Drive.Changed -= OnDriveChanged;
+    _signingIn?.Cancel();
+  }
+}

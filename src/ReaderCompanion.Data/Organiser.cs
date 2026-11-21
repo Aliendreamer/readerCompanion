@@ -12,7 +12,7 @@ internal sealed class Organiser(IDbContextFactory<LibraryDbContext> contexts, Li
         var folder = LibraryPaths.Normalize(root);
         await using var db = await contexts.CreateDbContextAsync(cancellationToken);
         var files = (await db.BookFiles.AsNoTracking()
-                .Where(f => f.Status == FileStatus.Present)
+                .Where(f => f.Status == FileStatus.Present && f.DriveFileId == null)
                 .OrderBy(f => f.Path)
                 .Select(f => new PlannedFile(
                     f.Id,

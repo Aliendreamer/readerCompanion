@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ReaderCompanion.Core.Library;
@@ -51,9 +50,8 @@ internal sealed class LibraryScanner(IServiceScopeFactory scopes, LibraryDataPat
         var db = scope.ServiceProvider.GetRequiredService<LibraryDbContext>();
 
         var folders = db.LibraryFolders.AsNoTracking().Select(f => f.Path).ToList();
-        var known = db.BookFiles.AsNoTracking()
-            .Select(f => new KnownFile(f.Id, f.BookId, f.Path, f.SizeBytes, f.LastWriteUtc, f.ContentHash, f.Status))
-            .ToList();
+        // Drive files are scanned by DriveLibrary; here they only let a local copy join its book.
+        var (known, onDrive) = KnownFiles.Load(db);
         var knownByPath = known.ToDictionary(k => k.Path, LibraryPaths.Comparer);
 
         var unavailable = new List<string>();
@@ -96,7 +94,7 @@ internal sealed class LibraryScanner(IServiceScopeFactory scopes, LibraryDataPat
             }
         }
 
-        var plan = ScanReconciler.Plan(known, found, unavailable);
+        var plan = ScanReconciler.Plan(known, found, unavailable, onDrive);
         IReadOnlyList<UnreadableFile> unreadable = [];
         if (plan.Actions.Any(a => a is not KeepFile))
         {
@@ -163,7 +161,7 @@ internal sealed class LibraryScanner(IServiceScopeFactory scopes, LibraryDataPat
         try
         {
             using var stream = File.OpenRead(path);
-            return Convert.ToHexStringLower(SHA256.HashData(stream));
+            return ContentHash.Of(stream);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

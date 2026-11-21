@@ -82,6 +82,29 @@ public sealed class GoogleDriveAccountTests : IDisposable
     }
 
     [Fact]
+    public async Task PickFiles_OpensThePicker_ReturnsThePicks_AndKeepsTheNewLink()
+    {
+        var account = Account();
+        await account.LinkAsync(DriveAccess.PickedFiles, Token);
+        _signIn = new SignInAnswer("code-2", null, ["f1", "f2"]);
+
+        var picked = await account.PickFilesAsync(Token);
+
+        Assert.Equal(["f1", "f2"], picked);
+        Assert.Contains("trigger_onepick=true", LastRequest!.AuthorizationUrl.Query, StringComparison.Ordinal);
+        Assert.Equal(DriveAccess.PickedFiles, account.Link!.Access);
+    }
+
+    [Fact]
+    public async Task PickFiles_NeedsPickedFilesAccess()
+    {
+        var account = Account();
+        await account.LinkAsync(DriveAccess.WholeDrive, Token);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => account.PickFilesAsync(Token));
+    }
+
+    [Fact]
     public async Task Refused_LeavesDriveUnlinked()
     {
         _signIn = new SignInAnswer(null, "access_denied", []);
