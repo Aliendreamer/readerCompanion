@@ -36,3 +36,6 @@ pre-commit hook refuses to commit it unencrypted.
   the file.
 - A fresh clone: `git-crypt unlock ~/readerCompanion-git-crypt.key`. Without the key the file stays encrypted and
   the build simply has no Drive.
+- Claude Code is denied reading the file (`.claude/settings.json`), so git in its sandbox cannot hash it either: run
+  `git update-index --skip-worktree google-oauth-client.json` once per clone. To commit a new client file, first
+  `git update-index --no-skip-worktree google-oauth-client.json`.
