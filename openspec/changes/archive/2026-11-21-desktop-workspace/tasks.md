@@ -1,7 +1,7 @@
 # Desktop Workspace Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or
-> superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Lay the app out like a Windows library program (toolbar, panes, filter tree, status bar), with no new
 features.
@@ -52,7 +52,7 @@ singletons carry state across components (`LibraryStatus` for the count, existin
   (role `switch`, `aria-checked`) in the toolbar; `#use-system-theme` on the Settings page (only while a theme is
   chosen); `.window-bar .brand` (logo + name) whose press moves the window (`WindowFrame.PressOn`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - `ShellTests.Toolbar_LinksToEachPage_AndShowsTheCurrentOneAsPressed`: navigate to `sources`; assert
     `.toolbar .toolbar-button` texts == Library, Reading, Duplicates, Organise, Sources, Backup, Settings, Help
     (in that order), `.toolbar .toolbar-button.active` text == `"Sources"`, and no `.sidebar`.
@@ -61,14 +61,14 @@ singletons carry state across components (`LibraryStatus` for the count, existin
   - `WindowFrameTests.TitleStrip_ShowsTheLogo_AndMovesTheWindow`: own frame; `.window-bar .brand` contains
     "readerCompanion"; `MouseDown(Button 0, Detail 1)` on it → calls == `["BeginMove"]`. Replace the old
     `SidebarBrand_MovesTheWindow`.
-- [ ] **Step 2: Run** the UI tests (build with `-m:1`, then `dotnet run --no-build --project
+- [x] **Step 2: Run** the UI tests (build with `-m:1`, then `dotnet run --no-build --project
   tests/ReaderCompanion.UI.Tests`) — expect the new tests to fail.
-- [ ] **Step 3: Implement** `Toolbar.razor`; `MainLayout` grid rows `auto` (strip) `auto` (toolbar) `1fr` (page)
+- [x] **Step 3: Implement** `Toolbar.razor`; `MainLayout` grid rows `auto` (strip) `auto` (toolbar) `1fr` (page)
   `auto` (status bar, Task 2) with one column; brand moved into `WindowFrame`'s strip (left of `.window-drag`);
   `ThemeToggle` reduced to the switch (icon button); a "Theme" card on Settings with `#use-system-theme`. Labels hide
   below ~900 px page width (icons stay, `title` keeps the name).
-- [ ] **Step 4: Run** the UI tests — all pass.
-- [ ] **Step 5: Commit** `feat: toolbar instead of the sidebar, logo in the title strip`.
+- [x] **Step 4: Run** the UI tests — all pass.
+- [x] **Step 5: Commit** `feat: toolbar instead of the sidebar, logo in the title strip`.
 
 ### Task 2: Status bar with the book count and running scans
 
@@ -89,17 +89,17 @@ singletons carry state across components (`LibraryStatus` for the count, existin
   Drive: `"Drive scan: " + DriveText.ScanProgress(p)`).
 - Consumes: `ScanStatus.Library`, `ScanStatus.Drive` (existing `TrackedScan`).
 
-- [ ] **Step 1: Write the failing tests** (`StatusBarTests`)
+- [x] **Step 1: Write the failing tests** (`StatusBarTests`)
   - `Count_ComesFromTheLibraryPage`: 3 books → `.status-count` == `"3 books"`; filter to 2 → `"2 of 3 books"`; no
     books → `"No books"`.
   - `RunningScans_ShowOnEveryPage_BothWhenBothRun`: start a held library scan (FakeScanner, report 12 of 40) and a held
     Drive scan (FakeDriveLibrary `ScanHeld`, report reading 3 of 20) through `ScanStatus`; render `Routes` at
     `settings`; assert `.status-scan` texts == "Scan 12 of 40 files" and
     "Drive scan: Reading new books from Drive… 3 of 20".
-- [ ] **Step 2: Run** — fail.
-- [ ] **Step 3: Implement**; `Home` calls `LibraryStatus.Set(Count())` after each refresh and `Set(null)` on dispose.
-- [ ] **Step 4: Run** — pass (update the moved `.book-count` assertions).
-- [ ] **Step 5: Commit** `feat: status bar with the book count and running scans`.
+- [x] **Step 2: Run** — fail.
+- [x] **Step 3: Implement**; `Home` calls `LibraryStatus.Set(Count())` after each refresh and `Set(null)` on dispose.
+- [x] **Step 4: Run** — pass (update the moved `.book-count` assertions).
+- [x] **Step 5: Commit** `feat: status bar with the book count and running scans`.
 
 ### Task 3: Library in three panes with a permanent details pane
 
@@ -115,19 +115,19 @@ singletons carry state across components (`LibraryStatus` for the count, existin
   `.details-empty` with "Select a book to see its details"). Empty/loading library: no `.workspace`, full-width card
   as today.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - `BookPanelTests.DetailsPane_IsAlwaysThere_AndCloseClearsTheChoice`: render Home; `.details-empty` text ==
     "Select a book to see its details"; open "Mort" → `.book-panel .panel-title` == "Mort"; click `#panel-close` →
     `.details-empty` again.
   - `BookPanelTests.AChosenBook_StaysShown_WhenAFilterHidesIt`: open "Dune", filter genre Fantasy → titles exclude
     "Dune", `.panel-title` still "Dune".
   - `BrowseTests.EmptyLibrary_HasNoPanes`: no books → no `.workspace`, `.empty-state` present.
-- [ ] **Step 2: Run** — fail.
-- [ ] **Step 3: Implement**; CSS: `.workspace { grid-template-columns: 260px minmax(400px, 1fr) 340px }`; under
+- [x] **Step 2: Run** — fail.
+- [x] **Step 3: Implement**; CSS: `.workspace { grid-template-columns: 260px minmax(400px, 1fr) 340px }`; under
   `@media (max-width: 1000px)` details become an overlay shown only with a chosen book (today's sliding panel rules);
   only `.workspace-books` scrolls.
-- [ ] **Step 4: Run** — pass (adjust existing panel tests that assumed the panel was absent before choosing).
-- [ ] **Step 5: Commit** `feat: library in three panes with a details pane`.
+- [x] **Step 4: Run** — pass (adjust existing panel tests that assumed the panel was absent before choosing).
+- [x] **Step 5: Commit** `feat: library in three panes with a details pane`.
 
 ### Task 4: Filter tree replaces the dropdown filters
 
@@ -151,7 +151,7 @@ singletons carry state across components (`LibraryStatus` for the count, existin
   `filter-author` and `filter-collection`. `#browse-missing` and `#clear-filters` live in the tree.
 - Consumes: `Pager`, `MoreMarker` (existing).
 
-- [ ] **Step 1: Write the failing tests** (`FilterTreeTests`)
+- [x] **Step 1: Write the failing tests** (`FilterTreeTests`)
   - `Sections_InOrder_LongOnesStartClosed`: header texts start with Genres, Authors, Collections, Formats, Status,
     Owned / wanted; `#filter-author` and `#filter-collection` have `aria-expanded="false"`, the rest `"true"`.
   - `TickingNarrows_AndClearFiltersAppears`: tick Science Fiction → titles == ["Dune"]; `#clear-filters` shown; click
@@ -159,11 +159,11 @@ singletons carry state across components (`LibraryStatus` for the count, existin
   - `OpenStateIsRemembered_AcrossPages`: open Authors, navigate to `sources` and back → still open.
   - `NarrowWindow_FiltersButtonShowsTheTree`: click `#filters-toggle` → `.workspace` has class `tree-open`.
   - Port the dropdown tests' meaning (search narrows a long list, paging from 120) to `FilterSteps` on the tree.
-- [ ] **Step 2: Run** — fail.
-- [ ] **Step 3: Implement**; `FilterSteps.Open` expands the section when closed; drop the Escape/backdrop tests (no
+- [x] **Step 2: Run** — fail.
+- [x] **Step 3: Implement**; `FilterSteps.Open` expands the section when closed; drop the Escape/backdrop tests (no
   menus remain).
-- [ ] **Step 4: Run** — pass.
-- [ ] **Step 5: Commit** `feat: filter tree instead of filter dropdowns`.
+- [x] **Step 4: Run** — pass.
+- [x] **Step 5: Commit** `feat: filter tree instead of filter dropdowns`.
 
 ### Task 5: Density pass
 
@@ -171,13 +171,13 @@ singletons carry state across components (`LibraryStatus` for the count, existin
 
 - Modify: `src/ReaderCompanion.UI/wwwroot/app.css`
 
-- [ ] **Step 1:** Cards: `border-radius: 4px`, no `box-shadow`; paddings and gaps about a third smaller; section
+- [x] **Step 1:** Cards: `border-radius: 4px`, no `box-shadow`; paddings and gaps about a third smaller; section
   headings one step smaller. Keep colours, fonts, themes, zoom, and button sizes.
-- [ ] **Step 2: Run** all UI tests (no behaviour change) and check the app by eye at 100% and 150% text, 720 × 480 and
+- [x] **Step 2: Run** all UI tests (no behaviour change) and check the app by eye at 100% and 150% text, 720 × 480 and
   maximised (manual check by the user).
-- [ ] **Step 3: Commit** `style: denser, flatter panels on every page`.
+- [x] **Step 3: Commit** `style: denser, flatter panels on every page`.
 
 ### Task 6: Close the change
 
-- [ ] Sync the spec deltas into `openspec/specs/`, archive the change, run all gates (build, all three test projects,
+- [x] Sync the spec deltas into `openspec/specs/`, archive the change, run all gates (build, all three test projects,
   `dotnet format whitespace`, `pnpm lint:md`), commit `docs: desktop workspace specs`.
