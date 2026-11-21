@@ -18,7 +18,8 @@ public interface IGoodreadsImport
     /// <exception cref="InvalidDataException">The file is not a Goodreads library export; nothing changed.</exception>
     Task<GoodreadsSummary> ImportFileAsync(string path, CancellationToken cancellationToken = default);
 
-    /// <summary>Rows waiting for the user: a title-and-author match whose ISBN differs (likely another edition).</summary>
+    /// <summary>Rows waiting for the user: a likely match the import is not sure of (another edition, or a match by
+    /// main title without a shared author).</summary>
     Task<IReadOnlyList<PendingMatch>> PendingAsync(CancellationToken cancellationToken = default);
 
     /// <summary>"Same book": applies the row to the book it might be.</summary>

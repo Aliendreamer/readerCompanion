@@ -27,6 +27,12 @@ internal sealed class GoodreadsImport(IDbContextFactory<LibraryDbContext> contex
             byTitle.Add(book, MatchKeys.TitleKeys(book.Title, FirstAuthor(book)));
         }
 
+        // The last, looser step: books not linked to Goodreads yet, by main title (see GoodreadsMatch).
+        var byMainTitle = books.Where(b => b.GoodreadsId is null)
+            .GroupBy(b => GoodreadsMatch.MainTitle(b.Title))
+            .Where(g => g.Key.Length > 0)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
         var pending = await db.GoodreadsPending.ToDictionaryAsync(p => p.GoodreadsId, cancellationToken);
         void DropPending(string goodreadsId)
         {
@@ -59,6 +65,20 @@ internal sealed class GoodreadsImport(IDbContextFactory<LibraryDbContext> contex
                 }
 
                 book = candidate;
+            }
+
+            if (book is null && LooseCandidate(byMainTitle, row) is { } loose)
+            {
+                if (MatchKeys.DifferentEditions(row.Isbn, loose.Isbn)
+                    || !GoodreadsMatch.ShareAnAuthor(loose.Authors.OrderBy(a => a.Order).Select(a => a.Author.Name), row.Authors))
+                {
+                    DropPending(row.GoodreadsId);
+                    db.GoodreadsPending.Add(GoodreadsPending.From(row, loose.Id));
+                    forReview++;
+                    continue;
+                }
+
+                book = loose;
             }
 
             DropPending(row.GoodreadsId); // now matched for sure, or no longer a candidate
@@ -155,6 +175,13 @@ internal sealed class GoodreadsImport(IDbContextFactory<LibraryDbContext> contex
         var books = db.Books.Include(b => b.Sessions).Include(b => b.Authors).ThenInclude(a => a.Author);
         return withCollections ? books.Include(b => b.Collections).ThenInclude(c => c.Collection) : books;
     }
+
+    /// <summary>The one book not yet linked to Goodreads with the row's main title, if there is exactly one.</summary>
+    private static Book? LooseCandidate(Dictionary<string, List<Book>> byMainTitle, GoodreadsRow row) =>
+        byMainTitle.GetValueOrDefault(GoodreadsMatch.MainTitle(row.Title)) is { } books
+        && books.Where(b => b.GoodreadsId is null).ToList() is [var only]
+            ? only
+            : null;
 
     private static string? FirstAuthor(Book book) => book.Authors.OrderBy(a => a.Order).Select(a => a.Author.Name).FirstOrDefault();
 

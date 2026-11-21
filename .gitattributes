@@ -1,2 +1,3 @@
 # Secrets stored encrypted (git-crypt); see RELEASING.md.
 google-oauth-client.json filter=git-crypt diff=git-crypt
+goodreads_library_export.csv filter=git-crypt diff=git-crypt

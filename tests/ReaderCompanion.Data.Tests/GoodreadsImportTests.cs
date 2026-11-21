@@ -207,6 +207,95 @@ public sealed class GoodreadsImportTests : IDisposable
     }
 
     [Fact]
+    public async Task SubtitleOrAuthorWrittenDifferently_StillMatches()
+    {
+        AddOwned("Designing Data-Intensive Applications", "Kleppmann, Martin");
+        AddOwned("Node.js Design Patterns", "Mario Casciaro & Luciano Mammino");
+        AddOwned("The Pragmatic Programmer: your journey to mastery, 20th Anniversary Edition", "Andrew Hunt");
+
+        var summary = await Import.ImportAsync(
+            [Row("1", "Designing Data-Intensive Applications: The Big Ideas Behind Reliable, Scalable, and Maintainable Systems",
+                 "Martin Kleppmann", ReadStatus.Read, isbn: "9781098119027"),
+             Row("2", "Node.js Design Patterns: Master a series of patterns", "Mario Casciaro", ReadStatus.Read),
+             Row("3", "The Pragmatic Programmer: From Journeyman to Master", "Andy Hunt", ReadStatus.Read, isbn: "9780201616224")],
+            Token);
+
+        Assert.Equal((3, 0, 0), (summary.Matched, summary.AddedWanted, summary.ForReview));
+        Assert.Equal(ReadStatus.Read, Load("Designing Data-Intensive Applications").ReadStatus);
+        Assert.Equal("2", Load("Node.js Design Patterns").GoodreadsId);
+    }
+
+    [Fact]
+    public async Task SameMainTitle_WithoutASharedAuthor_WaitsForReview()
+    {
+        var owned = AddOwned("Refactoring: Improving the Design of Existing Code \\( PDFDrive.com \\).epub", "Unknown");
+
+        var summary = await Import.ImportAsync(
+            [Row("1", "Refactoring: Improving the Design of Existing Code", "Martin Fowler", ReadStatus.Read, isbn: "9780201485677")], Token);
+
+        Assert.Equal((0, 0, 1), (summary.Matched, summary.AddedWanted, summary.ForReview));
+        Assert.Equal(owned, Assert.Single(await Import.PendingAsync(Token)).BookId);
+    }
+
+    [Fact]
+    public async Task SameMainTitle_ButConflictingIsbns_WaitsForReview()
+    {
+        AddOwned("Effective TypeScript", "Dan Vanderkam", "9781098155063");
+
+        var summary = await Import.ImportAsync(
+            [Row("1", "Effective TypeScript: 62 Specific Ways", "Dan Vanderkam", ReadStatus.Read, isbn: "9781492053705")], Token);
+
+        Assert.Equal((0, 0, 1), (summary.Matched, summary.AddedWanted, summary.ForReview));
+    }
+
+    [Fact]
+    public async Task ABookAlreadyLinkedToGoodreads_IsNotMatchedByMainTitleAgain()
+    {
+        AddOwned("Clean Code", "Robert C. Martin");
+
+        var summary = await Import.ImportAsync(
+            [Row("1", "Clean Code: A Handbook of Agile Software Craftsmanship", "Robert C. Martin", ReadStatus.Read),
+             Row("2", "Clean Code: The Audiobook", "Robert C. Martin", ReadStatus.WantToRead)], Token);
+
+        Assert.Equal((1, 1, 0), (summary.Matched, summary.AddedWanted, summary.ForReview));
+        Assert.Equal("1", Load("Clean Code").GoodreadsId);
+    }
+
+    /// <summary>The user's own export, kept encrypted in the repository: runs only when it is present and decrypted.</summary>
+    [Fact]
+    public async Task TheRealExport_ImportsEveryRow()
+    {
+        var export = RealExport();
+        if (export is null)
+        {
+            return;
+        }
+
+        using var reader = new StreamReader(export);
+        var rows = GoodreadsCsv.Parse(reader);
+        var summary = await Import.ImportAsync(rows, Token);
+
+        Assert.NotEmpty(rows);
+        Assert.Equal(rows.Count, summary.Matched + summary.AddedWanted + summary.ForReview + summary.Skipped.Count);
+    }
+
+    private static string? RealExport()
+    {
+        for (var folder = new DirectoryInfo(AppContext.BaseDirectory); folder is not null; folder = folder.Parent)
+        {
+            var path = Path.Combine(folder.FullName, "goodreads_library_export.csv");
+            if (File.Exists(path))
+            {
+                using var stream = File.OpenRead(path);
+                var start = new byte[7];
+                return stream.Read(start) == 7 && System.Text.Encoding.ASCII.GetString(start) == "Book Id" ? path : null;
+            }
+        }
+
+        return null;
+    }
+
+    [Fact]
     public async Task Shelves_BecomeCollections_OnlyWhenTurnedOn()
     {
         var preferences = _library.Services.GetRequiredService<ReaderCompanion.Core.Preferences.IAppPreferences>();
