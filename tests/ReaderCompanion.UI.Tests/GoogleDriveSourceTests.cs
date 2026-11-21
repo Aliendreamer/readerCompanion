@@ -119,6 +119,25 @@ public class GoogleDriveSourceTests : BunitContext
     }
 
     [Fact]
+    public void LeavingAndComingBack_DuringADriveScan_ShowsItsProgress_ThenItsSummary()
+    {
+        _library.Sources.Add(new DriveSource { Id = 1, DriveId = "books", Name = "Books", Kind = DriveSourceKind.Folder });
+        _library.ScanReports = new ScanProgress(3, 20);
+        _library.ScanHeld = new TaskCompletionSource<ScanSummary>();
+        var first = RenderLinked(DriveAccess.WholeDrive);
+        first.Find("#drive-scan").Click();
+        first.WaitForAssertion(() => Assert.NotEmpty(first.FindAll(".drive-source .progress-text")));
+        first.Dispose();
+
+        var back = Render<GoogleDriveSource>();
+
+        back.WaitForAssertion(() => Assert.Equal("Reading new books from Drive… 3 of 20", back.Find(".drive-source .progress-text").TextContent));
+        Assert.True(back.Find("#drive-scan").HasAttribute("disabled"));
+        back.InvokeAsync(() => _library.ScanHeld.SetResult(new ScanSummary { Added = 4 }));
+        back.WaitForAssertion(() => Assert.Contains("4 added", back.Find(".drive-source .summary").TextContent));
+    }
+
+    [Fact]
     public void ScanDrive_NeedsASource()
     {
         var cut = RenderLinked(DriveAccess.WholeDrive);

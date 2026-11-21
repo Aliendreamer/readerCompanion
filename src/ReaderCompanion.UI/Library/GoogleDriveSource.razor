@@ -3,6 +3,7 @@
 @inject IDriveAccount Drive
 @inject IDriveLibrary DriveBooks
 @inject IAppPreferences Preferences
+@inject ScanStatus Status
 @implements IDisposable
 
 <section class="source card drive-source">
@@ -24,7 +25,7 @@
           <li>
             <span class="folder-path drive-source-name">@source.Name</span>
             <span class="muted drive-source-added">added @BookText.Date(source.AddedUtc)</span>
-            <button type="button" class="btn btn-small drive-source-remove" disabled="@_busy"
+            <button type="button" class="btn btn-small drive-source-remove" disabled="@Busy"
                     @onclick="() => RemoveAsync(source)">Remove</button>
           </li>
         }
@@ -68,18 +69,18 @@
     <div class="source-actions">
       @if (link.Access == DriveAccess.PickedFiles)
       {
-        <button id="drive-pick" type="button" class="btn" disabled="@_busy" @onclick="PickAsync">Add books from Drive…</button>
+        <button id="drive-pick" type="button" class="btn" disabled="@Busy" @onclick="PickAsync">Add books from Drive…</button>
       }
       else if (_browsing is null)
       {
-        <button id="drive-add-folder" type="button" class="btn" disabled="@_busy" @onclick="BrowseAsync">Add folder…</button>
+        <button id="drive-add-folder" type="button" class="btn" disabled="@Busy" @onclick="BrowseAsync">Add folder…</button>
       }
-      <button id="drive-scan" type="button" class="btn btn-primary" disabled="@(_busy || _sources.Count == 0)"
+      <button id="drive-scan" type="button" class="btn btn-primary" disabled="@(Busy || _sources.Count == 0)"
               @onclick="ScanAsync">Scan Drive</button>
-      <button id="drive-unlink" type="button" class="btn btn-small" disabled="@_busy" @onclick="UnlinkAsync">Unlink</button>
+      <button id="drive-unlink" type="button" class="btn btn-small" disabled="@Busy" @onclick="UnlinkAsync">Unlink</button>
     </div>
 
-    @if (_progress is { } progress)
+    @if (Scan.IsRunning && Scan.Progress is { } progress)
     {
       <p class="progress progress-text">@ProgressText(progress)</p>
       @if (progress.Stage != ScanStage.Listing && progress.FilesFound > 0)
@@ -87,14 +88,14 @@
         <progress class="scan-bar" max="@progress.FilesFound" value="@progress.FilesProcessed"></progress>
       }
     }
-    else if (_busy)
+    else if (Busy)
     {
       <p class="progress">Working with Google Drive…</p>
     }
 
-    @if (_summary is not null)
+    @if (Scan.Summary is { } summary)
     {
-      <ScanSummaryView Summary="_summary" Label="Drive scan" />
+      <ScanSummaryView Summary="summary" Label="Drive scan" />
     }
   }
   else if (_signingIn is not null)
@@ -115,9 +116,9 @@
     </div>
   }
 
-  @if (_error is not null)
+  @if (Error is { } error)
   {
-    <p class="panel-error" role="alert">@_error</p>
+    <p class="panel-error" role="alert">@error</p>
   }
 </section>
 
@@ -128,12 +129,19 @@
   private IReadOnlyList<DriveSource> _sources = [];
   private List<DriveFolder>? _browsing; // the folders opened so far, from My Drive down; null when not browsing
   private IReadOnlyList<DriveFolder>? _folders;
-  private ScanProgress? _progress;
-  private ScanSummary? _summary;
+
+  // The Drive scan lives in ScanStatus, so leaving the page and coming back shows it where it is.
+  private TrackedScan Scan => Status.Drive;
+
+  private bool Busy => _busy || Scan.IsRunning;
+
+  private string? Error => _error
+    ?? (Scan.Failure is { } failure ? (DriveText.IsExpected(failure) ? DriveText.Error(failure) : failure.Message) : null);
 
   protected override async Task OnInitializedAsync()
   {
     Drive.Changed += OnDriveChanged;
+    Scan.Changed += OnDriveChanged;
     await RunAsync(LoadSourcesAsync);
   }
 
@@ -165,7 +173,6 @@
     finally
     {
       _busy = false;
-      _progress = null;
     }
   }
 
@@ -196,7 +203,7 @@
   {
     await Drive.UnlinkAsync();
     _browsing = null;
-    _summary = null;
+    Scan.Clear();
   });
 
   private Task PickAsync() => RunAsync(async () =>
@@ -269,22 +276,12 @@
 
   private Task ScanAsync() => RunAsync(ScanCoreAsync);
 
-  private async Task ScanCoreAsync()
-  {
-    _summary = null;
-    _summary = await DriveBooks.ScanAsync(new Progress<ScanProgress>(p =>
-    {
-      if (_busy)
-      {
-        _progress = p;
-        InvokeAsync(StateHasChanged);
-      }
-    }));
-  }
+  private Task ScanCoreAsync() => Scan.RunAsync(progress => DriveBooks.ScanAsync(progress));
 
   public void Dispose()
   {
     Drive.Changed -= OnDriveChanged;
+    Scan.Changed -= OnDriveChanged;
     _signingIn?.Cancel();
   }
 }

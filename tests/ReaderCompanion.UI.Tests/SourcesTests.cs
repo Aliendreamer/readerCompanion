@@ -19,6 +19,7 @@ public class SourcesTests : BunitContext
         Services.AddSingleton<ReaderCompanion.Core.Preferences.IAppPreferences>(new FakePreferences());
         Services.AddSingleton<ReaderCompanion.Core.Drive.IDriveAccount>(new FakeDriveAccount());
         Services.AddSingleton<ReaderCompanion.Core.Drive.IDriveLibrary>(new FakeDriveLibrary());
+        Services.AddSingleton<ScanStatus>();
         return Render<Sources>();
     }
 
@@ -126,5 +127,22 @@ public class SourcesTests : BunitContext
         });
         Assert.False(cut.Find("#scan").HasAttribute("disabled"));
         Assert.Empty(cut.FindAll(".progress"));
+    }
+
+    [Fact]
+    public void LeavingAndComingBack_DuringAScan_ShowsItsProgress_ThenItsSummary()
+    {
+        _folders.Linked.Add("/books");
+        var first = RenderWith(new FakePicker());
+        first.Find("#scan").Click();
+        first.InvokeAsync(() => _scanner.Report(12, 40));
+        first.Dispose(); // the user opens another page
+
+        var back = Render<Sources>();
+
+        back.WaitForAssertion(() => Assert.Contains("12 of 40 files", back.Find(".progress").TextContent));
+        Assert.True(back.Find("#scan").HasAttribute("disabled"));
+        back.InvokeAsync(() => _scanner.Finish(new ScanSummary { Added = 5 }));
+        back.WaitForAssertion(() => Assert.Contains("5 added", back.Find(".summary").TextContent));
     }
 }

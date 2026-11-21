@@ -181,3 +181,14 @@ file only what it lacks (series, language, ISBN, authors, genres, cover).
 - **GIVEN** a not-owned "Dune" from a Goodreads import, marked want to read
 - **WHEN** a scan finds `dune.epub` whose metadata says "Dune" by Frank Herbert
 - **THEN** the library has one "Dune", now owned, still marked want to read
+
+### Requirement: Scan status survives leaving the page
+
+A library scan or Drive scan SHALL keep running when the user leaves the Sources page, and when the page is opened
+again it SHALL show the running scan's progress, or the last scan's summary or failure.
+
+#### Scenario: Back during a scan
+
+- **GIVEN** a library scan at "12 of 40 files"
+- **WHEN** the user opens the Library page and then Sources again
+- **THEN** Sources shows the scan's progress, and its summary when it finishes

@@ -739,6 +739,7 @@ internal static class TestServices
         FakeAppWindow? window = null,
         FakeWindowKeys? keys = null)
     {
+        services.AddSingleton<ScanStatus>();
         services.AddSingleton<IAppWindow>(window ?? new FakeAppWindow());
         services.AddSingleton<IWindowKeys>(keys ?? new FakeWindowKeys());
         services.AddSingleton<ReaderCompanion.Core.Drive.IDriveAccount>(drive ?? new FakeDriveAccount());

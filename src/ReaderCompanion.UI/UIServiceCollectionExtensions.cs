@@ -12,6 +12,7 @@ public static class UIServiceCollectionExtensions
         services.AddScoped<ISystemTheme, JsSystemTheme>();
         services.AddScoped<IWindowKeys, JsWindowKeys>();
         services.TryAddSingleton<IAppWindow, NoAppWindow>();
+        services.AddSingleton<ScanStatus>();
         return services;
     }
 }
