@@ -7,7 +7,7 @@ internal sealed record GoogleClient(string ClientId, string ClientSecret);
 
 internal static class GoogleClientConfig
 {
-    /// <summary>Google's download, renamed; kept out of the repository.</summary>
+    /// <summary>Google's download, renamed; committed encrypted with git-crypt (unusable until unlocked).</summary>
     public const string FileName = "google-oauth-client.json";
 
     /// <summary>The client from the first of <paramref name="folders"/> holding a usable file, or null.</summary>

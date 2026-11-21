@@ -353,6 +353,7 @@ public sealed class GoogleClientConfigTests : IDisposable
     [Theory]
     [InlineData(null)]
     [InlineData("{ damaged")]
+    [InlineData("\0GITCRYPT\0locked")] // a clone without the git-crypt key
     [InlineData("""{"web":{"client_id":"x","client_secret":"y"}}""")]
     [InlineData("""{"installed":{"client_id":"","client_secret":"y"}}""")]
     public void MissingOrUnusable_GivesNone(string? content)

@@ -1,0 +1,2 @@
+# Secrets stored encrypted (git-crypt); see docs/releasing.md.
+google-oauth-client.json filter=git-crypt diff=git-crypt

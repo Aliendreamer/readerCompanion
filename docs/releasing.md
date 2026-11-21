@@ -25,5 +25,14 @@ needs the WebView2 runtime (part of Windows 11). Installers (MSI/MSIX, AppImage,
 
 Drive linking needs the app's OAuth client: in Google Cloud, create an OAuth client of type **Desktop app**, enable
 the Google Drive API (and the Google Picker API), download the JSON and save it as `google-oauth-client.json` in the
-repository root. Builds and packages copy it next to the executable; it is git-ignored and must never be committed.
-Without it, the Sources page says Drive is not set up in this build. The file can also be placed in the data folder.
+repository root. Builds and packages copy it next to the executable. Without it (or while it is still encrypted),
+the Sources page says Drive is not set up in this build. The file can also be placed in the data folder.
+
+The file is committed encrypted with [git-crypt](https://github.com/AGWA/git-crypt) (`.gitattributes`). The
+pre-commit hook refuses to commit it unencrypted.
+
+- First time: `git-crypt init`, then export the key and keep it outside the repository (e.g. in a password
+  manager): `git-crypt export-key ~/readerCompanion-git-crypt.key`. Check with `git-crypt status -e` after adding
+  the file.
+- A fresh clone: `git-crypt unlock ~/readerCompanion-git-crypt.key`. Without the key the file stays encrypted and
+  the build simply has no Drive.

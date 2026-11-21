@@ -26,6 +26,3 @@ TestResults/
 # Node dev tooling
 node_modules/
 artifacts/
-
-# Google OAuth client for Drive (the developer's own; never committed)
-google-oauth-client.json
