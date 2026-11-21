@@ -317,7 +317,6 @@ svg {
 
 .browse-search,
 .browse-select select,
-.filter-select,
 .edit-form input,
 .edit-form textarea,
 .collection-add input,
@@ -335,7 +334,6 @@ svg {
 
 .browse-search:focus,
 .browse-select select:focus,
-.filter-select:focus,
 .edit-form input:focus,
 .edit-form textarea:focus,
 .collection-add input:focus,
@@ -357,7 +355,6 @@ svg {
   accent-color: var(--accent);
 }
 
-.filter-picker,
 .panel-collections .chips {
   display: inline-flex;
   flex-wrap: wrap;
@@ -365,11 +362,121 @@ svg {
   gap: 0.35rem;
 }
 
-.filter-select {
-  max-width: 14rem;
-  padding: 0.3rem 0.5rem;
+/* Filter dropdowns: a button that opens a checklist; picked values stay inside, ticked. */
+.filter-picker {
+  position: relative;
+}
+
+.filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.filter-toggle:hover,
+.filter-toggle[aria-expanded="true"] {
+  border-color: var(--accent);
+}
+
+.filter-toggle.active {
+  color: var(--text);
+}
+
+.filter-count {
+  min-width: 1.3rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.3rem;
+  text-align: center;
+}
+
+.filter-caret {
+  width: 0.6rem;
+  height: 0.4rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.filter-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.filter-menu {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  left: 0;
+  z-index: 41;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 14rem;
+  max-width: 22rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.filter-search {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.filter-search:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.filter-options {
+  max-height: 18rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.filter-option:hover {
+  background: var(--surface-muted);
+}
+
+.filter-option input {
+  accent-color: var(--accent);
+}
+
+.filter-clear {
+  align-self: flex-end;
 }
 
 .chip {

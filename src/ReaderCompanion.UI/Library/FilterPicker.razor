@@ -1,67 +1,104 @@
 @typeparam TValue where TValue : notnull
 
-@* A dropdown of the values not yet picked, followed by the picked values as removable chips. *@
+@* A dropdown button that opens a checklist: the picked values stay in it, ticked. Long lists get a search box. *@
 
 @if (Options.Count > 0)
 {
   <div class="filter-picker">
-    <select id="@Id" class="filter-select" aria-label="Filter by @Label.ToLowerInvariant()" @key="_resets"
-            @ref="_select" @onchange="Add">
-      <option value="" selected>+ @Label</option>
-      @foreach (var option in Options.Where(o => !Picked.Contains(o)))
+    <button id="@Id" type="button" class="filter-toggle @(Picked.Count > 0 ? "active" : "")" aria-haspopup="true"
+            aria-expanded="@(_open ? "true" : "false")" @onclick="Toggle">
+      @Label
+      @if (Picked.Count > 0)
       {
-        <option value="@Text(option)">@Text(option)</option>
+        <span class="filter-count" aria-label="@($"{Picked.Count} picked")">@Picked.Count</span>
       }
-    </select>
-    @foreach (var value in Picked)
+      <svg class="filter-caret" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
+    </button>
+
+    @if (_open)
     {
-      <RemovableChip Text="@Text(value)" RemoveLabel="@($"Remove {Label.ToLowerInvariant()} {Text(value)}")"
-                     OnRemove="() => Remove(value)" />
+      <div class="filter-backdrop" @onclick="Close"></div>
+      <div id="@($"{Id}-menu")" class="filter-menu" role="group" aria-label="@Label" @onkeydown="OnKeyDown">
+        @if (Options.Count >= SearchFrom)
+        {
+          <input class="filter-search" type="search" placeholder="Find…" aria-label="Find @Label.ToLowerInvariant()"
+                 @ref="_search" @bind="_find" @bind:event="oninput" />
+        }
+        <ul class="filter-options">
+          @foreach (var option in Shown)
+          {
+            <li>
+              <label class="filter-option">
+                <input type="checkbox" checked="@Picked.Contains(option)" @onchange="e => SetAsync(option, e.Value is true)" />
+                @Text(option)
+              </label>
+            </li>
+          }
+        </ul>
+        @if (Picked.Count > 0)
+        {
+          <button type="button" class="filter-clear btn btn-small" @onclick="ClearAsync">Clear</button>
+        }
+      </div>
     }
   </div>
 }
 
 @code {
+  /// <summary>From this many options on, the list gets a search box.</summary>
+  private const int SearchFrom = 8;
+
   [Parameter, EditorRequired] public string Id { get; set; } = "";
 
   [Parameter, EditorRequired] public string Label { get; set; } = "";
 
   [Parameter, EditorRequired] public IReadOnlyList<TValue> Options { get; set; } = [];
 
-  /// <summary>How a value reads on screen; also identifies it in the dropdown.</summary>
+  /// <summary>How a value reads on screen.</summary>
   [Parameter] public Func<TValue, string> Text { get; set; } = v => v.ToString() ?? "";
 
   [Parameter] public IReadOnlyCollection<TValue> Picked { get; set; } = [];
 
   [Parameter] public EventCallback<IReadOnlyCollection<TValue>> PickedChanged { get; set; }
 
-  private ElementReference _select;
+  private bool _open;
+  private bool _focusSearch;
+  private string _find = "";
+  private ElementReference _search;
 
-  // Bumped after a pick so the dropdown is rebuilt showing its "+ Label" prompt; focus then returns to it.
-  private int _resets;
-  private bool _refocus;
+  private IEnumerable<TValue> Shown => _find.Length == 0
+    ? Options
+    : Options.Where(o => Text(o).Contains(_find, StringComparison.CurrentCultureIgnoreCase));
 
-  private Task Add(ChangeEventArgs e)
+  private void Toggle()
   {
-    var text = e.Value as string;
-    if (Options.Where(o => Text(o) == text).Take(1).ToList() is not [var picked] || Picked.Contains(picked))
-    {
-      return Task.CompletedTask;
-    }
-
-    _resets++;
-    _refocus = true;
-    return PickedChanged.InvokeAsync([.. Picked, picked]);
+    _open = !_open;
+    _find = "";
+    _focusSearch = _open;
   }
 
-  private Task Remove(TValue value) => PickedChanged.InvokeAsync([.. Picked.Where(v => !v.Equals(value))]);
+  private void Close() => _open = false;
+
+  private void OnKeyDown(KeyboardEventArgs e)
+  {
+    if (e.Key == "Escape")
+    {
+      Close();
+    }
+  }
+
+  private Task SetAsync(TValue value, bool on) => PickedChanged.InvokeAsync(on
+    ? [.. Picked.Where(v => !v.Equals(value)), value]
+    : [.. Picked.Where(v => !v.Equals(value))]);
+
+  private Task ClearAsync() => PickedChanged.InvokeAsync([]);
 
   protected override async Task OnAfterRenderAsync(bool firstRender)
   {
-    if (_refocus)
+    if (_focusSearch && Options.Count >= SearchFrom)
     {
-      _refocus = false;
-      await _select.FocusAsync();
+      _focusSearch = false;
+      await _search.FocusAsync();
     }
   }
 }

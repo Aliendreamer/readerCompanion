@@ -135,14 +135,14 @@ public class BookPanelTests : BunitContext
     public void Closing_KeepsTheFilters()
     {
         var cut = RenderHome();
-        cut.Find("#filter-genre").Change("Fantasy");
+        FilterSteps.Pick(cut, "filter-genre", "Fantasy");
         OpenBook(cut, "Mort");
 
         cut.Find("#panel-close").Click();
 
         Assert.Empty(cut.FindAll(".book-panel"));
         Assert.Equal(["Mort"], cut.FindAll(".book-title").Select(e => e.TextContent));
-        Assert.Contains("Fantasy", cut.Find(".chip").TextContent);
+        Assert.Equal(["Fantasy"], FilterSteps.Ticked(cut, "filter-genre"));
     }
 
     [Fact]
@@ -337,7 +337,7 @@ public class BookPanelTests : BunitContext
 
         cut.WaitForAssertion(() => Assert.Contains("Book club", cut.Find(".panel-collections").TextContent));
         Assert.Equal("", cut.Find("#collection-name").GetAttribute("value"));
-        cut.WaitForAssertion(() => Assert.Contains("Book club", cut.FindAll("#filter-collection option").Select(o => o.TextContent)));
+        cut.WaitForAssertion(() => Assert.Contains("Book club", FilterSteps.Options(cut, "filter-collection")));
     }
 
     [Fact]

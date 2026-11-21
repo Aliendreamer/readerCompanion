@@ -31,31 +31,52 @@ public class BrowseTests : BunitContext
     // ---------- 3.1 bar ----------
 
     [Fact]
-    public void PickingAGenre_Narrows_AndRemovingTheChip_RestoresAll()
+    public void PickingAGenre_Narrows_AndUntickingIt_RestoresAll()
     {
         var cut = RenderHome();
 
-        cut.Find("#filter-genre").Change("Science Fiction");
+        FilterSteps.Pick(cut, "filter-genre", "Science Fiction");
 
         Assert.Equal(["Dune"], Titles(cut));
-        var chip = cut.Find(".chip");
-        Assert.Contains("Science Fiction", chip.TextContent);
+        Assert.Contains("1", cut.Find("#filter-genre .filter-count").TextContent);
+        Assert.Empty(cut.FindAll(".chip")); // the choice stays inside the dropdown
 
-        chip.Click();
+        FilterSteps.Pick(cut, "filter-genre", "Science Fiction", on: false);
 
         Assert.Equal(3, Titles(cut).Count);
-        Assert.Empty(cut.FindAll(".chip"));
+        Assert.Empty(cut.FindAll("#filter-genre .filter-count"));
     }
 
     [Fact]
-    public void PickedValue_LeavesThePickerList()
+    public void PickedValues_StayTickedInTheList_WhichClosesOnEscapeOrOutside()
     {
         var cut = RenderHome();
 
-        cut.Find("#filter-author").Change("Neil Gaiman");
+        FilterSteps.Pick(cut, "filter-author", "Neil Gaiman");
+        FilterSteps.Pick(cut, "filter-author", "Frank Herbert"); // still open: several can be ticked
 
-        Assert.DoesNotContain("Neil Gaiman", cut.FindAll("#filter-author option").Select(o => o.TextContent));
-        Assert.Equal(["Good Omens"], Titles(cut));
+        Assert.Equal(["Frank Herbert", "Neil Gaiman", "Terry Pratchett"], FilterSteps.Options(cut, "filter-author"));
+        Assert.Equal(["Frank Herbert", "Neil Gaiman"], FilterSteps.Ticked(cut, "filter-author"));
+        Assert.Equal(["Dune", "Good Omens"], Titles(cut));
+
+        cut.Find("#filter-author-menu").KeyDown("Escape");
+        Assert.Empty(cut.FindAll("#filter-author-menu"));
+
+        FilterSteps.Open(cut, "filter-author");
+        cut.Find(".filter-backdrop").Click();
+        Assert.Empty(cut.FindAll("#filter-author-menu"));
+    }
+
+    [Fact]
+    public void FilterMenu_ClearUnticksAll()
+    {
+        var cut = RenderHome();
+        FilterSteps.Pick(cut, "filter-genre", "Fantasy");
+
+        cut.Find("#filter-genre-menu .filter-clear").Click();
+
+        Assert.Equal(3, Titles(cut).Count);
+        Assert.Empty(FilterSteps.Ticked(cut, "filter-genre"));
     }
 
     [Fact]
@@ -73,11 +94,11 @@ public class BrowseTests : BunitContext
     {
         var cut = RenderHome();
 
-        cut.Find("#filter-collection").Change("Discworld");
+        FilterSteps.Pick(cut, "filter-collection", "Discworld");
         Assert.Equal(["Mort"], Titles(cut));
         cut.Find("#clear-filters").Click();
 
-        cut.Find("#filter-format").Change("EPUB");
+        FilterSteps.Pick(cut, "filter-format", "EPUB");
         Assert.Equal(["Dune", "Good Omens"], Titles(cut));
 
         cut.Find("#browse-missing").Change(true);
@@ -92,7 +113,7 @@ public class BrowseTests : BunitContext
 
         Assert.Equal("Read", cut.Find(".status-badge").TextContent);
 
-        cut.Find("#filter-status").Change("Read");
+        FilterSteps.Pick(cut, "filter-status", "Read");
 
         Assert.Equal(["Dune"], Titles(cut));
     }
@@ -158,7 +179,7 @@ public class BrowseTests : BunitContext
         var cut = RenderHome();
         Assert.Equal("3 books", cut.Find(".book-count").TextContent);
 
-        cut.Find("#filter-genre").Change("Fantasy");
+        FilterSteps.Pick(cut, "filter-genre", "Fantasy");
 
         Assert.Equal("2 of 3 books", cut.Find(".book-count").TextContent);
     }
@@ -171,7 +192,7 @@ public class BrowseTests : BunitContext
         cut.Find("#browse-group").Change(nameof(LibraryGroup.Genre));
         cut.Find("#browse-sort").Change(nameof(LibrarySort.DateAdded));
         var saves = _preferences.Saves;
-        cut.Find("#filter-genre").Change("Fantasy");
+        FilterSteps.Pick(cut, "filter-genre", "Fantasy");
         cut.Find("#browse-search").Input("mort");
 
         Assert.Equal(LibraryGroup.Genre, _preferences.Current.LibraryGroup);
