@@ -44,6 +44,9 @@ public static class BookText
     /// <summary>A UTC time as the local day people read: 4 Mar 2026.</summary>
     public static string Date(DateTime utc) => utc.ToLocalTime().ToString("d MMM yyyy", CultureInfo.InvariantCulture);
 
+    /// <summary>A moment in local time, e.g. "21 Nov 2026, 14:30".</summary>
+    public static string DateTime(DateTime utc) => utc.ToLocalTime().ToString("d MMM yyyy, HH:mm", CultureInfo.InvariantCulture);
+
     /// <summary>A series position as people write it: 4, 2.5.</summary>
     public static string SeriesNumber(decimal index) => index.ToString("0.##", CultureInfo.InvariantCulture);
 

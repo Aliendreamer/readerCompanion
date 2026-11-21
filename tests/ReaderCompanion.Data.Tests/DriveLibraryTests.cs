@@ -19,7 +19,8 @@ public sealed class DriveLibraryTests : IDisposable
         _library.Services.GetRequiredService<LibraryDataPaths>(),
         _library.Services.GetRequiredService<LibraryWriteGate>(),
         _account,
-        new GoogleDriveFiles(_account, _drive.Client()));
+        new GoogleDriveFiles(_account, _drive.Client()),
+        _library.Services.GetRequiredService<ReaderCompanion.Core.Preferences.IAppPreferences>());
 
     private static byte[] Epub(string title) => TestEpub.Build($"<dc:title>{title}</dc:title>").ToArray();
 
@@ -54,6 +55,37 @@ public sealed class DriveLibraryTests : IDisposable
         Assert.Equal((2, 2), (checking[^1].FilesProcessed, checking[^1].FilesFound));
         Assert.Equal(new ReaderCompanion.Core.Scanning.ScanProgress(2, 2), reports[^1]); // reading, done
         Assert.True(reports.IndexOf(listing[^1]) < reports.IndexOf(checking[0]));
+    }
+
+    [Fact]
+    public async Task Scan_ListsUpToTenFoldersAtOnce_AndFindsEveryBook()
+    {
+        var books = await AddBooksFolderAsync();
+        for (var i = 0; i < 15; i++)
+        {
+            var folder = _drive.Folder($"Shelf {i}", books);
+            _drive.File($"Book {i}.epub", folder, Epub($"Book {i}"));
+        }
+
+        _drive.ListingTakes = TimeSpan.FromMilliseconds(40);
+
+        var summary = await Drive.ScanAsync(cancellationToken: Token);
+
+        Assert.Equal(15, summary.Added);
+        Assert.InRange(_drive.MaxListingsAtOnce, 2, 10);
+    }
+
+    [Fact]
+    public async Task Scan_RemembersWhenItLastSucceeded()
+    {
+        var preferences = _library.Services.GetRequiredService<ReaderCompanion.Core.Preferences.IAppPreferences>();
+        Assert.Null(preferences.Current.DriveLastScanUtc);
+        await AddBooksFolderAsync();
+        var before = DateTime.UtcNow;
+
+        await Drive.ScanAsync(cancellationToken: Token);
+
+        Assert.InRange(preferences.Current.DriveLastScanUtc!.Value, before, DateTime.UtcNow);
     }
 
     [Fact]

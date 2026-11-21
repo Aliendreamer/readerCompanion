@@ -14,6 +14,7 @@
   else if (Drive.Link is { } link)
   {
     <p>Linked as @(link.AccountName ?? "your Google account") · @DriveText.AccessLabel(link.Access)</p>
+    <p class="muted drive-last-scan">@(Preferences.Current.DriveLastScanUtc is { } scanned ? $"Last scan: {BookText.DateTime(scanned)}" : "Not scanned yet")</p>
 
     @if (_sources.Count > 0)
     {
@@ -22,6 +23,7 @@
         {
           <li>
             <span class="folder-path drive-source-name">@source.Name</span>
+            <span class="muted drive-source-added">added @BookText.Date(source.AddedUtc)</span>
             <button type="button" class="btn btn-small drive-source-remove" disabled="@_busy"
                     @onclick="() => RemoveAsync(source)">Remove</button>
           </li>

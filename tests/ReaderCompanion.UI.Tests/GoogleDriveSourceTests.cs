@@ -103,6 +103,22 @@ public class GoogleDriveSourceTests : BunitContext
     }
 
     [Fact]
+    public void Card_ShowsTheLastScan_AndWhenEachSourceWasAdded()
+    {
+        var added = new DateTime(2026, 11, 21, 9, 0, 0, DateTimeKind.Utc);
+        _library.Sources.Add(new DriveSource { Id = 1, DriveId = "books", Name = "Books", Kind = DriveSourceKind.Folder, AddedUtc = added });
+        var cut = RenderLinked(DriveAccess.WholeDrive);
+        Assert.Equal("Not scanned yet", cut.Find(".drive-last-scan").TextContent);
+        Assert.Equal($"added {BookText.Date(added)}", cut.Find(".drive-source-added").TextContent);
+
+        var scanned = new DateTime(2026, 11, 22, 14, 30, 0, DateTimeKind.Utc);
+        _preferences.Save(_preferences.Current with { DriveLastScanUtc = scanned });
+        cut.Render();
+
+        Assert.Equal($"Last scan: {BookText.DateTime(scanned)}", cut.Find(".drive-last-scan").TextContent);
+    }
+
+    [Fact]
     public void ScanDrive_NeedsASource()
     {
         var cut = RenderLinked(DriveAccess.WholeDrive);

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ReaderCompanion.Core.Drive;
 using ReaderCompanion.Core.Library;
 using ReaderCompanion.Core.Metadata;
+using ReaderCompanion.Core.Preferences;
 using ReaderCompanion.Core.Scanning;
 
 namespace ReaderCompanion.Data;
@@ -13,8 +14,13 @@ internal sealed class DriveLibrary(
     LibraryDataPaths paths,
     LibraryWriteGate gate,
     IDriveAccount account,
-    GoogleDriveFiles files) : IDriveLibrary
+    GoogleDriveFiles files,
+    IAppPreferences preferences) : IDriveLibrary
 {
+    /// <summary>Drive folders listed at once: about 2,000–3,000 requests a minute at Drive's usual speed, well
+    /// within Google's 12,000 per user.</summary>
+    private const int ListingsAtOnce = 10;
+
     public async Task<IReadOnlyList<DriveSource>> ListSourcesAsync(CancellationToken cancellationToken = default)
     {
         await using var db = await contexts.CreateDbContextAsync(cancellationToken);
@@ -93,7 +99,9 @@ internal sealed class DriveLibrary(
         try
         {
             // Off the caller's thread: the catalog is written synchronously, like a local scan.
-            return await Task.Run(() => ScanCoreAsync(temp.FullName, progress, cancellationToken), cancellationToken);
+            var summary = await Task.Run(() => ScanCoreAsync(temp.FullName, progress, cancellationToken), cancellationToken);
+            preferences.Save(preferences.Current with { DriveLastScanUtc = DateTime.UtcNow });
+            return summary;
         }
         finally
         {
@@ -276,28 +284,53 @@ internal sealed class DriveLibrary(
         }
     }
 
+    /// <summary>Lists a folder tree, up to <see cref="ListingsAtOnce"/> folders at a time: each free slot takes the
+    /// next waiting folder, so a deep tree keeps them all busy. Results are merged here, one folder at a time.</summary>
     private async Task ListFolderAsync(
         DriveSource source, Dictionary<string, (DriveItem, string)> listed, Action folderListed, CancellationToken cancellationToken)
     {
-        var folders = new Queue<(string Id, string Display)>([(source.DriveId, source.Name)]);
-        while (folders.TryDequeue(out var folder))
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var waiting = new Queue<(string Id, string Display)>([(source.DriveId, source.Name)]);
+        var running = new List<Task<((string Id, string Display) Folder, IReadOnlyList<DriveItem> Children)>>();
+        try
         {
-            foreach (var child in await files.ListChildrenAsync(folder.Id, foldersOnly: false, cancellationToken))
+            while (waiting.Count > 0 || running.Count > 0)
             {
-                var display = $"{folder.Display}/{child.Name}";
-                if (child.IsFolder)
+                while (waiting.Count > 0 && running.Count < ListingsAtOnce)
                 {
-                    folders.Enqueue((child.Id, display));
+                    running.Add(ListOneAsync(waiting.Dequeue(), stop.Token));
                 }
-                else if (BookMetadataReader.IsSupported(child.Name))
-                {
-                    listed.TryAdd(child.Id, (child, display));
-                }
-            }
 
-            folderListed();
+                var done = await Task.WhenAny(running);
+                running.Remove(done);
+                var (folder, children) = await done;
+                foreach (var child in children)
+                {
+                    var display = $"{folder.Display}/{child.Name}";
+                    if (child.IsFolder)
+                    {
+                        waiting.Enqueue((child.Id, display));
+                    }
+                    else if (BookMetadataReader.IsSupported(child.Name)
+                        && (!listed.TryGetValue(child.Id, out var seen) || string.CompareOrdinal(display, seen.Item2) < 0))
+                    {
+                        listed[child.Id] = (child, display); // a file in two folders: the same path whatever the timing
+                    }
+                }
+
+                folderListed();
+            }
+        }
+        catch
+        {
+            await stop.CancelAsync(); // the others are not needed any more
+            throw;
         }
     }
+
+    private async Task<((string Id, string Display) Folder, IReadOnlyList<DriveItem> Children)> ListOneAsync(
+        (string Id, string Display) folder, CancellationToken cancellationToken) =>
+        (folder, await files.ListChildrenAsync(folder.Id, foldersOnly: false, cancellationToken));
 
     private static bool Covers(DriveSource source, BookFile file) => source.Kind == DriveSourceKind.File
         ? file.DriveFileId == source.DriveId

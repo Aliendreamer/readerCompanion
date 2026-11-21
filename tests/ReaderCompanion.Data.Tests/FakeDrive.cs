@@ -35,7 +35,39 @@ internal sealed class FakeDrive
 
     public static string Sha256(byte[] content) => Convert.ToHexStringLower(SHA256.HashData(content));
 
-    public HttpClient Client() => new(new FakeHandler(Answer));
+    public HttpClient Client() => new(new FakeHandler(AnswerAsync));
+
+    /// <summary>How long a folder listing takes; with a delay, <see cref="MaxListingsAtOnce"/> shows how many ran
+    /// together.</summary>
+    public TimeSpan ListingTakes { get; set; }
+
+    public int MaxListingsAtOnce { get; private set; }
+
+    private int _listing;
+
+    private async Task<HttpResponseMessage> AnswerAsync(HttpRequestMessage request)
+    {
+        if (ListingTakes == TimeSpan.Zero || request.Method != HttpMethod.Get || !request.RequestUri!.Query.Contains("q=", StringComparison.Ordinal))
+        {
+            return Answer(request);
+        }
+
+        var now = Interlocked.Increment(ref _listing);
+        lock (Items)
+        {
+            MaxListingsAtOnce = Math.Max(MaxListingsAtOnce, now);
+        }
+
+        try
+        {
+            await Task.Delay(ListingTakes);
+            return Answer(request);
+        }
+        finally
+        {
+            Interlocked.Decrement(ref _listing);
+        }
+    }
 
     private string Add(string name, string parent, byte[]? content)
     {

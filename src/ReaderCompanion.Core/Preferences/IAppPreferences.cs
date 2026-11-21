@@ -49,7 +49,8 @@ public sealed record AppPreferences(
     bool OnlineCovers = false,
     DriveAccess DriveAccess = DriveAccess.WholeDrive,
     int TextSize = 115,
-    bool SystemTitleBar = false)
+    bool SystemTitleBar = false,
+    DateTime? DriveLastScanUtc = null)
 {
     /// <summary>The text sizes offered, in percent of the web view's normal size.</summary>
     public static IReadOnlyList<int> TextSizes { get; } = [100, 115, 130, 150];
