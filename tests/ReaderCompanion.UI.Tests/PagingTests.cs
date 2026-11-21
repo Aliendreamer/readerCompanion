@@ -99,7 +99,7 @@ public class PagingTests : BunitContext
     public void FilterOptions_ListAPageAtATime_AndASearchStartsOver()
     {
         string[] authors = [.. Enumerable.Range(1, 300).Select(i => $"Author {i:000}")];
-        var cut = Render<FilterPicker<string>>(p => p.Add(c => c.Id, "filter-author").Add(c => c.Label, "Author").Add(c => c.Options, authors));
+        var cut = Render<FilterSection<string>>(p => p.Add(c => c.Id, "filter-author").Add(c => c.Label, "Authors").Add(c => c.Options, authors));
 
         FilterSteps.Open(cut, "filter-author");
         Assert.Equal(120, cut.FindAll("#filter-author-menu .filter-option").Count);

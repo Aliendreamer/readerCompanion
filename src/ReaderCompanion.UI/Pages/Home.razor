@@ -29,19 +29,16 @@ else if (_books.Count == 0)
 else
 {
   @* The Library as panes: the books (the only part that scrolls), and the details of the chosen book on the right. *@
-  <div class="workspace @(_selected is null ? null : "has-selection")">
+  <div class="workspace @(_selected is null ? null : "has-selection") @(_treeOpen ? "tree-open" : null)">
+    <div class="workspace-tree">
+      <FilterTree Query="Query" QueryChanged="ChangeQuery" Options="_options" Clear="ClearFilters" />
+    </div>
     <div class="workspace-books">
       @if (ReminderDue)
       {
         @Reminder
       }
-      <BrowseBar Query="Query" QueryChanged="ChangeQuery" Options="_options" View="View" ViewChanged="ChangeView" />
-      @if (Query.IsNarrowed)
-      {
-        <div class="browse-summary">
-          <button id="clear-filters" type="button" class="link-button" @onclick="ClearFilters">Clear filters</button>
-        </div>
-      }
+      <BrowseBar Query="Query" QueryChanged="ChangeQuery" View="View" ViewChanged="ChangeView" ToggleFilters="() => _treeOpen = !_treeOpen" />
 
       @if (_result.Shown == 0)
       {
@@ -80,6 +77,7 @@ else
   private BrowseQuery _filters = new();
   private BrowseResult _result = new(0, 0, []);
   private int? _selected;
+  private bool _treeOpen; // on a narrow window, where the tree is hidden until asked for
   private bool _reminderDismissed; // until the app restarts
 
   // A large library is built a page at a time, more as the list nears the view; a new search starts again. Kept here

@@ -1,0 +1,44 @@
+@using ReaderCompanion.Core.Library
+
+@* The Library's filters as a tree: a section per kind of value, then the missing-file switch. Any picked value within
+   a section matches; every section must match. *@
+
+<div class="filter-tree">
+  @if (Query.IsNarrowed)
+  {
+    <button id="clear-filters" type="button" class="link-button" @onclick="() => Clear.InvokeAsync()">Clear filters</button>
+  }
+  <FilterSection TValue="string" Id="filter-genre" Label="Genres" Options="Options.Genres" Picked="Query.Genres"
+                 PickedChanged="v => Change(Query with { Genres = v })" />
+  <FilterSection TValue="string" Id="filter-author" Label="Authors" Options="Options.Authors" Picked="Query.Authors"
+                 PickedChanged="v => Change(Query with { Authors = v })" />
+  <FilterSection TValue="string" Id="filter-collection" Label="Collections" Options="Options.Collections"
+                 Picked="Query.Collections" PickedChanged="v => Change(Query with { Collections = v })" />
+  <FilterSection TValue="BookFormat" Id="filter-format" Label="Formats" Options="Options.Formats" Picked="Query.Formats"
+                 Text="BookText.FormatLabel" PickedChanged="v => Change(Query with { Formats = v })" />
+  <FilterSection TValue="ReadStatus" Id="filter-status" Label="Status" Options="AllStatuses" Picked="Query.Statuses"
+                 Text="BookText.StatusLabel" PickedChanged="v => Change(Query with { Statuses = v })" />
+  <FilterSection TValue="Shelf" Id="filter-shelf" Label="Owned / wanted" Options="AllShelves" Picked="Query.Shelves"
+                 PickedChanged="v => Change(Query with { Shelves = v })" />
+  <label class="browse-check filter-missing">
+    <input id="browse-missing" type="checkbox" checked="@Query.MissingOnly"
+           @onchange="e => Change(Query with { MissingOnly = e.Value is true })" />
+    Missing file only
+  </label>
+</div>
+
+@code {
+  [Parameter, EditorRequired] public BrowseQuery Query { get; set; } = new();
+
+  [Parameter] public EventCallback<BrowseQuery> QueryChanged { get; set; }
+
+  [Parameter, EditorRequired] public BrowseOptions Options { get; set; } = BrowseOptions.Empty;
+
+  /// <summary>Clears every filter and the search.</summary>
+  [Parameter] public EventCallback Clear { get; set; }
+
+  private static readonly IReadOnlyList<ReadStatus> AllStatuses = Enum.GetValues<ReadStatus>();
+  private static readonly IReadOnlyList<Shelf> AllShelves = Enum.GetValues<Shelf>();
+
+  private Task Change(BrowseQuery query) => QueryChanged.InvokeAsync(query);
+}

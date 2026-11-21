@@ -3,6 +3,7 @@
 
 <div class="browse-bar">
   <div class="browse-row">
+    <button id="filters-toggle" type="button" class="btn filters-toggle" @onclick="() => ToggleFilters.InvokeAsync()">Filters</button>
     <input id="browse-search" class="browse-search" type="search" placeholder="Search title or author…"
            aria-label="Search title or author" value="@Query.Search"
            @oninput="e => Change(Query with { Search = e.Value as string ?? string.Empty })" />
@@ -27,33 +28,12 @@
     </label>
     <ViewToggle Value="View" ValueChanged="ViewChanged" />
   </div>
-  <div class="browse-row filters">
-    <FilterPicker TValue="string" Id="filter-genre" Label="Genre" Options="Options.Genres" Picked="Query.Genres"
-                  PickedChanged="v => Change(Query with { Genres = v })" />
-    <FilterPicker TValue="string" Id="filter-author" Label="Author" Options="Options.Authors" Picked="Query.Authors"
-                  PickedChanged="v => Change(Query with { Authors = v })" />
-    <FilterPicker TValue="string" Id="filter-collection" Label="Collection" Options="Options.Collections"
-                  Picked="Query.Collections" PickedChanged="v => Change(Query with { Collections = v })" />
-    <FilterPicker TValue="BookFormat" Id="filter-format" Label="Format" Options="Options.Formats" Picked="Query.Formats"
-                  Text="BookText.FormatLabel" PickedChanged="v => Change(Query with { Formats = v })" />
-    <FilterPicker TValue="ReadStatus" Id="filter-status" Label="Status" Options="AllStatuses" Picked="Query.Statuses"
-                  Text="BookText.StatusLabel" PickedChanged="v => Change(Query with { Statuses = v })" />
-    <FilterPicker TValue="Shelf" Id="filter-shelf" Label="Owned / wanted" Options="AllShelves" Picked="Query.Shelves"
-                  PickedChanged="v => Change(Query with { Shelves = v })" />
-    <label class="browse-check">
-      <input id="browse-missing" type="checkbox" checked="@Query.MissingOnly"
-             @onchange="e => Change(Query with { MissingOnly = e.Value is true })" />
-      Missing file only
-    </label>
-  </div>
 </div>
 
 @code {
   [Parameter, EditorRequired] public BrowseQuery Query { get; set; } = new();
 
   [Parameter] public EventCallback<BrowseQuery> QueryChanged { get; set; }
-
-  [Parameter, EditorRequired] public BrowseOptions Options { get; set; } = BrowseOptions.Empty;
 
   [Parameter] public LibraryView View { get; set; }
 
@@ -62,8 +42,8 @@
   // Grouped by collection, books always read in series order, so the sort has no effect.
   private bool SortFixed => Query.Group == LibraryGroup.Collection;
 
-  private static readonly IReadOnlyList<ReadStatus> AllStatuses = Enum.GetValues<ReadStatus>();
-  private static readonly IReadOnlyList<Shelf> AllShelves = Enum.GetValues<Shelf>();
+  /// <summary>Shows or hides the filter tree on a narrow window (the button is shown only there).</summary>
+  [Parameter] public EventCallback ToggleFilters { get; set; }
 
   private Task Change(BrowseQuery query) => QueryChanged.InvokeAsync(query);
 

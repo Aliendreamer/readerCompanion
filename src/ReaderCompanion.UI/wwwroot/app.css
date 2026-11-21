@@ -1264,7 +1264,90 @@ main:has(> .workspace) {
   position: absolute;
   inset: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--panel-width);
+  grid-template-columns: 16rem minmax(0, 1fr) var(--panel-width);
+}
+
+/* Left: the filter tree. */
+.workspace-tree {
+  overflow-y: auto;
+  padding: 0.75rem 0.5rem 1.5rem;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+}
+
+.filter-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.filter-tree #clear-filters {
+  align-self: flex-start;
+  margin: 0 0.5rem 0.4rem;
+}
+
+.filter-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.filter-section-header:hover {
+  background: var(--surface-muted);
+}
+
+.filter-section-header .filter-caret {
+  transform: rotate(-90deg);
+  transition: transform 0.1s;
+}
+
+.filter-section-header[aria-expanded="true"] .filter-caret {
+  transform: none;
+}
+
+.filter-section-size {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.filter-section-header .filter-count {
+  margin-left: auto;
+}
+
+.filter-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.1rem 0.25rem 0.5rem 1.4rem;
+}
+
+.filter-section-body .filter-options {
+  max-height: none;
+}
+
+.filter-section-body .filter-clear {
+  align-self: flex-start;
+  font-size: 0.85rem;
+}
+
+.filter-missing {
+  padding: 0.5rem;
+}
+
+/* The Filters button is only for narrow windows, where the tree hides. */
+.filters-toggle {
+  display: none;
 }
 
 .workspace-books {
@@ -1297,7 +1380,7 @@ main:has(> .workspace) {
    chosen. */
 @media (max-width: 1000px) {
   .workspace {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: 14rem minmax(0, 1fr);
   }
 
   .workspace-details {
@@ -1820,4 +1903,30 @@ main:has(> .workspace) {
 
 .organise-progress .progress-text {
   margin: 0 0 0.5rem;
+}
+
+/* Narrower still (about 760 px of page): the tree hides behind the Filters button and opens over the books. */
+@media (max-width: 760px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .workspace-tree {
+    display: none;
+  }
+
+  .workspace.tree-open .workspace-tree {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 9;
+    display: block;
+    width: min(16rem, 85%);
+    box-shadow: 8px 0 24px rgb(0 0 0 / 12%);
+  }
+
+  .filters-toggle {
+    display: inline-flex;
+  }
 }

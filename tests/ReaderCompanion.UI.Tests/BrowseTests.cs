@@ -49,7 +49,7 @@ public class BrowseTests : BunitContext
     }
 
     [Fact]
-    public void PickedValues_StayTickedInTheList_WhichClosesOnEscapeOrOutside()
+    public void PickedValues_StayTickedInTheList_AndTheSectionCloses()
     {
         var cut = RenderHome();
 
@@ -60,12 +60,9 @@ public class BrowseTests : BunitContext
         Assert.Equal(["Frank Herbert", "Neil Gaiman"], FilterSteps.Ticked(cut, "filter-author"));
         Assert.Equal(["Dune", "Good Omens"], Titles(cut));
 
-        cut.Find("#filter-author-menu").KeyDown("Escape");
+        cut.Find("#filter-author").Click(); // the section's header closes it; its picks stay
         Assert.Empty(cut.FindAll("#filter-author-menu"));
-
-        FilterSteps.Open(cut, "filter-author");
-        cut.Find(".filter-backdrop").Click();
-        Assert.Empty(cut.FindAll("#filter-author-menu"));
+        Assert.Equal(["Dune", "Good Omens"], Titles(cut));
     }
 
     [Fact]

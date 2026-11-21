@@ -15,6 +15,7 @@ public static class UIServiceCollectionExtensions
         services.TryAddSingleton<IAppWindow, NoAppWindow>();
         services.AddSingleton<ScanStatus>();
         services.AddSingleton<LibraryStatus>();
+        services.AddSingleton<Library.FilterTreeState>();
         return services;
     }
 }

@@ -3,16 +3,20 @@ using ReaderCompanion.UI.Library;
 
 namespace ReaderCompanion.UI.Tests;
 
-public class FilterPickerTests : BunitContext
+public class FilterSectionTests : BunitContext
 {
-    public FilterPickerTests() => Services.AddSingleton<IInView>(new FakeInView());
+    public FilterSectionTests()
+    {
+        Services.AddSingleton<IInView>(new FakeInView());
+        Services.AddSingleton<FilterTreeState>();
+    }
 
     private static readonly string[] Authors = [.. Enumerable.Range(1, 12).Select(i => $"Author {i:00}")];
 
     [Fact]
     public void LongList_HasASearch_ThatNarrowsTheOptions()
     {
-        var cut = Render<FilterPicker<string>>(p => p
+        var cut = Render<FilterSection<string>>(p => p
             .Add(c => c.Id, "filter-author").Add(c => c.Label, "Author").Add(c => c.Options, Authors));
 
         FilterSteps.Open(cut, "filter-author");
@@ -24,7 +28,7 @@ public class FilterPickerTests : BunitContext
     [Fact]
     public void ShortList_HasNoSearch()
     {
-        var cut = Render<FilterPicker<string>>(p => p
+        var cut = Render<FilterSection<string>>(p => p
             .Add(c => c.Id, "filter-genre").Add(c => c.Label, "Genre").Add(c => c.Options, ["Fantasy", "Horror"]));
 
         FilterSteps.Open(cut, "filter-genre");

@@ -1,28 +1,30 @@
 @typeparam TValue where TValue : notnull
+@inject FilterTreeState Tree
 
-@* A dropdown button that opens a checklist: the picked values stay in it, ticked. Long lists get a search box. *@
+@* One section of the filter tree: a header that opens and closes it, and its values as ticks. The picked values stay
+   ticked in the list; long lists get a find box and are shown a page at a time. *@
 
 @if (Options.Count > 0)
 {
-  <div class="filter-picker">
-    <button id="@Id" type="button" class="filter-toggle @(Picked.Count > 0 ? "active" : "")" aria-haspopup="true"
-            aria-expanded="@(_open ? "true" : "false")" @onclick="Toggle">
-      @Label
+  <div class="filter-section">
+    <button id="@Id" type="button" class="filter-section-header" aria-expanded="@(IsOpen ? "true" : "false")"
+            @onclick="() => Tree.Toggle(Id)">
+      <svg class="filter-caret" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
+      <span class="filter-section-name">@Label</span>
+      <span class="filter-section-size">(@Options.Count)</span>
       @if (Picked.Count > 0)
       {
         <span class="filter-count" aria-label="@($"{Picked.Count} picked")">@Picked.Count</span>
       }
-      <svg class="filter-caret" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
     </button>
 
-    @if (_open)
+    @if (IsOpen)
     {
-      <div class="filter-backdrop" @onclick="Close"></div>
-      <div id="@($"{Id}-menu")" class="filter-menu" role="group" aria-label="@Label" @onkeydown="OnKeyDown">
+      <div id="@($"{Id}-menu")" class="filter-section-body" role="group" aria-label="@Label">
         @if (Options.Count >= SearchFrom)
         {
           <input class="filter-search" type="search" placeholder="Find…" aria-label="Find @Label.ToLowerInvariant()"
-                 @ref="_search" @bind="_find" @bind:event="oninput" />
+                 @bind="_find" @bind:event="oninput" />
         }
         <ul class="filter-options">
           @foreach (var option in _pager.Page(Shown))
@@ -38,7 +40,7 @@
         <MoreMarker Shown="_pager.Shown(Shown.Count)" Total="Shown.Count" OnMore="_pager.More" />
         @if (Picked.Count > 0)
         {
-          <button type="button" class="filter-clear btn btn-small" @onclick="ClearAsync">Clear</button>
+          <button type="button" class="filter-clear link-button" @onclick="ClearAsync">Clear</button>
         }
       </div>
     }
@@ -46,7 +48,7 @@
 }
 
 @code {
-  /// <summary>From this many options on, the list gets a search box.</summary>
+  /// <summary>From this many options on, the section gets a find box.</summary>
   private const int SearchFrom = 8;
 
   [Parameter, EditorRequired] public string Id { get; set; } = "";
@@ -62,14 +64,12 @@
 
   [Parameter] public EventCallback<IReadOnlyCollection<TValue>> PickedChanged { get; set; }
 
-  private bool _open;
-  private bool _focusSearch;
   private string _find = "";
-  private ElementReference _search;
-
   private readonly Pager _pager = new();
   private IReadOnlyList<TValue> _shown = [];
   private (IReadOnlyList<TValue> Options, string Find)? _shownFor;
+
+  private bool IsOpen => Tree.IsOpen(Id);
 
   // The same list object while the options and the search stay the same, so ticking keeps the page; a new search
   // gives a new list, which starts again from the first page.
@@ -87,35 +87,9 @@
     }
   }
 
-  private void Toggle()
-  {
-    _open = !_open;
-    _find = "";
-    _focusSearch = _open;
-  }
-
-  private void Close() => _open = false;
-
-  private void OnKeyDown(KeyboardEventArgs e)
-  {
-    if (e.Key == "Escape")
-    {
-      Close();
-    }
-  }
-
   private Task SetAsync(TValue value, bool on) => PickedChanged.InvokeAsync(on
     ? [.. Picked.Where(v => !v.Equals(value)), value]
     : [.. Picked.Where(v => !v.Equals(value))]);
 
   private Task ClearAsync() => PickedChanged.InvokeAsync([]);
-
-  protected override async Task OnAfterRenderAsync(bool firstRender)
-  {
-    if (_focusSearch && Options.Count >= SearchFrom)
-    {
-      _focusSearch = false;
-      await _search.FocusAsync();
-    }
-  }
 }
