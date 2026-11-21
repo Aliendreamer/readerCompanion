@@ -10,7 +10,7 @@ internal static class KnownFiles
     public static (List<KnownFile> Local, List<KnownFile> Drive) Load(LibraryDbContext db)
     {
         var all = db.BookFiles.AsNoTracking()
-            .Select(f => new { File = new KnownFile(f.Id, f.BookId, f.Path, f.SizeBytes, f.LastWriteUtc, f.ContentHash, f.Status), OnDrive = f.DriveFileId != null })
+            .Select(f => new { File = new KnownFile(f.Id, f.BookId, f.Path, f.SizeBytes, f.LastWriteUtc, f.ContentHash, f.Status) { Unreadable = f.Unreadable }, OnDrive = f.DriveFileId != null })
             .ToLookup(f => f.OnDrive, f => f.File);
         return ([.. all[false]], [.. all[true]]);
     }

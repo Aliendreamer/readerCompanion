@@ -36,6 +36,16 @@ public class ScanReconcilerTests
     }
 
     [Fact]
+    public void SamePathSameContent_ThatCouldNotBeRead_IsReadAgain()
+    {
+        var file = Known(1, 1, "/b/a.epub", "h1") with { Unreadable = true };
+
+        var plan = Plan([file], [Found("/b/a.epub", "h1")]);
+
+        Assert.Equal([new UpdateContent(file, Found("/b/a.epub", "h1"))], plan.Actions);
+    }
+
+    [Fact]
     public void SameContentNewPath_IsMoved()
     {
         var file = Known(1, 1, "/b/old.epub", "h1");

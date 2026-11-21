@@ -41,7 +41,9 @@ public static class ScanReconciler
             }
             else if (k.ContentHash == f.ContentHash)
             {
-                actions.Add(k.Status == FileStatus.Missing ? new Reappear(k) : new KeepFile(k));
+                actions.Add(k.Unreadable ? new UpdateContent(k, f) // read again: last time's failure may have passed
+                    : k.Status == FileStatus.Missing ? new Reappear(k)
+                    : new KeepFile(k));
                 presentAfterScan.Add(k.FileId);
             }
             else

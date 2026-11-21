@@ -123,6 +123,7 @@ public class SourcesTests : BunitContext
             Assert.Contains("1 moved", summary);
             Assert.Contains("2 marked missing", summary);
             Assert.Contains("/books/broken.epub", summary);
+            Assert.Contains("bad zip", summary); // why it could not be read
             Assert.Contains("/usb/books", summary);
         });
         Assert.False(cut.Find("#scan").HasAttribute("disabled"));

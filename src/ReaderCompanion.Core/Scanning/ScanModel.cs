@@ -3,7 +3,12 @@ using ReaderCompanion.Core.Library;
 namespace ReaderCompanion.Core.Scanning;
 
 /// <summary>A file location the library already knows about.</summary>
-public sealed record KnownFile(int FileId, int BookId, string Path, long SizeBytes, DateTime LastWriteUtc, string ContentHash, FileStatus Status);
+/// <summary>A file the library has. <see cref="Unreadable"/>: its details could not be read last time, so the next
+/// scan reads it again.</summary>
+public sealed record KnownFile(int FileId, int BookId, string Path, long SizeBytes, DateTime LastWriteUtc, string ContentHash, FileStatus Status)
+{
+    public bool Unreadable { get; init; }
+}
 
 /// <summary>A supported file found during this scan, on disk or (with <paramref name="DriveFileId"/>) on Drive.</summary>
 public sealed record FoundFile(string Path, long SizeBytes, DateTime LastWriteUtc, string ContentHash, string? DriveFileId = null);

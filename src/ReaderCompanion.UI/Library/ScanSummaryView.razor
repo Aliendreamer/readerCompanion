@@ -6,11 +6,11 @@
   </p>
   @if (Summary.Unreadable.Count > 0)
   {
-    <p>Could not be read (kept, titled from the file name):</p>
+    <p>Could not be read (kept, titled from the file name; tried again on the next scan):</p>
     <ul>
       @foreach (var file in Summary.Unreadable)
       {
-        <li>@BookText.FileLocation(file.Path)</li>
+        <li>@BookText.FileLocation(file.Path) <span class="muted unreadable-reason">— @file.Reason</span></li>
       }
     </ul>
   }
