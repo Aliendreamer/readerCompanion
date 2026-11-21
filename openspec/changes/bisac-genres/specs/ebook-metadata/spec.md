@@ -7,7 +7,10 @@
 For an EPUB file the app SHALL read, from the package metadata: title, authors (in order), language, ISBN,
 series name and position, genres, and the cover image when present. Genres SHALL come from the subjects
 (`dc:subject`) mapped onto the app's fixed list of BISAC main headings, by their words or BISAC codes; subjects that
-are not a genre on that list SHALL be dropped.
+are not a genre on that list SHALL be dropped. FictionBook genre codes ("sf_fantasy") SHALL be looked up whole in the
+FB2 genre list, never read as words; codes that name no genre, such as "prose_classic", SHALL give none. "Classics"
+SHALL come only from a subject that says just that ("Classics", "Classic", "Classic Literature"), not from
+"classic fantasy".
 
 #### Scenario: Fully tagged EPUB
 

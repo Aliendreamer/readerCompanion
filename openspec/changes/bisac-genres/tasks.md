@@ -20,3 +20,8 @@
 
 - [x] 4.1 `SeriesName.Clean` for the dotted "(#N of M)" form — Core tests from the real names
 - [x] 4.2 Scans clean it; existing books fixed at start (`CatalogCleanup`) — Data tests
+
+## 5. After a first look
+
+- [x] 5.1 FB2 genre codes looked up whole; "prose_classic" gives none; Classics only from whole subjects — Core tests
+- [x] 5.2 Every filter value shows its book count — LibraryBrowser + bUnit

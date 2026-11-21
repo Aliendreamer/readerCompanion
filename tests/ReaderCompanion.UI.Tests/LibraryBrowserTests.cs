@@ -123,14 +123,16 @@ public class LibraryBrowserTests
         [
             Dune with { ReadStatus = ReadStatus.Read },
             Mort with { ReadStatus = ReadStatus.WantToRead },
-            Book("Wanted") with { ReadStatus = ReadStatus.WantToRead, Owned = false },
-            Book("Also wanted") with { ReadStatus = ReadStatus.WantToRead, Owned = false },
+            Book("Wanted", ["Some Writer"], ["Fantasy"]) with { ReadStatus = ReadStatus.WantToRead, Owned = false },
+            Book("Also wanted", ["some writer"]) with { ReadStatus = ReadStatus.WantToRead, Owned = false },
         ]);
 
         Assert.Equal(1, options.StatusCounts[ReadStatus.Read]);
         Assert.Equal(3, options.StatusCounts[ReadStatus.WantToRead]);
         Assert.False(options.StatusCounts.ContainsKey(ReadStatus.Reading));
         Assert.Equal(1, options.WantToReadWithFiles);
+        Assert.Equal(2, options.AuthorCounts["Some Writer"]); // names counted as they are matched: ignoring case
+        Assert.Equal(2, options.GenreCounts["Fantasy"]); // Mort and Wanted
     }
 
     [Fact]

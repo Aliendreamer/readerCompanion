@@ -5,12 +5,12 @@
 ### Requirement: Filter by genre, author and collection
 
 The Library page SHALL show its filters as a tree in a pane on the left: sections Genres, Authors, Collections,
-Formats and Status, each listing the values present in the library with a tick on the picked ones,
-and a "Missing file only" tick line after them. Clicking a value SHALL pick or unpick it; several can be picked. Each
-section SHALL show how many values it has and SHALL open and close; every section SHALL start closed, remembered until
-the app closes. A section of 8 or more values SHALL have a find box. "Clear
-filters" SHALL be at the top of the tree when anything is picked. A book SHALL match a section when it has any of its
-picked values. Collections are the books' series and the user's own collections.
+Formats and Status, each listing the values present in the library with a tick on the picked ones, and a "Missing file
+only" tick line after them. Clicking a value SHALL pick or unpick it; several can be picked. Each value SHALL show how
+many books have it. Each section SHALL show how many values it has and SHALL open and close; every section SHALL start
+closed, remembered until the app closes. A section of 8 or more values SHALL have a find box. "Clear filters" SHALL be
+at the top of the tree when anything is picked. A book SHALL match a section when it has any of its picked values.
+Collections are the books' series and the user's own collections.
 
 #### Scenario: Two genres
 
@@ -45,8 +45,8 @@ picked values. Collections are the books' series and the user's own collections.
 ### Requirement: Reading and owned filters
 
 The Library page SHALL filter by reading status (several may be picked). Each status SHALL show how many books have
-it, and "Want to read" SHALL also show how many of those books have files and how many do not. Cards and table rows
-SHALL show a book's status unless it is not started.
+it, and "Want to read" SHALL also show, under it, how many of those books have files and how many do not. Cards and
+table rows SHALL show a book's status unless it is not started.
 
 #### Scenario: Have but not read
 
@@ -58,4 +58,4 @@ SHALL show a book's status unless it is not started.
 
 - **GIVEN** three want-to-read books, one of which has a file
 - **WHEN** the user opens the Status section
-- **THEN** "Want to read" reads "3 · 1 with files, 2 without"
+- **THEN** "Want to read" shows 3, and under it "1 with files, 2 without"

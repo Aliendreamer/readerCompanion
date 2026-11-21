@@ -49,6 +49,15 @@ public sealed record BrowseOptions(
 {
     public static readonly BrowseOptions Empty = new([], [], [], []);
 
+    /// <summary>How many books have each genre, author, collection or format: names ignore case, as filters do.</summary>
+    public IReadOnlyDictionary<string, int> GenreCounts { get; init; } = new Dictionary<string, int>();
+
+    public IReadOnlyDictionary<string, int> AuthorCounts { get; init; } = new Dictionary<string, int>();
+
+    public IReadOnlyDictionary<string, int> CollectionCounts { get; init; } = new Dictionary<string, int>();
+
+    public IReadOnlyDictionary<BookFormat, int> FormatCounts { get; init; } = new Dictionary<BookFormat, int>();
+
     /// <summary>How many books have each status; a status no book has is left out.</summary>
     public IReadOnlyDictionary<ReadStatus, int> StatusCounts { get; init; } = new Dictionary<ReadStatus, int>();
 
@@ -68,6 +77,10 @@ public static class LibraryBrowser
         Distinct(books.SelectMany(Collections)),
         [.. books.SelectMany(b => b.Formats).Distinct().Order()])
     {
+        GenreCounts = CountNames(books, b => b.Genres),
+        AuthorCounts = CountNames(books, b => b.Authors),
+        CollectionCounts = CountNames(books, Collections),
+        FormatCounts = books.SelectMany(b => b.Formats.Distinct()).CountBy(f => f).ToDictionary(),
         StatusCounts = books.CountBy(b => b.ReadStatus).ToDictionary(),
         WantToReadWithFiles = books.Count(b => b.ReadStatus == ReadStatus.WantToRead && b.Owned),
     };
@@ -148,6 +161,10 @@ public static class LibraryBrowser
 
         return named;
     }
+
+    // Each book counted once per name, however it is written.
+    private static Dictionary<string, int> CountNames(IReadOnlyList<BookListItem> books, Func<BookListItem, IEnumerable<string>> names) =>
+        books.SelectMany(b => names(b).Distinct(Names)).CountBy(n => n, Names).ToDictionary(Names);
 
     private static List<string> Distinct(IEnumerable<string> values) => [.. values.Distinct(Names).Order(Names)];
 }

@@ -44,6 +44,38 @@ public class GenreMapTests
     [InlineData("")]
     public void ASubjectThatIsNoGenre_IsDropped(string subject) => Assert.Empty(GenreMap.Map([subject]));
 
+    [Theory] // FictionBook (FB2) genre codes, as seen in a real library
+    [InlineData("sf_fantasy", "Fantasy")]
+    [InlineData("sf_heroic", "Fantasy")]
+    [InlineData("sf_social", "Science Fiction")]
+    [InlineData("sf_space", "Science Fiction")]
+    [InlineData("sf_cyberpunk", "Science Fiction")]
+    [InlineData("sf_history", "Science Fiction")]
+    [InlineData("prose_history", "Historical Fiction")]
+    [InlineData("adv_history", "Historical Fiction")]
+    [InlineData("det_crime", "Mystery & Crime")]
+    [InlineData("love_contemporary", "Romance")]
+    public void AnFb2Code_MapsToItsGenre(string code, string genre) => Assert.Equal([genre], GenreMap.Map([code]));
+
+    [Theory]
+    [InlineData("prose_classic")] // put on nearly every book by some converters: says nothing
+    [InlineData("prose_contemporary")]
+    [InlineData("sci_politics")]
+    public void AnFb2CodeThatIsNoGenre_IsDropped(string code) => Assert.Empty(GenreMap.Map([code]));
+
+    [Theory]
+    [InlineData("Classics")]
+    [InlineData("Classic")]
+    [InlineData("Classic Literature")]
+    public void Classics_OnlyWhenTheSubjectSaysJustThat(string subject) => Assert.Equal(["Classics"], GenreMap.Map([subject]));
+
+    [Fact]
+    public void ClassicAsAWordInAnotherSubject_IsNotClassics()
+    {
+        Assert.Equal(["Fantasy"], GenreMap.Map(["classic fantasy"]));
+        Assert.Empty(GenreMap.Map(["Literature - Classics"]));
+    }
+
     [Fact]
     public void SeveralSubjects_GiveEachGenreOnce_InTheListsOrder()
     {

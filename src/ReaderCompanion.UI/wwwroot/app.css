@@ -539,7 +539,19 @@ svg {
   list-style: none;
 }
 
-/* A count under a value ("3 · 1 with files, 2 without"), lined up with the value's text past the tick. */
+/* The value's name takes the room; its book count sits at the right edge. */
+.filter-option-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.filter-option-count {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A note under a value ("1 with files, 2 without"), lined up with the value's text past the tick. */
 .filter-note {
   display: block;
   padding: 0 0.45rem 0.3rem 2.1rem;
