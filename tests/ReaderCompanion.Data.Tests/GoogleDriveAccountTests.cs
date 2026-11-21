@@ -450,14 +450,17 @@ public sealed class GoogleClientConfigTests : IDisposable
     private readonly string _data = Directory.CreateTempSubdirectory("rc-data-").FullName;
 
     [Fact]
-    public void GooglesDownload_IsRead_AppFolderFirst()
+    public void ADataFolderFile_WinsOverTheBuiltInClient_WhichIsUsedOtherwise()
     {
-        File.WriteAllText(Path.Combine(_data, GoogleClientConfig.FileName), Download.Replace("id-1", "id-2", StringComparison.Ordinal));
-        Assert.Equal(new GoogleClient("id-2.apps.googleusercontent.com", "s-1"), GoogleClientConfig.TryLoad(_app, _data));
+        var builtIn = new GoogleClient("built-in.apps.googleusercontent.com", "s-0");
+        Assert.Equal(builtIn, GoogleClientConfig.Resolve(_data, () => builtIn));
 
-        File.WriteAllText(Path.Combine(_app, GoogleClientConfig.FileName), Download);
-        Assert.Equal(new GoogleClient("id-1.apps.googleusercontent.com", "s-1"), GoogleClientConfig.TryLoad(_app, _data));
+        File.WriteAllText(Path.Combine(_data, GoogleClientConfig.FileName), Download);
+        Assert.Equal(new GoogleClient("id-1.apps.googleusercontent.com", "s-1"), GoogleClientConfig.Resolve(_data, () => builtIn));
     }
+
+    [Fact]
+    public void NoFileAndNoBuiltInClient_GivesNone() => Assert.Null(GoogleClientConfig.Resolve(_data, () => null));
 
     [Theory]
     [InlineData(null)]

@@ -25,8 +25,20 @@ needs the WebView2 runtime (part of Windows 11). Installers (MSI/MSIX, AppImage,
 
 Drive linking needs the app's OAuth client: in Google Cloud, create an OAuth client of type **Desktop app**, enable
 the Google Drive API (and the Google Picker API), download the JSON and save it as `google-oauth-client.json` in the
-repository root. Builds and packages copy it next to the executable. Without it (or while it is still encrypted),
-the Sources page says Drive is not set up in this build. The file can also be placed in the data folder.
+repository root.
+
+The build compiles the client ID and secret into `ReaderCompanion.Client`, scrambled with a key made for each build,
+and Release builds obfuscate that assembly with [Obfuscar](https://www.obfuscar.com) (a local tool pinned in
+`dotnet-tools.json`; `dotnet tool restore` installs it). The JSON is never copied to any output. Without it (or while
+it is still encrypted), the Sources page says Drive is not set up in this build. Someone using their own Google client
+can put their `google-oauth-client.json` in the data folder; it wins over the built-in one.
+
+After packaging, `pnpm package:check` fails if any file under `artifacts/` is the client file or holds the client ID
+or secret as plain text. Run it before uploading a package.
+
+This keeps the client out of plain sight, not secret: a determined person can still recover it from the program, as
+with every desktop app. It gives no access to anyone's Drive (each user signs in and agrees); misuse is limited to the
+project's API quota and to imitating the app's name, both handled in Google Cloud (quota caps, replacing the client).
 
 The file is committed encrypted with [git-crypt](https://github.com/AGWA/git-crypt) (`.gitattributes`). The
 pre-commit hook refuses to commit it unencrypted.

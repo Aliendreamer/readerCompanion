@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ReaderCompanion.Core\ReaderCompanion.Core.csproj" />
+    <ProjectReference Include="..\ReaderCompanion.Client\ReaderCompanion.Client.csproj" />
   </ItemGroup>
 
   <ItemGroup>

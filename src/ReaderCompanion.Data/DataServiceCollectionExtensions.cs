@@ -38,7 +38,7 @@ public static class DataServiceCollectionExtensions
         services.AddSingleton(sp => new CoverStore(sp.GetRequiredService<LibraryDataPaths>()));
         // Tests register their own Drive first.
         services.TryAddSingleton<IDriveAccount>(sp => new GoogleDriveAccount(
-            GoogleClientConfig.TryLoad(AppContext.BaseDirectory, paths.DataFolder),
+            GoogleClientConfig.Resolve(paths.DataFolder, GoogleClientConfig.BuiltIn),
             new DriveTokenFile(
                 Path.Combine(paths.DataFolder, "drive-token.json"),
                 OperatingSystem.IsLinux() ? new LibsecretKeyring() : null), // Windows: DPAPI file

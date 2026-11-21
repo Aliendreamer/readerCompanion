@@ -13,6 +13,7 @@
     "release": "commit-and-tag-version",
     "release:dry": "commit-and-tag-version --dry-run",
     "package:linux": "dotnet publish src/ReaderCompanion.Desktop -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o artifacts/linux-x64",
+    "package:check": "python3 scripts/check-client-hidden.py artifacts",
     "package:windows": "dotnet publish src/ReaderCompanion.Desktop -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o artifacts/win-x64"
   },
   "devDependencies": {

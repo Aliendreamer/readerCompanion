@@ -7,8 +7,17 @@ internal sealed record GoogleClient(string ClientId, string ClientSecret);
 
 internal static class GoogleClientConfig
 {
-    /// <summary>Google's download, renamed; committed encrypted with git-crypt (unusable until unlocked).</summary>
+    /// <summary>Google's download, renamed; committed encrypted with git-crypt (unusable until unlocked). The build
+    /// compiles it into the program scrambled; a copy in the data folder overrides that.</summary>
     public const string FileName = "google-oauth-client.json";
+
+    /// <summary>The client from a usable file in <paramref name="dataFolder"/> (someone's own Google client), else the one
+    /// built into the program (<see cref="ReaderCompanion.Client.BuiltInClient"/>), else null.</summary>
+    public static GoogleClient? Resolve(string dataFolder, Func<GoogleClient?> builtIn) => TryLoad(dataFolder) ?? builtIn();
+
+    /// <summary>The client built into the program, if the build had one.</summary>
+    public static GoogleClient? BuiltIn() =>
+        ReaderCompanion.Client.BuiltInClient.TryGet() is var (id, secret) ? new GoogleClient(id, secret) : null;
 
     /// <summary>The client from the first of <paramref name="folders"/> holding a usable file, or null.</summary>
     public static GoogleClient? TryLoad(params string[] folders)

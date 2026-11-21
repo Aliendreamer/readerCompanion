@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/ReaderCompanion.Client/ReaderCompanion.Client.csproj" />
     <Project Path="src/ReaderCompanion.Core/ReaderCompanion.Core.csproj" />
     <Project Path="src/ReaderCompanion.Data/ReaderCompanion.Data.csproj" />
     <Project Path="src/ReaderCompanion.Desktop/ReaderCompanion.Desktop.csproj" />
