@@ -845,6 +845,13 @@ svg {
   flex-direction: column;
   gap: 0.15rem;
   min-width: 0;
+  /* Cards off screen are neither laid out nor painted, which keeps scrolling and resizing smooth in big libraries.
+     That also clips painting to the card, so the padding (cancelled by the margin) leaves room for the cover's
+     shadow and hover lift. "auto" remembers each card's real height once it has been shown. */
+  margin: -4px -16px -20px;
+  padding: 4px 16px 20px;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 300px;
 }
 
 .book-card-cover {
