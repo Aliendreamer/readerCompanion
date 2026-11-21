@@ -14,7 +14,7 @@ public sealed class DriveLibraryTests : IDisposable
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    private DriveLibrary Drive => new(
+    private DriveLibrary Drive => new DriveLibrary(
         _library.Services.GetRequiredService<IDbContextFactory<LibraryDbContext>>(),
         _library.Services.GetRequiredService<LibraryDataPaths>(),
         _library.Services.GetRequiredService<LibraryWriteGate>(),
@@ -168,12 +168,14 @@ public sealed class DriveLibraryTests : IDisposable
         Assert.Equal(["Alpha", "Beta"], Books().Select(b => b.Title));
         var file = Books()[0].Files.Single();
         Assert.Equal((a, "Books/A.epub"), (file.DriveFileId, DrivePath.Display(file.Path)));
-        Assert.Equal(2, _drive.Downloads.Count);
+        Assert.Empty(_drive.Downloads); // read in place, never downloaded whole
+        var reads = _drive.RangeReads.Count;
+        Assert.True(reads >= 2);
 
         var again = await Drive.ScanAsync(cancellationToken: Token);
 
         Assert.Equal((0, 0, 0, 0), (again.Added, again.Moved, again.Updated, again.MarkedMissing));
-        Assert.Equal(2, _drive.Downloads.Count); // nothing read again
+        Assert.Equal(reads, _drive.RangeReads.Count); // nothing read again
     }
 
     [Fact]
@@ -183,6 +185,7 @@ public sealed class DriveLibraryTests : IDisposable
         var a = _drive.File("A.epub", books, Epub("Alpha"));
         var b = _drive.File("B.epub", books, Epub("Beta"));
         await Drive.ScanAsync(cancellationToken: Token);
+        var reads = _drive.RangeReads.Count;
 
         _drive.Rename(a, "Alpha.epub");
         _drive.Delete(b);
@@ -192,7 +195,7 @@ public sealed class DriveLibraryTests : IDisposable
         var (alpha, beta) = (Books()[0].Files.Single(), Books()[1].Files.Single());
         Assert.Equal("Books/Alpha.epub", DrivePath.Display(alpha.Path));
         Assert.Equal(FileStatus.Missing, beta.Status);
-        Assert.Equal(2, _drive.Downloads.Count);
+        Assert.Equal(reads, _drive.RangeReads.Count); // a rename is not read again
     }
 
     [Fact]
@@ -216,6 +219,7 @@ public sealed class DriveLibraryTests : IDisposable
         var book = Assert.Single(Books());
         Assert.Equal(2, book.Files.Count);
         Assert.Empty(_drive.Downloads);
+        Assert.Empty(_drive.RangeReads);
     }
 
     [Fact]
@@ -229,7 +233,62 @@ public sealed class DriveLibraryTests : IDisposable
         await Drive.ScanAsync(cancellationToken: Token);
 
         Assert.Equal(FakeDrive.Sha256(content), Books().Single().Files.Single().ContentHash);
-        Assert.Equal(2, _drive.Downloads.Count); // once to hash (deleted at once), once to read
+        Assert.Single(_drive.Downloads); // whole, once, to hash (deleted at once); then read in place
+    }
+
+    [Fact]
+    public async Task Scan_ReadsALargeEpubsDetailsAndCover_WithoutDownloadingItWhole()
+    {
+        var books = await AddBooksFolderAsync();
+        var filler = new byte[600_000];
+        new Random(7).NextBytes(filler); // does not compress
+        var epub = TestEpub.Build(
+            "<dc:title>Big Book</dc:title><dc:creator>Ann Author</dc:creator>",
+            """<item id="c" href="cover.jpg" media-type="image/jpeg" properties="cover-image"/>""",
+            ("OEBPS/filler.bin", filler),
+            ("OEBPS/cover.jpg", [0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3])).ToArray();
+        _drive.File("Big.epub", books, epub);
+
+        await Drive.ScanAsync(cancellationToken: Token);
+
+        var book = Assert.Single(Books());
+        Assert.Equal("Big Book", book.Title);
+        Assert.NotNull(book.CoverFileName);
+        Assert.Empty(_drive.Downloads);
+        Assert.True(_drive.BytesServed < epub.Length / 4, $"{_drive.BytesServed} of {epub.Length} bytes read");
+    }
+
+    [Fact]
+    public async Task Scan_ReadsALargePdfsDetails_WithoutDownloadingItWhole()
+    {
+        var books = await AddBooksFolderAsync();
+        var pdf = TestPdf.Build("Big Manual", "Ann Author", pages: 400);
+        _drive.File("Big.pdf", books, pdf);
+
+        await Drive.ScanAsync(cancellationToken: Token);
+
+        var book = Assert.Single(Books());
+        Assert.Equal("Big Manual", book.Title);
+        Assert.Empty(_drive.Downloads);
+        Assert.True(_drive.BytesServed < pdf.Length / 2, $"{_drive.BytesServed} of {pdf.Length} bytes read");
+    }
+
+    [Fact]
+    public async Task Scan_ReadsUpToTenBooksAtOnce()
+    {
+        var books = await AddBooksFolderAsync();
+        for (var i = 0; i < 25; i++)
+        {
+            _drive.File($"Book {i}.epub", books, Epub($"Book {i}"));
+        }
+
+        _drive.FileReadTakes = TimeSpan.FromMilliseconds(30);
+
+        var summary = await Drive.ScanAsync(cancellationToken: Token);
+
+        Assert.Equal(25, summary.Added);
+        Assert.Equal(25, Books().Select(b => b.Title).Distinct().Count());
+        Assert.InRange(_drive.MaxFileReadsAtOnce, 2, 10);
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 using ReaderCompanion.Core.Drive;
 using ReaderCompanion.Core.Library;
@@ -17,6 +18,12 @@ internal sealed class DriveLibrary(
     GoogleDriveFiles files,
     IAppPreferences preferences) : IDriveLibrary
 {
+    /// <summary>Books read at once, each in a few small range requests.</summary>
+    private const int ReadsAtOnce = 10;
+
+    /// <summary>Plan actions handled per batch: their books are read together, then written.</summary>
+    private const int ReadBatch = 50;
+
     /// <summary>Drive folders listed at once: about 2,000–3,000 requests a minute at Drive's usual speed, well
     /// within Google's 12,000 per user.</summary>
     private const int ListingsAtOnce = 10;
@@ -199,29 +206,31 @@ internal sealed class DriveLibrary(
         IReadOnlyList<UnreadableFile> unreadable = [];
         if (plan.Actions.Any(a => a is not KeepFile))
         {
-            // One file at a time: downloaded, read, then deleted, so a first import never needs room for the whole
-            // Drive library.
-            string? current = null;
+            // Books are read in place (only the parts their details live in), up to ReadsAtOnce at a time, a batch at
+            // a time so covers waiting to be written stay few; the catalog is then changed in the plan's order.
             await using var db = await contexts.CreateDbContextAsync(cancellationToken);
-            var writer = new CatalogWriter(db, paths.CoversFolder, DateTime.UtcNow, _ => File.OpenRead(current!));
+            var readAhead = new ConcurrentDictionary<string, MetadataResult>(StringComparer.Ordinal);
+            var writer = new CatalogWriter(db, paths.CoversFolder, DateTime.UtcNow, readAhead: readAhead);
             var read = 0;
-            foreach (var action in plan.Actions)
+            foreach (var batch in plan.Actions.Chunk(ReadBatch))
             {
-                if (CatalogWriter.FileToRead(action) is { } file)
+                var files = batch.Select(CatalogWriter.FileToRead).OfType<FoundFile>();
+                await Parallel.ForEachAsync(
+                    files, new ParallelOptions { MaxDegreeOfParallelism = ReadsAtOnce, CancellationToken = cancellationToken },
+                    async (file, token) =>
+                    {
+                        readAhead[file.Path] = await ReadInPlaceAsync(listed[file.DriveFileId!].Item, file.Path, temp, token);
+                        progress?.Report(new ScanProgress(Interlocked.Increment(ref read), toRead));
+                    });
+                foreach (var action in batch)
                 {
-                    progress?.Report(new ScanProgress(read++, toRead));
-                    current = await DownloadToTempAsync(listed[file.DriveFileId!].Item, temp, cancellationToken);
-                    filesRead++;
+                    writer.Apply(action);
+                }
 
-                    writer.Apply(action);
-                    File.Delete(current);
-                }
-                else
-                {
-                    writer.Apply(action);
-                }
+                readAhead.Clear();
             }
 
+            filesRead += read;
             await db.SaveChangesAsync(cancellationToken);
             unreadable = writer.Unreadable;
             progress?.Report(new ScanProgress(toRead, toRead));
@@ -347,6 +356,50 @@ internal sealed class DriveLibrary(
             // Still open in a reader app: left for next time.
         }
     }
+
+    /// <summary>Reads a book's details through the bytes it needs, not a full download; a PDF this cannot follow is
+    /// downloaded whole and read as before. A failed network stops the scan (a reader would otherwise report the book
+    /// as broken).</summary>
+    private Task<MetadataResult> ReadInPlaceAsync(DriveItem item, string path, string temp, CancellationToken cancellationToken) =>
+        Task.Run(
+            async () =>
+            {
+                MetadataResult? result;
+                using (var stream = new DriveRangeStream(files, item.Id, item.Size, cancellationToken))
+                {
+                    try
+                    {
+                        result = BookMetadataReader.ReadInPlace(stream, path);
+                    }
+                    catch (IOException) when (stream.Failure is not null)
+                    {
+                        result = null;
+                    }
+
+                    if (stream.Failure is { } failure)
+                    {
+                        throw failure as DriveUnavailableException
+                            ?? new DriveUnavailableException($"{item.Name} could not be read from Google Drive.", failure);
+                    }
+                }
+
+                if (result is not null)
+                {
+                    return result;
+                }
+
+                var copy = await DownloadToTempAsync(item, temp, cancellationToken);
+                try
+                {
+                    await using var whole = File.OpenRead(copy);
+                    return BookMetadataReader.Read(whole, path);
+                }
+                finally
+                {
+                    File.Delete(copy);
+                }
+            },
+            cancellationToken);
 
     private async Task<string> DownloadToTempAsync(DriveItem item, string temp, CancellationToken cancellationToken)
     {

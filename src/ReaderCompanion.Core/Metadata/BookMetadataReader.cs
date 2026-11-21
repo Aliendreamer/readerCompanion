@@ -28,6 +28,21 @@ public static class BookMetadataReader
         }
     }
 
+    /// <summary>For a file read in place over a network, touching as little of it as possible: an EPUB as usual (its
+    /// ZIP directory leads straight to the parts needed), a PDF through its document information only. Null when a
+    /// PDF needs reading whole. Read failures of <paramref name="content"/> itself are not caught for PDFs.</summary>
+    public static MetadataResult? ReadInPlace(Stream content, string fileName)
+    {
+        if (FormatOf(fileName) == BookFormat.Epub)
+        {
+            return Read(content, fileName);
+        }
+
+        return PdfInfoReader.TryRead(content) is { } metadata
+            ? new MetadataResult(metadata with { Title = metadata.Title ?? Path.GetFileNameWithoutExtension(fileName) }, Unreadable: false)
+            : null;
+    }
+
     private static BookFormat? TryFormatOf(string fileName) =>
         Path.GetExtension(fileName).ToLowerInvariant() switch
         {

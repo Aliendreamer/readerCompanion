@@ -14,7 +14,22 @@ internal sealed class FakeDrive
 
     public Dictionary<string, Item> Items { get; } = new() { ["root"] = new Item("root", "My Drive", null, null) };
 
+    /// <summary>Whole-file downloads, by file id.</summary>
     public List<string> Downloads { get; } = [];
+
+    /// <summary>Byte-range reads, by file id.</summary>
+    public List<string> RangeReads { get; } = [];
+
+    /// <summary>All file bytes sent, whole or in ranges.</summary>
+    public long BytesServed { get; private set; }
+
+    /// <summary>How long a file request takes; with a delay, <see cref="MaxFileReadsAtOnce"/> shows how many ran
+    /// together.</summary>
+    public TimeSpan FileReadTakes { get; set; }
+
+    public int MaxFileReadsAtOnce { get; private set; }
+
+    private int _reading;
 
     /// <summary>When false, Drive's checksum is left out of answers, as for some files.</summary>
     public bool GivesChecksums { get; set; } = true;
@@ -47,6 +62,25 @@ internal sealed class FakeDrive
 
     private async Task<HttpResponseMessage> AnswerAsync(HttpRequestMessage request)
     {
+        if (FileReadTakes != TimeSpan.Zero && request.RequestUri!.Query.Contains("alt=media", StringComparison.Ordinal))
+        {
+            var reading = Interlocked.Increment(ref _reading);
+            lock (Items)
+            {
+                MaxFileReadsAtOnce = Math.Max(MaxFileReadsAtOnce, reading);
+            }
+
+            try
+            {
+                await Task.Delay(FileReadTakes);
+                return Answer(request);
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _reading);
+            }
+        }
+
         if (ListingTakes == TimeSpan.Zero || request.Method != HttpMethod.Get || !request.RequestUri!.Query.Contains("q=", StringComparison.Ordinal))
         {
             return Answer(request);
@@ -122,8 +156,29 @@ internal sealed class FakeDrive
 
         if (query.Contains("alt=media", StringComparison.Ordinal))
         {
-            Downloads.Add(id);
-            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(item.Content ?? []) };
+            var content = item.Content ?? [];
+            if (request.Headers.Range?.Ranges.SingleOrDefault() is { From: { } from } range)
+            {
+                var to = Math.Min(range.To ?? long.MaxValue, content.Length - 1);
+                var part = from > to ? [] : content[(int)from..(int)(to + 1)];
+                lock (Items)
+                {
+                    RangeReads.Add(id);
+                    BytesServed += part.Length;
+                }
+
+                var partial = new HttpResponseMessage(HttpStatusCode.PartialContent) { Content = new ByteArrayContent(part) };
+                partial.Content.Headers.ContentRange = new System.Net.Http.Headers.ContentRangeHeaderValue(from, to, content.Length);
+                return partial;
+            }
+
+            lock (Items)
+            {
+                Downloads.Add(id);
+                BytesServed += content.Length;
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(content) };
         }
 
         return Ok(Json(item));

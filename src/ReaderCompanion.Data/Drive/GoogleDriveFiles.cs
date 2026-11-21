@@ -78,6 +78,45 @@ internal sealed class GoogleDriveFiles(IDriveAccount account, HttpClient http)
         }
     }
 
+    /// <summary>Bytes <paramref name="from"/> to <paramref name="to"/> (inclusive) of the file; fewer at its end.</summary>
+    public async Task<byte[]> DownloadRangeAsync(string id, long from, long to, CancellationToken cancellationToken)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(ListTimeout);
+        try
+        {
+            using var response = await SendAsync(
+                HttpMethod.Get, $"{Api}/{Uri.EscapeDataString(id)}?alt=media&supportsAllDrives=true", null,
+                HttpCompletionOption.ResponseContentRead, timeout.Token, new RangeHeaderValue(from, to));
+            if (response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable)
+            {
+                return []; // past the end
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw Unavailable(response.StatusCode);
+            }
+
+            var bytes = await response.Content.ReadAsByteArrayAsync(timeout.Token);
+            if (response.StatusCode == HttpStatusCode.PartialContent)
+            {
+                return bytes;
+            }
+
+            // The whole file came back (no range support): keep the part asked for.
+            return from >= bytes.Length ? [] : bytes[(int)from..(int)Math.Min(bytes.Length, to + 1)];
+        }
+        catch (OperationCanceledException e) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new DriveUnavailableException("Google Drive did not answer in time.", e);
+        }
+        catch (HttpRequestException e)
+        {
+            throw new DriveUnavailableException("The download from Google Drive was interrupted.", e);
+        }
+    }
+
     /// <summary>Puts the file in Drive's trash, from where the user can restore it.</summary>
     public async Task TrashAsync(string id, CancellationToken cancellationToken)
     {
@@ -139,9 +178,11 @@ internal sealed class GoogleDriveFiles(IDriveAccount account, HttpClient http)
     }
 
     private async Task<HttpResponseMessage> SendAsync(
-        HttpMethod method, string url, HttpContent? content, HttpCompletionOption completion, CancellationToken cancellationToken)
+        HttpMethod method, string url, HttpContent? content, HttpCompletionOption completion, CancellationToken cancellationToken,
+        RangeHeaderValue? range = null)
     {
         using var request = new HttpRequestMessage(method, url) { Content = content };
+        request.Headers.Range = range;
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await account.GetAccessTokenAsync(cancellationToken));
         try
         {

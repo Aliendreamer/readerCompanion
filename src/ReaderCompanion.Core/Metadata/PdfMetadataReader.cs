@@ -12,14 +12,10 @@ public static class PdfMetadataReader
         using var document = PdfDocument.Open(pdf);
         var info = document.Information;
 
-        return new BookMetadata
-        {
-            Title = NameNormalizer.Clean(info.Title),
-            Authors = (info.Author ?? "")
-                .Split(AuthorSeparators)
-                .Select(NameNormalizer.Clean)
-                .OfType<string>()
-                .ToList(),
-        };
+        return new BookMetadata { Title = NameNormalizer.Clean(info.Title), Authors = Authors(info.Author) };
     }
+
+    /// <summary>The Author property's names: several are separated by ";" or "&amp;".</summary>
+    internal static List<string> Authors(string? author) =>
+        [.. (author ?? "").Split(AuthorSeparators).Select(NameNormalizer.Clean).OfType<string>()];
 }
