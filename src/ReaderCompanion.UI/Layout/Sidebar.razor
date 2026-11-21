@@ -1,5 +1,8 @@
+@inject IAppWindow Window
+
 <aside class="sidebar">
-  <div class="brand">
+  @* With the app's own frame, the brand is a handle for moving the window. *@
+  <div class="brand" @onmousedown="e => WindowFrame.PressOn(Window, e)">
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5zM4 21.5A2.5 2.5 0 0 0 6.5 24H20v-2.5" />
     </svg>

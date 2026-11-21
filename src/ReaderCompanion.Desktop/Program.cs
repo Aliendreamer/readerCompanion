@@ -36,6 +36,8 @@ internal static class Program
         builder.Services.AddSingleton<ICoverUrls, CoverUrls>();
         builder.Services.AddSingleton<IFileLauncher, ShellFileLauncher>();
         builder.Services.AddSingleton<IWebBrowser, ShellWebBrowser>();
+        var window = new PhotinoAppWindow();
+        builder.Services.AddSingleton<IAppWindow>(window); // after AddReaderCompanionUI, so it wins
         AddCoversToAppFiles(builder.Services);
         builder.RootComponents.Add<Routes>("#app");
 
@@ -46,9 +48,9 @@ internal static class Program
         var preferences = app.Services.GetRequiredService<IAppPreferences>();
         preferences.Changed += () => app.MainWindow.SetZoom(preferences.Current.TextSize);
 
+        window.Attach(app.MainWindow, ownFrame: !preferences.Current.SystemTitleBar);
         app.MainWindow
             .SetZoom(preferences.Current.TextSize)
-            .SetTitle("readerCompanion")
             .SetSize(1200, 800)
             .SetLogVerbosity(0)
             .RegisterWindowClosingHandler((_, _) =>

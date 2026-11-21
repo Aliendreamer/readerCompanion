@@ -114,6 +114,139 @@ main {
   padding: 1.75rem 2.25rem 3rem;
 }
 
+/* The app's own window frame: a title strip above the page, with the window buttons on the right. */
+.app.has-frame {
+  grid-template-rows: 2.25rem 1fr;
+}
+
+.app.has-frame .sidebar {
+  grid-row: 1 / span 2;
+}
+
+.app.has-frame main {
+  grid-column: 2;
+  grid-row: 2;
+  padding-top: 0.5rem;
+}
+
+.app.has-frame .brand {
+  cursor: default;
+  user-select: none;
+}
+
+.window-bar {
+  display: flex;
+  grid-column: 2;
+  grid-row: 1;
+  user-select: none;
+}
+
+.window-drag {
+  flex: 1;
+}
+
+.window-buttons {
+  display: flex;
+}
+
+.window-button {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.window-button svg {
+  width: 0.75rem;
+  height: 0.75rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.2;
+}
+
+.window-button:hover {
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
+.window-close:hover {
+  background: var(--danger);
+  color: var(--accent-contrast);
+}
+
+/* Invisible resize handles along the window's edges and corners. */
+.window-edge {
+  position: fixed;
+  z-index: 100;
+}
+
+.window-edge-north,
+.window-edge-south {
+  right: 8px;
+  left: 8px;
+  height: 5px;
+  cursor: ns-resize;
+}
+
+.window-edge-east,
+.window-edge-west {
+  top: 8px;
+  bottom: 8px;
+  width: 5px;
+  cursor: ew-resize;
+}
+
+.window-edge-north {
+  top: 0;
+}
+
+.window-edge-south {
+  bottom: 0;
+}
+
+.window-edge-east {
+  right: 0;
+}
+
+.window-edge-west {
+  left: 0;
+}
+
+.window-edge-northeast,
+.window-edge-northwest,
+.window-edge-southeast,
+.window-edge-southwest {
+  width: 10px;
+  height: 10px;
+}
+
+.window-edge-northwest {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+
+.window-edge-northeast {
+  top: 0;
+  right: 0;
+  cursor: nesw-resize;
+}
+
+.window-edge-southwest {
+  bottom: 0;
+  left: 0;
+  cursor: nesw-resize;
+}
+
+.window-edge-southeast {
+  right: 0;
+  bottom: 0;
+  cursor: nwse-resize;
+}
+
 h1,
 h2 {
   font-family: var(--font-serif);

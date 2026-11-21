@@ -715,8 +715,12 @@ internal static class TestServices
         FakeCoverFetcher? covers = null,
         FakeDriveAccount? drive = null,
         FakeDriveLibrary? driveLibrary = null,
-        FakeWebBrowser? browser = null)
+        FakeWebBrowser? browser = null,
+        FakeAppWindow? window = null,
+        FakeWindowKeys? keys = null)
     {
+        services.AddSingleton<IAppWindow>(window ?? new FakeAppWindow());
+        services.AddSingleton<IWindowKeys>(keys ?? new FakeWindowKeys());
         services.AddSingleton<ReaderCompanion.Core.Drive.IDriveAccount>(drive ?? new FakeDriveAccount());
         services.AddSingleton<ReaderCompanion.Core.Drive.IDriveLibrary>(driveLibrary ?? new FakeDriveLibrary());
         services.AddSingleton<ReaderCompanion.Core.Drive.IWebBrowser>(browser ?? new FakeWebBrowser());
@@ -743,5 +747,57 @@ internal static class TestServices
         services.AddSingleton<IAppPreferences>(preferences ?? new FakePreferences());
         services.AddSingleton<ISystemTheme>(systemTheme ?? new FakeSystemTheme());
         services.AddSingleton<ICoverUrls>(new FakeCoverUrls());
+    }
+}
+
+/// <summary>A window that records what the frame asks of it; its state is set by the test.</summary>
+internal sealed class FakeAppWindow : IAppWindow
+{
+    public bool HasOwnFrame { get; set; }
+
+    public bool IsMaximized { get; set; }
+
+    public bool IsFullScreen { get; set; }
+
+    public List<string> Calls { get; } = [];
+
+    public event Action? Changed;
+
+    /// <summary>Changes the state as the real window would, and says so.</summary>
+    public void Become(bool maximized = false, bool fullScreen = false)
+    {
+        IsMaximized = maximized;
+        IsFullScreen = fullScreen;
+        Changed?.Invoke();
+    }
+
+    public void Minimise() => Calls.Add("Minimise");
+
+    public void ToggleMaximise() => Calls.Add("ToggleMaximise");
+
+    public void ToggleFullScreen() => Calls.Add("ToggleFullScreen");
+
+    public void Close() => Calls.Add("Close");
+
+    public void BeginMove() => Calls.Add("BeginMove");
+
+    public void BeginResize(WindowEdge edge) => Calls.Add($"BeginResize {edge}");
+}
+
+internal sealed class FakeWindowKeys : IWindowKeys
+{
+    private Action<string>? _onKey;
+
+    public void Press(string key) => _onKey!(key);
+
+    public ValueTask<IAsyncDisposable> ListenAsync(Action<string> onKey)
+    {
+        _onKey = onKey;
+        return ValueTask.FromResult<IAsyncDisposable>(new Nothing());
+    }
+
+    private sealed class Nothing : IAsyncDisposable
+    {
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 }

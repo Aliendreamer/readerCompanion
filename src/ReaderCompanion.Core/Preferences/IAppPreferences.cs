@@ -48,7 +48,8 @@ public sealed record AppPreferences(
     int GoodreadsReminderMonths = 3,
     bool OnlineCovers = false,
     DriveAccess DriveAccess = DriveAccess.PickedFiles,
-    int TextSize = 115)
+    int TextSize = 115,
+    bool SystemTitleBar = false)
 {
     /// <summary>The text sizes offered, in percent of the web view's normal size.</summary>
     public static IReadOnlyList<int> TextSizes { get; } = [100, 115, 130, 150];

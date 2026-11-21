@@ -13,7 +13,7 @@ internal sealed class JsSystemTheme(IJSRuntime js) : ISystemTheme
     {
         var listener = DotNetObjectReference.Create(new Listener(onChange));
         var handle = await (await ModuleAsync()).InvokeAsync<IJSObjectReference>("listen", listener);
-        return new Subscription(handle, listener);
+        return new JsSubscription<Listener>(handle, listener);
     }
 
     // Not cached until it succeeds, so a failed import is retried next time.
@@ -24,26 +24,5 @@ internal sealed class JsSystemTheme(IJSRuntime js) : ISystemTheme
     {
         [JSInvokable]
         public void OnSystemThemeChanged(bool prefersDark) => onChange(prefersDark);
-    }
-
-    private sealed class Subscription(IJSObjectReference handle, DotNetObjectReference<Listener> listener)
-        : IAsyncDisposable
-    {
-        public async ValueTask DisposeAsync()
-        {
-            try
-            {
-                await handle.InvokeVoidAsync("dispose");
-                await handle.DisposeAsync();
-            }
-            catch (JSDisconnectedException)
-            {
-                // The window is closing; its listeners go with it.
-            }
-            finally
-            {
-                listener.Dispose();
-            }
-        }
     }
 }

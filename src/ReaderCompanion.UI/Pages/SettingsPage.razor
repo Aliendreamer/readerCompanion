@@ -33,6 +33,17 @@
   <p class="muted">Makes the whole window larger or smaller: menu, pages and covers.</p>
 </section>
 
+<section class="card settings-window">
+  <h2>Window</h2>
+  <label class="browse-check">
+    <input id="system-title-bar" type="checkbox" checked="@Preferences.Current.SystemTitleBar"
+           @onchange="e => Preferences.Save(Preferences.Current with { SystemTitleBar = e.Value is true })" />
+    Use the system title bar
+  </label>
+  <p class="muted">Instead of the app’s own frame. Takes effect after a restart. F11 switches full screen either
+    way.</p>
+</section>
+
 <section class="card settings-data">
   <h2>Data folder</h2>
   <p>Your library (books, details, collections, reading) and the covers are kept in:</p>

@@ -2,18 +2,28 @@
 @implements IDisposable
 @using ReaderCompanion.Core.Preferences
 @inject IAppPreferences Preferences
+@inject IAppWindow Window
 
-<div class="app" data-theme="@Preferences.Current.Theme.ToString().ToLowerInvariant()">
+<div class="app @(WindowFrame.Shown(Window) ? "has-frame" : "")" data-theme="@Preferences.Current.Theme.ToString().ToLowerInvariant()">
   <Sidebar />
+  <WindowFrame />
   <main>
     @Body
   </main>
 </div>
 
 @code {
-  protected override void OnInitialized() => Preferences.Changed += OnChanged;
+  protected override void OnInitialized()
+  {
+    Preferences.Changed += OnChanged;
+    Window.Changed += OnChanged;
+  }
 
   private void OnChanged() => InvokeAsync(StateHasChanged);
 
-  public void Dispose() => Preferences.Changed -= OnChanged;
+  public void Dispose()
+  {
+    Preferences.Changed -= OnChanged;
+    Window.Changed -= OnChanged;
+  }
 }

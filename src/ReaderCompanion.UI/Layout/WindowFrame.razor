@@ -1,0 +1,113 @@
+@implements IAsyncDisposable
+@inject IAppWindow Window
+@inject IWindowKeys Keys
+
+@* The app's own window frame: a title strip with the window buttons, and resize edges. F11 and Escape work with
+   either frame. *@
+
+@if (Shown(Window))
+{
+  <div class="window-bar">
+    <div class="window-drag" @onmousedown="Press"></div>
+    <div class="window-buttons">
+      <button id="window-fullscreen" type="button" class="window-button" title="Full screen (F11)"
+              aria-label="Full screen" @onclick="Window.ToggleFullScreen">
+        <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1 4V1h3M8 1h3v3M11 8v3H8M4 11H1V8" /></svg>
+      </button>
+      <button id="window-minimise" type="button" class="window-button" title="Minimise" aria-label="Minimise"
+              @onclick="Window.Minimise">
+        <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6.5h8" /></svg>
+      </button>
+      <button id="window-maximise" type="button" class="window-button" title="@MaximiseLabel"
+              aria-label="@MaximiseLabel" @onclick="Window.ToggleMaximise">
+        @if (Window.IsMaximized)
+        {
+          <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4h6v6H2zM4 4V2h6v6H8" /></svg>
+        }
+        else
+        {
+          <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2h8v8H2z" /></svg>
+        }
+      </button>
+      <button id="window-close" type="button" class="window-button window-close" title="Close" aria-label="Close"
+              @onclick="Window.Close">
+        <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" /></svg>
+      </button>
+    </div>
+  </div>
+
+  @if (!Window.IsMaximized)
+  {
+    @foreach (var edge in Enum.GetValues<WindowEdge>())
+    {
+      <div class="window-edge window-edge-@edge.ToString().ToLowerInvariant()" @onmousedown="e => Resize(e, edge)"></div>
+    }
+  }
+}
+
+@code {
+  private IAsyncDisposable? _keys;
+
+  /// <summary>Whether the app draws its frame now: not with the system's, and not in full screen.</summary>
+  public static bool Shown(IAppWindow window) => window.HasOwnFrame && !window.IsFullScreen;
+
+  /// <summary>A press on the strip moves the window; a double press maximises or restores it. (The window manager
+  /// takes over the pointer while moving, so the second press is counted here rather than as a dblclick.)</summary>
+  internal static void PressOn(IAppWindow window, MouseEventArgs e)
+  {
+    if (e.Button != 0)
+    {
+      return;
+    }
+
+    if (e.Detail >= 2)
+    {
+      window.ToggleMaximise();
+    }
+    else
+    {
+      window.BeginMove();
+    }
+  }
+
+  private string MaximiseLabel => Window.IsMaximized ? "Restore" : "Maximise";
+
+  protected override void OnInitialized() => Window.Changed += OnChanged;
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender)
+    {
+      _keys = await Keys.ListenAsync(key => InvokeAsync(() => OnKey(key)));
+    }
+  }
+
+  private void OnKey(string key)
+  {
+    if (key == "F11" || (key == "Escape" && Window.IsFullScreen))
+    {
+      Window.ToggleFullScreen();
+    }
+  }
+
+  private void Press(MouseEventArgs e) => PressOn(Window, e);
+
+  private void Resize(MouseEventArgs e, WindowEdge edge)
+  {
+    if (e.Button == 0)
+    {
+      Window.BeginResize(edge);
+    }
+  }
+
+  private void OnChanged() => InvokeAsync(StateHasChanged);
+
+  public async ValueTask DisposeAsync()
+  {
+    Window.Changed -= OnChanged;
+    if (_keys is not null)
+    {
+      await _keys.DisposeAsync();
+    }
+  }
+}
