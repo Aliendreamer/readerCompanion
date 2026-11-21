@@ -17,7 +17,7 @@ internal interface IBrowserSignIn
 /// <summary>Receives Google's redirect on <c>http://127.0.0.1:&lt;free port&gt;/</c>, as Google asks of desktop
 /// apps. Only the request carrying this sign-in's state is taken; anything else (a favicon, a stray request) gets a
 /// 404.</summary>
-internal sealed class LoopbackSignIn(IWebBrowser browser, TimeSpan timeout) : IBrowserSignIn
+internal sealed class LoopbackSignIn(IWebBrowser? browser, TimeSpan timeout) : IBrowserSignIn
 {
     private const string Page = """
         <!doctype html><html><head><meta charset="utf-8"><title>readerCompanion</title></head>
@@ -34,7 +34,7 @@ internal sealed class LoopbackSignIn(IWebBrowser browser, TimeSpan timeout) : IB
         listener.Prefixes.Add(redirectUri);
         listener.Start();
 
-        if (!browser.Open(request.AuthorizationUrl))
+        if (browser?.Open(request.AuthorizationUrl) != true)
         {
             throw new DriveSignInException("The browser could not be opened to sign in to Google.");
         }

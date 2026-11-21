@@ -20,6 +20,10 @@ public class BookPanelTests : BunitContext
     private readonly FakeTrash _trash = new();
     private readonly FakeDriveLibrary _drive = new();
     private readonly FakeWebBrowser _browser = new();
+    private readonly FakeDriveAccount _account = new()
+    {
+        Link = new ReaderCompanion.Core.Drive.DriveLink(ReaderCompanion.Core.Drive.DriveAccess.WholeDrive, null, DateTime.UtcNow),
+    };
 
     public BookPanelTests()
     {
@@ -36,7 +40,7 @@ public class BookPanelTests : BunitContext
             new BookFileInfo("/books/dune.pdf", BookFormat.Pdf, 2000, Present: true, Id: 12),
         ];
         Services.AddAppFakes(preferences: _preferences, libraryBooks: _libraryBooks, launcher: _launcher, reading: _reading, trash: _trash,
-            driveLibrary: _drive, browser: _browser);
+            driveLibrary: _drive, browser: _browser, drive: _account);
     }
 
     private IRenderedComponent<Home> RenderHome()
@@ -63,13 +67,37 @@ public class BookPanelTests : BunitContext
         var drive = cut.FindAll(".file-list li")[0];
         Assert.Equal("dune.epub", drive.QuerySelector(".file-name")!.TextContent);
         Assert.Equal("Google Drive › Books/SF", drive.QuerySelector(".file-folder-path")!.TextContent);
-        Assert.Null(drive.QuerySelector(".file-trash")); // Drive files are not trashed from here (yet)
         drive.QuerySelector(".file-open")!.Click();
         cut.WaitForAssertion(() => Assert.Equal(["/cache/11.epub"], _launcher.Opened));
         Assert.Equal([11], _drive.Downloaded);
 
         cut.FindAll(".file-list li")[0].QuerySelector(".file-folder")!.Click();
         Assert.Equal("https://drive.google.com/file/d/d1/view", Assert.Single(_browser.Opened).AbsoluteUri);
+    }
+
+    [Fact]
+    public void ADriveFile_GoesToDrivesTrash_OrSaysAccessIsReadOnly()
+    {
+        var cut = RenderHome();
+        OpenBook(cut, "Dune");
+
+        cut.FindAll(".file-list li")[0].QuerySelector(".file-trash")!.Click();
+        Assert.Contains("Google Drive trash", cut.Find(".file-trash-question").TextContent);
+        _libraryBooks.TrashAnswer = TrashResult.ReadOnly;
+        cut.Find(".file-trash-confirm").Click();
+
+        cut.WaitForAssertion(() => Assert.Contains("read only", cut.Find(".book-panel [role=alert]").TextContent));
+    }
+
+    [Fact]
+    public void ADriveFile_OffersNoTrash_WithReadOnlyAccess()
+    {
+        _account.Link = new ReaderCompanion.Core.Drive.DriveLink(ReaderCompanion.Core.Drive.DriveAccess.WholeDriveReadOnly, null, DateTime.UtcNow);
+        var cut = RenderHome();
+        OpenBook(cut, "Dune");
+
+        Assert.Null(cut.FindAll(".file-list li")[0].QuerySelector(".file-trash"));
+        Assert.NotNull(cut.FindAll(".file-list li")[1].QuerySelector(".file-trash")); // the local copy still can
     }
 
     [Fact]

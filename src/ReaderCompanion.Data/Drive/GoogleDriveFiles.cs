@@ -1,13 +1,15 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json;
 using ReaderCompanion.Core.Drive;
 
 namespace ReaderCompanion.Data;
 
 /// <summary>A file or folder on Drive. <see cref="Sha256"/> is Drive's checksum, when it has one.</summary>
-internal sealed record DriveItem(string Id, string Name, bool IsFolder, long Size, DateTime ModifiedUtc, string? Sha256);
+internal sealed record DriveItem(
+    string Id, string Name, bool IsFolder, long Size, DateTime ModifiedUtc, string? Sha256, IReadOnlyList<string> Parents);
 
 /// <summary>The few Drive API v3 calls the library needs. Every failure other than cancelling, or the link being lost,
 /// is a <see cref="DriveUnavailableException"/>.</summary>
@@ -15,7 +17,7 @@ internal sealed class GoogleDriveFiles(IDriveAccount account, HttpClient http)
 {
     private const string Api = "https://www.googleapis.com/drive/v3/files";
     private const string FolderType = "application/vnd.google-apps.folder";
-    private const string Fields = "id,name,mimeType,size,modifiedTime,sha256Checksum";
+    private const string Fields = "id,name,mimeType,size,modifiedTime,sha256Checksum,parents";
     private static readonly TimeSpan ListTimeout = TimeSpan.FromSeconds(60);
 
     public async Task<IReadOnlyList<DriveItem>> ListChildrenAsync(string parentId, bool foldersOnly, CancellationToken cancellationToken)
@@ -58,7 +60,8 @@ internal sealed class GoogleDriveFiles(IDriveAccount account, HttpClient http)
     public async Task DownloadAsync(string id, Stream into, CancellationToken cancellationToken)
     {
         using var response = await SendAsync(
-            $"{Api}/{Uri.EscapeDataString(id)}?alt=media&supportsAllDrives=true", HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            HttpMethod.Get, $"{Api}/{Uri.EscapeDataString(id)}?alt=media&supportsAllDrives=true", null,
+            HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             throw Unavailable(response.StatusCode);
@@ -75,21 +78,54 @@ internal sealed class GoogleDriveFiles(IDriveAccount account, HttpClient http)
         }
     }
 
-    /// <summary>The answer's JSON, or null for 404.</summary>
-    private async Task<JsonDocument?> GetJsonAsync(string url, CancellationToken cancellationToken)
+    /// <summary>Puts the file in Drive's trash, from where the user can restore it.</summary>
+    public async Task TrashAsync(string id, CancellationToken cancellationToken)
+    {
+        using var _ = await RequestJsonAsync(
+            HttpMethod.Patch, $"{Api}/{Uri.EscapeDataString(id)}?supportsAllDrives=true", new { trashed = true }, cancellationToken);
+    }
+
+    /// <summary>Renames the file and moves it from <paramref name="fromParents"/> into <paramref name="toParent"/>.</summary>
+    public async Task MoveAsync(string id, string name, string toParent, IReadOnlyList<string> fromParents, CancellationToken cancellationToken)
+    {
+        using var answer = await RequestJsonAsync(
+            HttpMethod.Patch,
+            $"{Api}/{Uri.EscapeDataString(id)}?addParents={Uri.EscapeDataString(toParent)}"
+                + (fromParents.Count > 0 ? $"&removeParents={Uri.EscapeDataString(string.Join(',', fromParents))}" : "")
+                + "&supportsAllDrives=true",
+            new { name },
+            cancellationToken) ?? throw new DriveUnavailableException("The file is no longer on Google Drive.");
+    }
+
+    /// <summary>Creates a folder and returns its id.</summary>
+    public async Task<string> CreateFolderAsync(string name, string parentId, CancellationToken cancellationToken)
+    {
+        using var json = await RequestJsonAsync(
+            HttpMethod.Post, $"{Api}?supportsAllDrives=true&fields=id", new { name, mimeType = FolderType, parents = new[] { parentId } }, cancellationToken);
+        return json?.RootElement.TryGetProperty("id", out var id) == true && id.GetString() is { } folderId
+            ? folderId
+            : throw new DriveUnavailableException("Google Drive did not create the folder.");
+    }
+
+    private Task<JsonDocument?> GetJsonAsync(string url, CancellationToken cancellationToken) =>
+        RequestJsonAsync(HttpMethod.Get, url, null, cancellationToken);
+
+    /// <summary>The answer's JSON (empty for an empty answer), or null for 404.</summary>
+    private async Task<JsonDocument?> RequestJsonAsync(HttpMethod method, string url, object? body, CancellationToken cancellationToken)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(ListTimeout);
         try
         {
-            using var response = await SendAsync(url, HttpCompletionOption.ResponseContentRead, timeout.Token);
+            using var content = body is null ? null : JsonContent.Create(body);
+            using var response = await SendAsync(method, url, content, HttpCompletionOption.ResponseContentRead, timeout.Token);
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
                 return null;
             }
 
             return response.IsSuccessStatusCode
-                ? JsonDocument.Parse(await response.Content.ReadAsStringAsync(timeout.Token))
+                ? JsonDocument.Parse(await response.Content.ReadAsStringAsync(timeout.Token) is { Length: > 0 } text ? text : "{}")
                 : throw Unavailable(response.StatusCode);
         }
         catch (OperationCanceledException e) when (!cancellationToken.IsCancellationRequested)
@@ -102,9 +138,10 @@ internal sealed class GoogleDriveFiles(IDriveAccount account, HttpClient http)
         }
     }
 
-    private async Task<HttpResponseMessage> SendAsync(string url, HttpCompletionOption completion, CancellationToken cancellationToken)
+    private async Task<HttpResponseMessage> SendAsync(
+        HttpMethod method, string url, HttpContent? content, HttpCompletionOption completion, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        using var request = new HttpRequestMessage(method, url) { Content = content };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await account.GetAccessTokenAsync(cancellationToken));
         try
         {
@@ -133,6 +170,9 @@ internal sealed class GoogleDriveFiles(IDriveAccount account, HttpClient http)
             DateTime.TryParse(Text("modifiedTime"), CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var modified)
                 ? modified
                 : default,
-            Text("sha256Checksum"));
+            Text("sha256Checksum"),
+            e.TryGetProperty("parents", out var parents) && parents.ValueKind == JsonValueKind.Array
+                ? [.. parents.EnumerateArray().Select(p => p.GetString() ?? "")]
+                : []);
     }
 }

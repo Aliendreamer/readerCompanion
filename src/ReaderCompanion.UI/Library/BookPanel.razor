@@ -3,6 +3,7 @@
 @inject IFileLauncher Launcher
 @inject ReaderCompanion.Core.Drive.IDriveLibrary DriveBooks
 @inject ReaderCompanion.Core.Drive.IWebBrowser Browser
+@inject ReaderCompanion.Core.Drive.IDriveAccount Drive
 
 <aside class="book-panel" aria-label="Book details" tabindex="-1" @ref="_panel" @onkeydown="KeyDown">
   <button id="panel-close" type="button" class="panel-close" aria-label="Close details" @onclick="OnClose">×</button>
@@ -104,7 +105,7 @@
                 <button type="button" class="link-button file-open" @onclick="() => OpenFile(file.Path)">Open</button>
                 <button type="button" class="link-button file-folder" @onclick="() => ShowFolder(file.Path)">Show in folder</button>
               }
-              @if (_details.Files.Count > 1 && file.DriveFileId is null)
+              @if (_details.Files.Count > 1 && (file.DriveFileId is null || Drive.Link is { CanWrite: true }))
               {
                 <button type="button" class="link-button file-trash" @onclick="() => _trashing = file.Id">Move to trash…</button>
               }
@@ -112,7 +113,7 @@
             @if (_trashing == file.Id)
             {
               <span class="file-trash-question">
-                Move @BookText.FileName(file.Path) to the trash? The book keeps its other files.
+                Move @BookText.FileName(file.Path) to the @(file.DriveFileId is null ? "trash" : "Google Drive trash")? The book keeps its other files.
                 <button type="button" class="btn btn-small file-trash-confirm" @onclick="() => TrashAsync(file)">Move to trash</button>
                 <button type="button" class="btn btn-small" @onclick="() => _trashing = null">Cancel</button>
               </span>
@@ -275,6 +276,7 @@
       {
         TrashResult.Trashed => null,
         TrashResult.LastFile => "A book's last file is never moved to the trash.",
+        TrashResult.ReadOnly => "Google Drive access is read only. Choose read and write in Settings, then link Drive again.",
         _ => $"{BookText.FileName(file.Path)} could not be moved to the trash.",
       };
     }

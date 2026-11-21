@@ -1,11 +1,13 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using ReaderCompanion.Core.Drive;
 using ReaderCompanion.Core.Library;
 using ReaderCompanion.Core.Metadata;
 
 namespace ReaderCompanion.Data;
 
-internal sealed class LibraryBooks(IDbContextFactory<LibraryDbContext> contexts, ITrash trash) : ILibraryBooks
+internal sealed class LibraryBooks(
+    IDbContextFactory<LibraryDbContext> contexts, ITrash trash, IDriveAccount drive, GoogleDriveFiles driveFiles) : ILibraryBooks
 {
     private static readonly Expression<Func<Book, BookListItem>> ToListItem = b => new BookListItem(
         b.Id,
@@ -104,9 +106,25 @@ internal sealed class LibraryBooks(IDbContextFactory<LibraryDbContext> contexts,
             return TrashResult.LastFile;
         }
 
-        // The file goes to the trash first (off the UI thread: across disks it is a copy); only then does the library
-        // forget it, so a refused trash changes nothing.
-        if (!await Task.Run(() => trash.MoveToTrash(file.Path), cancellationToken))
+        // The file goes to the trash first (off the UI thread: across disks it is a copy; a Drive file to Drive's
+        // trash); only then does the library forget it, so a refused trash changes nothing.
+        if (file.DriveFileId is { } driveId)
+        {
+            if (drive.Link is not { CanWrite: true })
+            {
+                return TrashResult.ReadOnly;
+            }
+
+            try
+            {
+                await driveFiles.TrashAsync(driveId, cancellationToken);
+            }
+            catch (DriveUnavailableException)
+            {
+                return TrashResult.TrashFailed;
+            }
+        }
+        else if (!await Task.Run(() => trash.MoveToTrash(file.Path), cancellationToken))
         {
             return TrashResult.TrashFailed;
         }

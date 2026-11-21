@@ -1,7 +1,14 @@
 namespace ReaderCompanion.Core.Drive;
 
 /// <summary>The linked Google account: at which level and as whom.</summary>
-public sealed record DriveLink(DriveAccess Access, string? AccountName, DateTime LinkedUtc);
+public sealed record DriveLink(DriveAccess Access, string? AccountName, DateTime LinkedUtc)
+{
+    /// <summary>True when the app may change files on Drive (picked files, or the whole Drive read and write).</summary>
+    public bool CanWrite => Access != DriveAccess.WholeDriveReadOnly;
+
+    /// <summary>True when the app may organise Drive folders (the whole Drive, read and write).</summary>
+    public bool CanOrganise => Access == DriveAccess.WholeDrive;
+}
 
 /// <summary>Signing in did not give the app access; the message says why, for the user.</summary>
 public sealed class DriveSignInException(string message) : Exception(message);

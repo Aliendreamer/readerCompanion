@@ -32,7 +32,7 @@ All data lives in a local SQLite file you can back up by hand.
 | M4 — Backup and restore | Done | `openspec/changes/archive/2026-11-20-add-backup-restore/` |
 | M5 — Organise files | Done (OS folders) | `openspec/changes/archive/2026-11-20-add-{organise-files,trash-extra-files}/` |
 | M6 — Goodreads | Done | `openspec/changes/archive/2026-11-20-add-goodreads-*` |
-| M7 — Google Drive | In progress: linking and Drive books done; organise and trash on Drive next | `openspec/changes/archive/2026-11-21-add-drive-{link,books}/` |
+| M7 — Google Drive | Done in code; needs a manual check with the real OAuth client | `openspec/changes/archive/2026-11-21-add-drive-{link,books,file-actions}/` |
 | M8 — Polish and packaging | Done except installers (open decision) | `openspec/changes/archive/2026-11-20-add-{settings-and-startup-errors,online-covers,release-tooling}/` |
 
 ## Guiding principles
@@ -151,7 +151,7 @@ Make it safe to undo before the app starts changing files or importing history.
 
 **Done when:** you can back up, wipe, and restore without losing anything.
 
-### M5 — Organise files (done for OS folders; Drive comes with M7)
+### M5 — Organise files (done, for OS folders and, since M7, Drive folders)
 
 Manage the files themselves from the app, not only the catalog — starting with your OS folders.
 
@@ -185,7 +185,7 @@ Link Goodreads from the Sources page. Goodreads closed its public API in 2020, s
 **Done when:** after importing you can tell, in every view, what you have and read, have and haven't read,
 want, and read without owning — and a second import changes nothing.
 
-### M7 — Google Drive
+### M7 — Google Drive (done; manual check with the real client pending)
 
 Access level is a setting (decided 2026-11-21): **only books I pick** (Google's picker, `drive.file`, no security
 assessment needed for a public release), **whole Drive, read only**, or **whole Drive, read and write** (restricted

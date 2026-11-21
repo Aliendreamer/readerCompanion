@@ -11,8 +11,11 @@ public sealed class TempLibrary : IDisposable
         Root = Directory.CreateTempSubdirectory("rc-lib-").FullName;
         DatabasePath = Path.Combine(Root, "data", "library.db");
         // Tests must never touch the real system trash: a recording trash is registered first.
+        // Nor Google Drive: an in-memory one, linked with read and write access.
         Services = new ServiceCollection()
             .AddSingleton<ReaderCompanion.Core.Library.ITrash>(Trash)
+            .AddSingleton<ReaderCompanion.Core.Drive.IDriveAccount>(DriveAccount)
+            .AddSingleton(new GoogleDriveFiles(DriveAccount, Drive.Client()))
             .AddLibraryData(DatabasePath)
             .BuildServiceProvider();
         Services.MigrateLibraryDatabase();
@@ -21,6 +24,10 @@ public sealed class TempLibrary : IDisposable
     public string Root { get; }
 
     public RecordingTrash Trash { get; } = new();
+
+    internal FakeDrive Drive { get; } = new();
+
+    internal TestDriveAccount DriveAccount { get; } = new();
 
     public string DatabasePath { get; }
 

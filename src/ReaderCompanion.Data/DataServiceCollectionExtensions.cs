@@ -36,13 +36,14 @@ public static class DataServiceCollectionExtensions
         services.TryAddSingleton(_ => PlatformTrash.ForThisMachine()); // tests register their own first
         services.AddSingleton<IAppPreferences, JsonAppPreferences>();
         services.AddSingleton(sp => new CoverStore(sp.GetRequiredService<LibraryDataPaths>()));
-        services.AddSingleton<IDriveAccount>(sp => new GoogleDriveAccount(
+        // Tests register their own Drive first.
+        services.TryAddSingleton<IDriveAccount>(sp => new GoogleDriveAccount(
             GoogleClientConfig.TryLoad(AppContext.BaseDirectory, paths.DataFolder),
             new DriveTokenFile(Path.Combine(paths.DataFolder, "drive-token.json")),
             GoogleHttp.Value,
-            new LoopbackSignIn(sp.GetRequiredService<IWebBrowser>(), TimeSpan.FromMinutes(5)),
+            new LoopbackSignIn(sp.GetService<IWebBrowser>(), TimeSpan.FromMinutes(5)), // none outside the desktop app
             () => DateTime.UtcNow));
-        services.AddSingleton(sp => new GoogleDriveFiles(sp.GetRequiredService<IDriveAccount>(), GoogleHttp.Value));
+        services.TryAddSingleton(sp => new GoogleDriveFiles(sp.GetRequiredService<IDriveAccount>(), GoogleHttp.Value));
         services.AddSingleton<IDriveLibrary, DriveLibrary>();
         // The factory gives services a fresh context per operation (desktop scopes live as long as the app);
         // it also registers LibraryDbContext itself as scoped.

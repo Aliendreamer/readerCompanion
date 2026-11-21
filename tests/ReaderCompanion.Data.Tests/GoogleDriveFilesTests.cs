@@ -38,11 +38,11 @@ public sealed class GoogleDriveFilesTests
 
         Assert.Equal(
             [
-                new DriveItem("a", "A.epub", false, 10, new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc), "abc"),
-                new DriveItem("f", "Sub", true, 0, default, null),
-                new DriveItem("b", "B.pdf", false, 20, new DateTime(2026, 1, 2, 0, 0, 0, DateTimeKind.Utc), null),
+                ("a", "A.epub", false, 10L, new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc), (string?)"abc"),
+                ("f", "Sub", true, 0L, default(DateTime), null),
+                ("b", "B.pdf", false, 20L, new DateTime(2026, 1, 2, 0, 0, 0, DateTimeKind.Utc), null),
             ],
-            children);
+            children.Select(c => (c.Id, c.Name, c.IsFolder, c.Size, c.ModifiedUtc, c.Sha256)));
         Assert.Equal(2, _requests.Count);
         Assert.Contains("q='folder-1' in parents and trashed=false", Query(_requests[0]), StringComparison.Ordinal);
         Assert.All(_requests, r => Assert.Equal("Bearer token-1", r.Headers.Authorization?.ToString()));
@@ -81,6 +81,50 @@ public sealed class GoogleDriveFilesTests
 
         Assert.Equal([1, 2, 3], into.ToArray());
         Assert.Contains("alt=media", Query(_requests[0]), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Get_KnowsTheParents()
+    {
+        var files = Files(_ => Json("""{"id":"a","name":"A.epub","mimeType":"application/epub+zip","parents":["p1"]}"""));
+
+        Assert.Equal(["p1"], (await files.GetAsync("a", Token))!.Parents);
+    }
+
+    [Fact]
+    public async Task Writes_SendTheRightRequests()
+    {
+        var bodies = new List<string>();
+        var files = Files(request =>
+        {
+            bodies.Add(request.Content?.ReadAsStringAsync().GetAwaiter().GetResult() ?? "");
+            return Json("""{"id":"new-folder"}""");
+        });
+
+        await files.TrashAsync("a", Token);
+        await files.MoveAsync("a", "The Hobbit.epub", "to", ["from1", "from2"], Token);
+        var folder = await files.CreateFolderAsync("Fantasy", "parent", Token);
+
+        Assert.Equal("new-folder", folder);
+        Assert.Equal([HttpMethod.Patch, HttpMethod.Patch, HttpMethod.Post], _requests.Select(r => r.Method));
+        Assert.Equal("/drive/v3/files/a", _requests[0].RequestUri!.AbsolutePath);
+        Assert.Contains("\"trashed\":true", bodies[0], StringComparison.Ordinal);
+        Assert.Contains("addParents=to", Query(_requests[1]), StringComparison.Ordinal);
+        Assert.Contains("removeParents=from1,from2", Query(_requests[1]), StringComparison.Ordinal);
+        Assert.Contains("\"name\":\"The Hobbit.epub\"", bodies[1], StringComparison.Ordinal);
+        Assert.Contains("\"mimeType\":\"application/vnd.google-apps.folder\"", bodies[2], StringComparison.Ordinal);
+        Assert.Contains("\"parents\":[\"parent\"]", bodies[2], StringComparison.Ordinal);
+        Assert.All(_requests, r => Assert.Equal("Bearer token-1", r.Headers.Authorization?.ToString()));
+    }
+
+    [Fact]
+    public async Task WriteRefused_SaysDriveRefused()
+    {
+        var files = Files(_ => Json("""{"error":{"code":403}}""", HttpStatusCode.Forbidden));
+
+        var error = await Assert.ThrowsAsync<DriveUnavailableException>(() => files.TrashAsync("a", Token));
+
+        Assert.Contains("refused", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]

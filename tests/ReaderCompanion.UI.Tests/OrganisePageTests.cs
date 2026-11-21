@@ -7,11 +7,46 @@ public class OrganisePageTests : BunitContext
 {
     private readonly FakeOrganiser _organiser = new();
     private readonly FakeFolders _folders = new();
+    private readonly FakeDriveAccount _drive = new();
+    private readonly FakeDriveLibrary _driveLibrary = new();
 
     public OrganisePageTests()
     {
         _folders.Linked.Add("/books");
-        Services.AddAppFakes(folders: _folders, organiser: _organiser);
+        _driveLibrary.Sources.Add(new ReaderCompanion.Core.Drive.DriveSource
+        {
+            Id = 1,
+            DriveId = "books",
+            Name = "Books",
+            Kind = ReaderCompanion.Core.Drive.DriveSourceKind.Folder,
+        });
+        Services.AddAppFakes(folders: _folders, organiser: _organiser, drive: _drive, driveLibrary: _driveLibrary);
+    }
+
+    [Fact]
+    public void DriveFolders_AreOffered_WithReadAndWriteAccess_AndPreviewedRelativeToTheFolder()
+    {
+        _drive.Link = new ReaderCompanion.Core.Drive.DriveLink(ReaderCompanion.Core.Drive.DriveAccess.WholeDrive, null, DateTime.UtcNow);
+        _organiser.Planned.Add(new Move(1, "gdrive://f1/Books/hobbit.epub", "gdrive://f1/Books/Fantasy/The Hobbit.epub"));
+        var cut = RenderPage();
+
+        Assert.Equal(["/books", "Google Drive › Books"], cut.FindAll("#organise-folder option").Select(o => o.TextContent));
+        cut.Find("#organise-folder").Change("gdrive://books/Books");
+        cut.Find("#organise-preview").Click();
+
+        cut.WaitForAssertion(() => Assert.Equal(
+            ["hobbit.epub", "Fantasy/The Hobbit.epub"],
+            cut.FindAll(".organise-moves tbody td.folder-path").Select(td => td.TextContent)));
+    }
+
+    [Fact]
+    public void DriveFolders_AreNotOffered_WithoutWriteAccessToTheWholeDrive()
+    {
+        _drive.Link = new ReaderCompanion.Core.Drive.DriveLink(ReaderCompanion.Core.Drive.DriveAccess.WholeDriveReadOnly, null, DateTime.UtcNow);
+
+        var cut = RenderPage();
+
+        Assert.Equal(["/books"], cut.FindAll("#organise-folder option").Select(o => o.TextContent));
     }
 
     private IRenderedComponent<OrganisePage> RenderPage()

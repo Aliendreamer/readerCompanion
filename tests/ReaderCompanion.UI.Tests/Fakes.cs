@@ -170,8 +170,16 @@ internal sealed class FakeBooks(List<BookListItem> books) : ILibraryBooks
 
     public FakeTrash Trash { get; set; } = new();
 
+    /// <summary>When set, every trash gives this answer (as Drive's read-only refusal does).</summary>
+    public TrashResult? TrashAnswer { get; set; }
+
     public Task<TrashResult> TrashFileAsync(int fileId, CancellationToken cancellationToken = default)
     {
+        if (TrashAnswer is { } answer)
+        {
+            return Task.FromResult(answer);
+        }
+
         foreach (var (bookId, files) in Files)
         {
             if (files.FirstOrDefault(f => f.Id == fileId) is not { } file)

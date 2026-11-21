@@ -1,10 +1,13 @@
 @page "/organise"
 @using System.Globalization
+@using ReaderCompanion.Core.Drive
 @using ReaderCompanion.Core.Organising
 @using ReaderCompanion.Core.Scanning
 @using ReaderCompanion.UI.Library
 @inject IOrganiser Organiser
 @inject ILibraryFolders Folders
+@inject IDriveAccount Drive
+@inject IDriveLibrary DriveBooks
 
 <h1 class="visually-hidden">Organise</h1>
 <p class="page-intro">Move and rename the files in a library folder into tidy folders built from each book's details.
@@ -30,7 +33,7 @@ else
         <select id="organise-folder" value="@_folder" @onchange="e => Pick(() => _folder = e.Value as string ?? _folder)">
           @foreach (var folder in _folders)
           {
-            <option value="@folder">@folder</option>
+            <option value="@folder">@BookText.FileLocation(folder)</option>
           }
         </select>
       </label>
@@ -50,7 +53,7 @@ else
       <div class="organise-undo-row">
         <span class="muted">
           Last organise: @last.CreatedUtc.ToLocalTime().ToString("d MMM yyyy, HH:mm", CultureInfo.InvariantCulture),
-          @Files(last.FileCount) in @last.Root
+          @Files(last.FileCount) in @BookText.FileLocation(last.Root)
         </span>
         <button id="organise-undo" type="button" class="btn btn-small" disabled="@_busy" @onclick="UndoAsync">Undo last organise</button>
       </div>
@@ -72,7 +75,7 @@ else
         <ul class="organise-failures">
           @foreach (var failure in result.Failed)
           {
-            <li><span class="folder-path">@failure.From</span> — @failure.Reason</li>
+            <li><span class="folder-path">@BookText.FileLocation(failure.From)</span> — @failure.Reason</li>
           }
         </ul>
       }
@@ -109,8 +112,8 @@ else
                 <input type="checkbox" class="move-include" aria-label="Move this file" checked="@_included.Contains(move.FileId)"
                        @onchange="e => Toggle(move.FileId, e.Value is true)" />
               </td>
-              <td class="folder-path">@Path.GetRelativePath(_folder, move.From)</td>
-              <td class="folder-path">@Path.GetRelativePath(_folder, move.To)</td>
+              <td class="folder-path">@Relative(move.From)</td>
+              <td class="folder-path">@Relative(move.To)</td>
             </tr>
           }
         </tbody>
@@ -133,12 +136,22 @@ else
 
   protected override async Task OnInitializedAsync()
   {
-    _folders = await Folders.ListAsync();
+    // Drive folders can be organised only with write access to the whole Drive.
+    var driveFolders = Drive.Link is { CanOrganise: true }
+      ? (await DriveBooks.ListSourcesAsync())
+        .Where(s => s.Kind == DriveSourceKind.Folder)
+        .Select(s => DrivePath.Make(s.DriveId, s.Name))
+      : [];
+    _folders = [.. await Folders.ListAsync(), .. driveFolders];
     _folder = _folders.FirstOrDefault() ?? "";
     _last = await Organiser.LastAsync();
   }
 
   private static string Files(int count) => BookText.Plural(count, "file");
+
+  // A path as seen from the chosen folder.
+  private string Relative(string path) =>
+    DrivePath.IsDrive(path) ? DrivePath.Relative(path, DrivePath.Display(_folder)) : Path.GetRelativePath(_folder, path);
 
   // A new folder or layout makes the shown preview stale.
   private void Pick(Action change)
