@@ -1252,10 +1252,67 @@ button.book-title:hover {
   margin-top: 1rem;
 }
 
-/* Leave room for the panel on wide windows; on narrow ones it covers the books. */
-@media (min-width: 900px) {
-  .library.has-panel {
-    padding-right: var(--panel-width);
+/* ---------- Library workspace: books | details ---------- */
+
+main:has(> .workspace) {
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+}
+
+.workspace {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--panel-width);
+}
+
+.workspace-books {
+  min-width: 0;
+  overflow-y: auto;
+  padding: 1rem 1.5rem 2rem;
+}
+
+.workspace-details {
+  overflow-y: auto;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+}
+
+/* Inside its pane the panel is part of the page, not a sheet over it. */
+.workspace-details .book-panel {
+  position: static;
+  width: auto;
+  min-height: 100%;
+  border-left: 0;
+  box-shadow: none;
+}
+
+.details-empty {
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+
+/* Too narrow for both panes (about 1,000 px of page): the details slide over the books, only while a book is
+   chosen. */
+@media (max-width: 1000px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .workspace-details {
+    display: none;
+  }
+
+  .workspace.has-selection .workspace-details {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    display: block;
+    width: min(var(--panel-width), 100%);
+    box-shadow: -8px 0 24px rgb(0 0 0 / 12%);
   }
 }
 

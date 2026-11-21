@@ -10,15 +10,9 @@
 
 <h1 class="visually-hidden">Library</h1>
 
-@if (!_reminderDismissed && GoodreadsReminder.IsDue(Preferences.Current.GoodreadsLastImportUtc, Preferences.Current.GoodreadsReminderMonths, DateTime.UtcNow))
+@if (_books is not { Count: > 0 } && ReminderDue)
 {
-  <div class="goodreads-reminder card" role="status">
-    <span>
-      Your Goodreads import is more than @BookText.Plural(Preferences.Current.GoodreadsReminderMonths, "month") old. On goodreads.com
-      open My Books → Import and export → Export library, then import the new file on <a href="sources">Sources</a>.
-    </span>
-    <button type="button" class="link-button" @onclick="() => _reminderDismissed = true">Dismiss</button>
-  </div>
+  @Reminder
 }
 
 @if (_books is null)
@@ -34,34 +28,47 @@ else if (_books.Count == 0)
 }
 else
 {
-  <div class="library @(_selected is null ? null : "has-panel")">
-    <BrowseBar Query="Query" QueryChanged="ChangeQuery" Options="_options" View="View" ViewChanged="ChangeView" />
-    @if (Query.IsNarrowed)
-    {
-      <div class="browse-summary">
-        <button id="clear-filters" type="button" class="link-button" @onclick="ClearFilters">Clear filters</button>
-      </div>
-    }
+  @* The Library as panes: the books (the only part that scrolls), and the details of the chosen book on the right. *@
+  <div class="workspace @(_selected is null ? null : "has-selection")">
+    <div class="workspace-books">
+      @if (ReminderDue)
+      {
+        @Reminder
+      }
+      <BrowseBar Query="Query" QueryChanged="ChangeQuery" Options="_options" View="View" ViewChanged="ChangeView" />
+      @if (Query.IsNarrowed)
+      {
+        <div class="browse-summary">
+          <button id="clear-filters" type="button" class="link-button" @onclick="ClearFilters">Clear filters</button>
+        </div>
+      }
 
-    @if (_result.Shown == 0)
-    {
-      <div class="empty-state card">
-        <p class="empty-title">No books match.</p>
-        <p>Try a different search, or clear the filters.</p>
-      </div>
-    }
-    else
-    {
-      @* Keyed on the grouping so a new grouping starts with every section open. *@
-      <BookSections @key="Query.Group" Sections="_result.Sections" View="View" OnSelect="b => _selected = b.Id"
-                    Limit="_limit" ShowMore="() => _limit += PageSize" />
-    }
+      @if (_result.Shown == 0)
+      {
+        <div class="empty-state card">
+          <p class="empty-title">No books match.</p>
+          <p>Try a different search, or clear the filters.</p>
+        </div>
+      }
+      else
+      {
+        @* Keyed on the grouping so a new grouping starts with every section open. *@
+        <BookSections @key="Query.Group" Sections="_result.Sections" View="View" OnSelect="b => _selected = b.Id"
+                      Limit="_limit" ShowMore="() => _limit += PageSize" />
+      }
+    </div>
+
+    <div class="workspace-details">
+      @if (_selected is { } id)
+      {
+        <BookPanel @key="id" BookId="id" OnClose="() => _selected = null" OnSaved="ReloadAsync" AllCollections="_userCollections" />
+      }
+      else
+      {
+        <p class="details-empty muted">Select a book to see its details</p>
+      }
+    </div>
   </div>
-
-  @if (_selected is { } id)
-  {
-    <BookPanel @key="id" BookId="id" OnClose="() => _selected = null" OnSaved="ReloadAsync" AllCollections="_userCollections" />
-  }
 }
 
 @code {
@@ -134,4 +141,18 @@ else
   }
 
   private void ChangeView(LibraryView view) => Preferences.Save(Preferences.Current with { LibraryView = view });
+
+  // The Goodreads reminder: at the top of the books pane, or above the empty or loading message.
+  private bool ReminderDue => !_reminderDismissed
+    && GoodreadsReminder.IsDue(Preferences.Current.GoodreadsLastImportUtc, Preferences.Current.GoodreadsReminderMonths, DateTime.UtcNow);
+
+  private RenderFragment Reminder => @<text>
+  <div class="goodreads-reminder card" role="status">
+    <span>
+      Your Goodreads import is more than @BookText.Plural(Preferences.Current.GoodreadsReminderMonths, "month") old. On goodreads.com
+      open My Books → Import and export → Export library, then import the new file on <a href="sources">Sources</a>.
+    </span>
+    <button type="button" class="link-button" @onclick="() => _reminderDismissed = true">Dismiss</button>
+  </div>
+  </text>;
 }

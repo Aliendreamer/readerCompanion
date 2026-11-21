@@ -56,6 +56,34 @@ public class BookPanelTests : BunitContext
         cut.WaitForAssertion(() => Assert.Equal(title, cut.Find(".book-panel .panel-title").TextContent));
     }
 
+    // ---------- the details pane ----------
+
+    [Fact]
+    public void DetailsPane_IsAlwaysThere_AndCloseClearsTheChoice()
+    {
+        var cut = RenderHome();
+        Assert.Equal("Select a book to see its details", cut.Find(".workspace-details .details-empty").TextContent.Trim());
+
+        OpenBook(cut, "Mort");
+        Assert.Empty(cut.FindAll(".details-empty"));
+        cut.Find("#panel-close").Click();
+
+        Assert.Empty(cut.FindAll(".book-panel"));
+        Assert.Single(cut.FindAll(".workspace-details .details-empty"));
+    }
+
+    [Fact]
+    public void AChosenBook_StaysShown_WhenAFilterHidesIt()
+    {
+        var cut = RenderHome();
+        OpenBook(cut, "Dune");
+
+        FilterSteps.Pick(cut, "filter-genre", "Fantasy");
+
+        Assert.DoesNotContain("Dune", cut.FindAll(".book-title").Select(t => t.TextContent).Where(t => t != cut.Find(".panel-title").TextContent));
+        Assert.Equal("Dune", cut.Find(".book-panel .panel-title").TextContent);
+    }
+
     // ---------- 3.1 view ----------
 
     [Fact]

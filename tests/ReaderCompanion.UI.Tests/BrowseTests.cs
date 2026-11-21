@@ -241,5 +241,6 @@ public class BrowseTests : BunitContext
         cut.WaitForAssertion(() => Assert.Contains("Your library is empty.", cut.Markup));
         Assert.Empty(cut.FindAll("#browse-search"));
         Assert.Empty(cut.FindAll("#browse-group"));
+        Assert.Empty(cut.FindAll(".workspace")); // the empty message spans the page: no tree, no details pane
     }
 }
