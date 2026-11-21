@@ -18,7 +18,7 @@ internal sealed class DriveLibrary(
     IAppPreferences preferences) : IDriveLibrary
 {
     /// <summary>Books read at once, each in a few small range requests: a few thousand requests a minute.</summary>
-    private const int ReadsAtOnce = 20;
+    private const int ReadsAtOnce = 10;
 
     /// <summary>Books read but not yet written, at most (their covers wait in memory).</summary>
     private const int ReadAhead = 100;

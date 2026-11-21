@@ -287,7 +287,7 @@ public sealed class DriveLibraryTests : IDisposable
     }
 
     [Fact]
-    public async Task Scan_ReadsUpToTwentyBooksAtOnce()
+    public async Task Scan_ReadsUpToTenBooksAtOnce_EachSlotIndependently()
     {
         var books = await AddBooksFolderAsync();
         for (var i = 0; i < 60; i++)
@@ -301,7 +301,7 @@ public sealed class DriveLibraryTests : IDisposable
 
         Assert.Equal(60, summary.Added);
         Assert.Equal(60, Books().Select(b => b.Title).Distinct().Count());
-        Assert.InRange(_drive.MaxFileReadsAtOnce, 11, 20);
+        Assert.InRange(_drive.MaxFileReadsAtOnce, 2, 10);
     }
 
     [Fact]

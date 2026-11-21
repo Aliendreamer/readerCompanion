@@ -5,9 +5,9 @@
 ### Requirement: Read Drive books in place
 
 A Drive scan SHALL read a new or changed EPUB or PDF's details and cover by fetching only the parts of the file the
-reader needs, not the whole file, and SHALL read up to 20 books at once, starting the next book as soon as one is
-done. The result SHALL be the same as reading the whole file. A read that Google answers with "too many requests"
-or a passing server error SHALL be tried again after a short wait, twice at most.
+reader needs, not the whole file, and SHALL read up to 10 books at once, each slot starting the next book as soon as
+its own is done. The result SHALL be the same as reading the whole file. A read that Google answers with "too many
+requests" or a passing server error SHALL be tried again after a short wait, twice at most.
 
 #### Scenario: A large EPUB
 
