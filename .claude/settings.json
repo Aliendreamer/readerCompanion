@@ -59,6 +59,9 @@
       "mcp__plugin_serena_serena__*"
     ],
     "deny": [
+      "Read(**/google-oauth-client.json)",
+      "Read(**/readercompanionappkey)",
+      "Read(**/*.key)",
       "Bash(git branch --delete --force*)",
       "Bash(git branch -D*)",
       "Bash(git push --force*)",

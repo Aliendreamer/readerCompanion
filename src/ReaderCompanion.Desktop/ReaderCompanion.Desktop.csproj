@@ -16,8 +16,9 @@
     <ProjectReference Include="..\ReaderCompanion.UI\ReaderCompanion.UI.csproj" />
   </ItemGroup>
 
-  <!-- The app's Google OAuth client (Google's "Desktop app" download), when the developer has one; never committed. -->
-  <ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)..\..\google-oauth-client.json')">
+  <!-- The app's Google OAuth client (Google's "Desktop app" download), stored encrypted with git-crypt. Builds run by
+       Claude Code (CLAUDECODE=1) skip it: the agent's sandbox is not allowed to read it. -->
+  <ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)..\..\google-oauth-client.json') And '$(CLAUDECODE)' != '1'">
     <None Include="$(MSBuildThisFileDirectory)..\..\google-oauth-client.json" Link="google-oauth-client.json"
           CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"
           ExcludeFromSingleFile="true" />
