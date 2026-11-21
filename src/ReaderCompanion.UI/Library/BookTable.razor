@@ -13,7 +13,7 @@
   <tbody>
     @foreach (var book in Books)
     {
-      <tr @key="book.Id">
+      <tr class="@(book.Id == SelectedId ? "selected" : null)" @key="book.Id" @onclick="() => OnSelect.InvokeAsync(book)">
         <td class="col-cover"><div class="table-cover"><BookCover Book="book" /></div></td>
         <td><button type="button" class="book-title" @onclick="() => OnSelect.InvokeAsync(book)">@book.Title</button></td>
         <td><span class="book-authors">@BookText.Authors(book)</span></td>
@@ -40,4 +40,6 @@
 
   /// <summary>Raised when the user picks a book to see its details.</summary>
   [Parameter] public EventCallback<BookListItem> OnSelect { get; set; }
+
+  [Parameter] public int? SelectedId { get; set; }
 }

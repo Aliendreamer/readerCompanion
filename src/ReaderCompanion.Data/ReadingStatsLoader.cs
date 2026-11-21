@@ -15,7 +15,10 @@ internal sealed class ReadingStatsLoader(IDbContextFactory<LibraryDbContext> con
                 b.Series != null ? b.Series.Name : null,
                 b.Files.Any(),
                 b.ReadStatus,
-                b.Sessions.AsQueryable().Where(ReadingLog.IsRead).Select(s => s.FinishedOn!.Value).ToList()))
+                b.Sessions.AsQueryable().Where(ReadingLog.IsRead).Select(s => s.FinishedOn!.Value).ToList())
+            {
+                SeriesIndex = b.SeriesIndex,
+            })
             .ToListAsync(cancellationToken);
     }
 }

@@ -55,7 +55,7 @@ else
       else
       {
         @* Keyed on the grouping so a new grouping starts with every section open. *@
-        <BookSections @key="Query.Group" Sections="_result.Sections" View="View" OnSelect="b => _selected = b.Id"
+        <BookSections @key="Query.Group" Sections="_result.Sections" View="View" OnSelect="b => _selected = b.Id" SelectedId="_selected"
                       Limit="_limit" ShowMore="() => _limit += PageSize" />
       }
     </div>

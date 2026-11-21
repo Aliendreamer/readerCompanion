@@ -12,7 +12,13 @@ public sealed record StatsBook(
 {
     /// <summary>Read to the end at least once, or marked read.</summary>
     public bool IsRead => FinishedReads.Count > 0 || Status == ReadStatus.Read;
+
+    /// <summary>The book's number in its series, if any.</summary>
+    public decimal? SeriesIndex { get; init; }
 }
+
+/// <summary>One book behind an author's or a series' progress.</summary>
+public sealed record ProgressBook(string Title, decimal? Number, bool IsRead, bool Owned);
 
 public sealed record BookReads(string Title, int Reads);
 
@@ -21,7 +27,11 @@ public sealed record YearReads(int Year, int Reads);
 public sealed record Glance(int OwnedRead, int OwnedUnread, int Wanted, int ReadNotOwned);
 
 /// <summary>Books read out of the books in the library for one author or series.</summary>
-public sealed record Progress(string Name, int Read, int Total);
+public sealed record Progress(string Name, int Read, int Total)
+{
+    /// <summary>The books, in series order (unnumbered ones last), then by title.</summary>
+    public IReadOnlyList<ProgressBook> Books { get; init; } = [];
+}
 
 public sealed record ReadingStats(
     int ThisYear,
@@ -51,7 +61,11 @@ public sealed record ReadingStats(
             books.Count(b => !b.Owned && !b.IsRead),
             books.Count(b => !b.Owned && b.IsRead));
 
-        static Progress Of(IGrouping<string, StatsBook> g) => new(g.Key, g.Count(b => b.IsRead), g.Count());
+        static Progress Of(IGrouping<string, StatsBook> g) => new(g.Key, g.Count(b => b.IsRead), g.Count())
+        {
+            Books = [.. g.OrderBy(b => b.SeriesIndex ?? decimal.MaxValue).ThenBy(b => b.Title, StringComparer.InvariantCultureIgnoreCase)
+                .Select(b => new ProgressBook(b.Title, b.SeriesIndex, b.IsRead, b.Owned))],
+        };
 
         var authors = books
             .SelectMany(b => b.Authors.Distinct(names), (book, author) => (book, author))

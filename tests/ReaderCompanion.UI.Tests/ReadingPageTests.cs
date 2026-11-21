@@ -51,4 +51,23 @@ public class ReadingPageTests : BunitContext
         // Both have one book read; ties go by name.
         Assert.Equal(["Frank Herbert", "Terry Pratchett"], cut.FindAll(".author-progress tbody tr td:first-child").Select(e => e.TextContent));
     }
+
+    [Fact]
+    public void ASeries_Opens_ToShowItsBooks()
+    {
+        _stats.Books.AddRange(
+        [
+            new("Reaper Man", ["Terry Pratchett"], "Discworld", true, ReadStatus.NotStarted, []) { SeriesIndex = 11 },
+            new("Mort", ["Terry Pratchett"], "Discworld", true, ReadStatus.Read, [new(Year, 1, 10)]) { SeriesIndex = 4 },
+        ]);
+        var cut = RenderPage();
+        Assert.Empty(cut.FindAll(".series-progress .progress-book"));
+
+        cut.Find(".series-progress .progress-toggle").Click();
+
+        Assert.Equal(["#4 Mort", "#11 Reaper Man"], cut.FindAll(".series-progress .progress-book .progress-book-title").Select(e => e.TextContent));
+        Assert.Equal(["read", "unread"], cut.FindAll(".series-progress .progress-book").Select(e => e.ClassList.Contains("is-read") ? "read" : "unread"));
+        cut.Find(".series-progress .progress-toggle").Click();
+        Assert.Empty(cut.FindAll(".series-progress .progress-book"));
+    }
 }

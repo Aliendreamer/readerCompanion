@@ -3,11 +3,11 @@
 
 @if (View == LibraryView.Table)
 {
-  <BookTable Books="Books" OnSelect="OnSelect" />
+  <BookTable Books="Books" OnSelect="OnSelect" SelectedId="SelectedId" />
 }
 else
 {
-  <BookGrid Books="Books" OnSelect="OnSelect" />
+  <BookGrid Books="Books" OnSelect="OnSelect" SelectedId="SelectedId" />
 }
 
 @code {
@@ -16,4 +16,7 @@ else
   [Parameter] public LibraryView View { get; set; }
 
   [Parameter] public EventCallback<BookListItem> OnSelect { get; set; }
+
+  /// <summary>The book whose details are shown, marked in the list.</summary>
+  [Parameter] public int? SelectedId { get; set; }
 }

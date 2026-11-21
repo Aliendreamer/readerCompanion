@@ -15,9 +15,10 @@ internal sealed class LibraryBooks(
         b.Authors.OrderBy(a => a.Order).Select(a => a.Author.Name).ToList(),
         b.Series != null ? b.Series.Name : null,
         b.SeriesIndex,
-        !b.Files.Any(f => f.Status == FileStatus.Present),
+        b.Files.Any() && !b.Files.Any(f => f.Status == FileStatus.Present), // a wanted book has no files to miss
         b.CoverFileName)
     {
+        Owned = b.Files.Any(),
         Genres = b.Genres.Select(g => g.Genre.Name).OrderBy(n => n).ToList(),
         Collections = b.Collections.Select(c => c.Collection.Name).OrderBy(n => n).ToList(),
         Formats = b.Files.Select(f => f.Format).ToList(),

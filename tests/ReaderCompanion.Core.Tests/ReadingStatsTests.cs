@@ -6,8 +6,24 @@ public class ReadingStatsTests
 {
     private static StatsBook Book(
         string title, string[]? authors = null, string? series = null, bool owned = true,
-        ReadStatus status = ReadStatus.NotStarted, params DateOnly[] reads) =>
-        new(title, authors ?? [], series, owned, status, reads);
+        ReadStatus status = ReadStatus.NotStarted, decimal? index = null, params DateOnly[] reads) =>
+        new(title, authors ?? [], series, owned, status, reads) { SeriesIndex = index };
+
+    [Fact]
+    public void ASeries_KnowsItsBooks_InSeriesOrder_AndWhichAreRead()
+    {
+        var stats = ReadingStats.From(
+        [
+            Book("Reaper Man", ["Terry Pratchett"], "Discworld", index: 11),
+            Book("Mort", ["Terry Pratchett"], "Discworld", status: ReadStatus.Read, index: 4),
+            Book("Small Gods", ["Terry Pratchett"], "Discworld", owned: false, status: ReadStatus.WantToRead),
+        ], 2026);
+
+        var discworld = Assert.Single(stats.Series);
+        Assert.Equal(
+            [("Mort", 4m, true, true), ("Reaper Man", 11m, false, true), ("Small Gods", (decimal?)null, false, false)],
+            discworld.Books.Select(b => (b.Title, b.Number, b.IsRead, b.Owned)));
+    }
 
     [Fact]
     public void ThisYear_CountsEveryRead_AndListsTheBooks_ByYearNewestFirst()

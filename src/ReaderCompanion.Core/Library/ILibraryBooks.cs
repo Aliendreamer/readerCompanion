@@ -1,6 +1,7 @@
 namespace ReaderCompanion.Core.Library;
 
-/// <summary>A book as shown in a list. <see cref="FileMissing"/> is true when none of its files is present;
+/// <summary>A book as shown in a list. <see cref="FileMissing"/> is true when it has files and none is present (a
+/// wanted book has none);
 /// <see cref="CoverFileName"/> names its cover in the library's covers folder, if it has one.</summary>
 public sealed record BookListItem(
     int Id,

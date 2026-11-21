@@ -539,6 +539,14 @@ svg {
   list-style: none;
 }
 
+/* A count under a value ("3 · 1 with files, 2 without"), lined up with the value's text past the tick. */
+.filter-note {
+  display: block;
+  padding: 0 0.45rem 0.3rem 2.1rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
 .filter-option {
   display: flex;
   align-items: center;
@@ -795,13 +803,6 @@ svg {
   flex-direction: column;
   gap: 0.15rem;
   min-width: 0;
-  /* Cards off screen are neither laid out nor painted, which keeps scrolling and resizing smooth in big libraries.
-     That also clips painting to the card, so the padding (cancelled by the margin) leaves room for the cover's
-     shadow and hover lift. "auto" remembers each card's real height once it has been shown. */
-  margin: -4px -16px -20px;
-  padding: 4px 16px 20px;
-  content-visibility: auto;
-  contain-intrinsic-size: auto 300px;
 }
 
 .book-card-cover {
@@ -1918,4 +1919,53 @@ main:has(> .workspace) {
   color: var(--text-muted);
   font-size: 0.8rem;
   overflow-wrap: anywhere;
+}
+
+/* Reading page: a series or author opens to list its books. */
+.progress-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.progress-toggle .filter-caret {
+  transform: rotate(-90deg);
+}
+
+.progress-toggle[aria-expanded="true"] .filter-caret {
+  transform: none;
+}
+
+.progress-book td {
+  padding-left: 1.75rem;
+  font-size: 0.9rem;
+}
+
+.progress-book.is-read .progress-book-title {
+  color: var(--accent);
+}
+
+/* The book whose details are shown: a red border round its cover (grid) or its row (table). */
+.book-card-cover {
+  cursor: pointer;
+}
+
+.book-card.selected .book-card-cover {
+  outline: 3px solid #d64541;
+  outline-offset: 2px;
+}
+
+.book-table tr.selected td {
+  box-shadow: inset 0 2px 0 #d64541, inset 0 -2px 0 #d64541;
+}
+
+.book-table tbody tr {
+  cursor: pointer;
 }

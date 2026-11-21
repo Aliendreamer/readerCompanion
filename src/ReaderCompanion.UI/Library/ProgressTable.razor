@@ -12,11 +12,35 @@
   <tbody>
     @foreach (var row in _pager.Page(Rows))
     {
+      var open = _open.Contains(row.Name);
       <tr>
-        <td>@row.Name</td>
+        <td>
+          @if (row.Books.Count > 0)
+          {
+            <button type="button" class="progress-toggle" aria-expanded="@(open ? "true" : "false")" @onclick="() => Toggle(row.Name)">
+              <svg class="filter-caret" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>@row.Name
+            </button>
+          }
+          else
+          {
+            @row.Name
+          }
+        </td>
         <td>@row.Read of @row.Total read</td>
         <td><progress max="@row.Total" value="@row.Read">@row.Read of @row.Total</progress></td>
       </tr>
+      @if (open)
+      {
+        @foreach (var book in row.Books)
+        {
+          <tr class="progress-book @(book.IsRead ? "is-read" : null)">
+            <td colspan="3">
+              <span class="progress-book-title">@(book.Number is { } n ? $"#{BookText.SeriesNumber(n)} " : "")@book.Title</span>
+              <span class="muted">@(book.IsRead ? "read" : "not read")@(book.Owned ? "" : " · not owned")</span>
+            </td>
+          </tr>
+        }
+      }
     }
   </tbody>
 </table>
@@ -26,4 +50,13 @@
   [Parameter, EditorRequired] public IReadOnlyList<Progress> Rows { get; set; } = [];
 
   private readonly Pager _pager = new();
+  private readonly HashSet<string> _open = [];
+
+  private void Toggle(string name)
+  {
+    if (!_open.Remove(name))
+    {
+      _open.Add(name);
+    }
+  }
 }

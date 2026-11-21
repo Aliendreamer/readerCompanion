@@ -36,17 +36,18 @@ public sealed class LibraryBooksTests : IDisposable
     }
 
     [Fact]
-    public async Task BookWithNoFiles_IsShownAsMissing()
+    public async Task ABookWithNoFiles_IsWanted_NotMissing()
     {
         using (var db = _library.NewContext())
         {
-            db.Books.Add(new Book { Title = "Fileless" });
+            db.Books.Add(new Book { Title = "Fileless" }); // e.g. added as wanted by a Goodreads import
             db.SaveChanges();
         }
 
-        var books = await _library.Services.GetRequiredService<ILibraryBooks>().ListAsync(TestContext.Current.CancellationToken);
+        var book = Assert.Single(await _library.Services.GetRequiredService<ILibraryBooks>().ListAsync(TestContext.Current.CancellationToken));
 
-        Assert.True(Assert.Single(books).FileMissing);
+        Assert.False(book.Owned);
+        Assert.False(book.FileMissing);
     }
 
     [Fact]

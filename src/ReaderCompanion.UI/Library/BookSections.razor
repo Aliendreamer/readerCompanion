@@ -8,7 +8,7 @@
 {
   if (part.Name is null)
   {
-    <BookView Books="books" View="View" OnSelect="OnSelect" />
+    <BookView Books="books" View="View" OnSelect="OnSelect" SelectedId="SelectedId" />
   }
   else
   {
@@ -16,7 +16,7 @@
       <summary>
         <span class="section-name">@part.Name</span> <span class="section-count">(@part.Books.Count)</span>
       </summary>
-      <BookView Books="books" View="View" OnSelect="OnSelect" />
+      <BookView Books="books" View="View" OnSelect="OnSelect" SelectedId="SelectedId" />
     </details>
   }
 }
@@ -29,6 +29,8 @@
   [Parameter] public LibraryView View { get; set; }
 
   [Parameter] public EventCallback<BookListItem> OnSelect { get; set; }
+
+  [Parameter] public int? SelectedId { get; set; }
 
   /// <summary>How many books to build, across all sections.</summary>
   [Parameter] public int Limit { get; set; } = int.MaxValue;

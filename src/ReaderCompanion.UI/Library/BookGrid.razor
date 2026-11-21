@@ -3,8 +3,9 @@
 <ul class="book-grid">
   @foreach (var book in Books)
   {
-    <li class="book-card" @key="book.Id">
-      <div class="book-card-cover">
+    <li class="book-card @(book.Id == SelectedId ? "selected" : null)" @key="book.Id">
+      @* The cover opens the details too; the title stays the keyboard's way in. *@
+      <div class="book-card-cover" @onclick="() => OnSelect.InvokeAsync(book)">
         <BookCover Book="book" />
         @if (book.FileMissing)
         {
@@ -27,4 +28,6 @@
 
   /// <summary>Raised when the user picks a book to see its details.</summary>
   [Parameter] public EventCallback<BookListItem> OnSelect { get; set; }
+
+  [Parameter] public int? SelectedId { get; set; }
 }

@@ -73,6 +73,20 @@ public class BookPanelTests : BunitContext
     }
 
     [Fact]
+    public void ClickingACover_OpensItsDetails_AndTheChosenBookIsMarked()
+    {
+        var cut = RenderHome();
+        Assert.Empty(cut.FindAll(".book-card.selected"));
+
+        cut.FindAll(".book-card").Single(c => c.QuerySelector(".book-title")!.TextContent == "Mort").QuerySelector(".book-card-cover")!.Click();
+
+        cut.WaitForAssertion(() => Assert.Equal("Mort", cut.Find(".book-panel .panel-title").TextContent));
+        Assert.Equal("Mort", Assert.Single(cut.FindAll(".book-card.selected")).QuerySelector(".book-title")!.TextContent);
+        cut.Find("#panel-close").Click();
+        Assert.Empty(cut.FindAll(".book-card.selected"));
+    }
+
+    [Fact]
     public void AChosenBook_StaysShown_WhenAFilterHidesIt()
     {
         var cut = RenderHome();
