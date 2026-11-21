@@ -1677,6 +1677,18 @@ button.book-title:hover {
   gap: 0.4rem 0.6rem;
 }
 
+/* The book on the left, its answers on the same line (they wrap below only on a narrow window). */
+.goodreads-review li > span {
+  flex: 1 1 24rem;
+  min-width: 0;
+}
+
+.review-all {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
 .goodreads-reminder {
   display: flex;
   align-items: center;

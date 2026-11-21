@@ -30,6 +30,22 @@ public class GoodreadsSourceTests : BunitContext
         cut.WaitForAssertion(() => Assert.Empty(cut.FindAll(".goodreads-review")));
     }
 
+    [Theory]
+    [InlineData("#review-all-same", true)]
+    [InlineData("#review-all-different", false)]
+    public void ReviewList_CanBeAnsweredAllAtOnce(string button, bool same)
+    {
+        _goodreads.Pending.Add(new(1, "Mort", ["Terry Pratchett"], null, 5, "Mort", null));
+        _goodreads.Pending.Add(new(2, "Dune", ["Frank Herbert"], null, 6, "Dune", null));
+        var cut = RenderWith();
+        cut.WaitForAssertion(() => Assert.Equal(2, cut.FindAll(".goodreads-review li").Count));
+
+        cut.Find(button).Click();
+
+        cut.WaitForAssertion(() => Assert.Empty(cut.FindAll(".goodreads-review")));
+        Assert.Equal([(1, same), (2, same)], _goodreads.Answers);
+    }
+
     [Fact]
     public void Options_AreSaved_AndTheLastImportIsShown()
     {

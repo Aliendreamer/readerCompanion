@@ -178,13 +178,26 @@ public sealed class GoodreadsImportTests : IDisposable
     }
 
     [Fact]
-    public async Task AnotherEdition_WaitsForReview_ThenConfirmOrRejectDecides()
+    public async Task AnotherEdition_IsTheSameBook()
     {
         AddOwned("Mort", "Terry Pratchett", "9780552131063");
-        AddOwned("Dune", "Frank Herbert", "9780441172719");
+
+        var summary = await Import.ImportAsync(
+            [Row("1", "Mort", "Terry Pratchett", ReadStatus.Read, isbn: "9780061020681", read: new DateOnly(2024, 3, 2))], Token);
+
+        Assert.Equal((1, 0, 0), (summary.Matched, summary.AddedWanted, summary.ForReview));
+        var mort = Load("Mort");
+        Assert.Equal((ReadStatus.Read, "1", "9780552131063"), (mort.ReadStatus, mort.GoodreadsId, mort.Isbn)); // keeps its own ISBN
+    }
+
+    [Fact]
+    public async Task ATitleWithoutASharedAuthor_WaitsForReview_ThenConfirmOrRejectDecides()
+    {
+        AddOwned("Mort", "Unknown");
+        AddOwned("Dune", "Unknown");
         GoodreadsRow[] rows =
-            [Row("1", "Mort", "Terry Pratchett", ReadStatus.Read, isbn: "9780061020681", read: new DateOnly(2024, 3, 2)),
-             Row("2", "Dune", "Frank Herbert", ReadStatus.Read, isbn: "9780340960196")];
+            [Row("1", "Mort", "Terry Pratchett", ReadStatus.Read, read: new DateOnly(2024, 3, 2)),
+             Row("2", "Dune", "Frank Herbert", ReadStatus.Read)];
 
         var summary = await Import.ImportAsync(rows, Token);
         var again = await Import.ImportAsync(rows, Token);
@@ -238,14 +251,14 @@ public sealed class GoodreadsImportTests : IDisposable
     }
 
     [Fact]
-    public async Task SameMainTitle_ButConflictingIsbns_WaitsForReview()
+    public async Task SameMainTitleAndAuthor_WithAnotherEditionsIsbn_IsTheSameBook()
     {
         AddOwned("Effective TypeScript", "Dan Vanderkam", "9781098155063");
 
         var summary = await Import.ImportAsync(
             [Row("1", "Effective TypeScript: 62 Specific Ways", "Dan Vanderkam", ReadStatus.Read, isbn: "9781492053705")], Token);
 
-        Assert.Equal((0, 0, 1), (summary.Matched, summary.AddedWanted, summary.ForReview));
+        Assert.Equal((1, 0, 0), (summary.Matched, summary.AddedWanted, summary.ForReview));
     }
 
     [Fact]
@@ -312,7 +325,7 @@ public sealed class GoodreadsImportTests : IDisposable
     }
 
     [Fact]
-    public async Task Confirming_KeepsTheBooksExistingGoodreadsId()
+    public async Task ASecondGoodreadsEntryForALinkedBook_WaitsForReview_AndConfirmingKeepsTheFirstId()
     {
         AddOwned("Mort", "Terry Pratchett", "9780552131063");
         await Import.ImportAsync([Row("1", "Mort", "Terry Pratchett", ReadStatus.Read, isbn: "9780552131063")], Token);

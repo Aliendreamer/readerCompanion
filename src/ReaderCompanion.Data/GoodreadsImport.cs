@@ -54,9 +54,11 @@ internal sealed class GoodreadsImport(IDbContextFactory<LibraryDbContext> contex
             }
 
             var book = byId.GetValueOrDefault(row.GoodreadsId) ?? byIsbn.Find(MatchKeys.IsbnKeys(row.Isbn));
+            // Same title and first author is the same book, even with another edition's ISBN; unless the book is
+            // already linked to another Goodreads entry (two editions shelved there): the user decides.
             if (book is null && byTitle.Find(MatchKeys.TitleKeys(row.Title, row.Authors.FirstOrDefault())) is { } candidate)
             {
-                if (MatchKeys.DifferentEditions(row.Isbn, candidate.Isbn))
+                if (candidate.GoodreadsId is not null)
                 {
                     DropPending(row.GoodreadsId); // a newer export replaces the waiting row
                     db.GoodreadsPending.Add(GoodreadsPending.From(row, candidate.Id));
@@ -67,10 +69,10 @@ internal sealed class GoodreadsImport(IDbContextFactory<LibraryDbContext> contex
                 book = candidate;
             }
 
+            // Same main title: the same book when an author is shared (whatever the ISBNs), otherwise the user decides.
             if (book is null && LooseCandidate(byMainTitle, row) is { } loose)
             {
-                if (MatchKeys.DifferentEditions(row.Isbn, loose.Isbn)
-                    || !GoodreadsMatch.ShareAnAuthor(loose.Authors.OrderBy(a => a.Order).Select(a => a.Author.Name), row.Authors))
+                if (!GoodreadsMatch.ShareAnAuthor(loose.Authors.OrderBy(a => a.Order).Select(a => a.Author.Name), row.Authors))
                 {
                     DropPending(row.GoodreadsId);
                     db.GoodreadsPending.Add(GoodreadsPending.From(row, loose.Id));
