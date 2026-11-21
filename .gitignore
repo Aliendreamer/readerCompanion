@@ -26,3 +26,7 @@ TestResults/
 # Node dev tooling
 node_modules/
 artifacts/
+
+# git-crypt key (keep a copy outside the repository; never commit)
+readercompanionappkey
+*.key
