@@ -1,7 +1,16 @@
 # Changelog
 
-All notable changes to this project will be documented in this file. See
-[commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
+All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
+
+## [0.1.1](https://github.com/Aliendreamer/readerCompanion/compare/v0.1.0...v0.1.1) (2026-11-22)
+
+### Features
+
+* installers for linux (deb, appimage) and windows (msi) ([e82765d](https://github.com/Aliendreamer/readerCompanion/commit/e82765d2f4a6960f36d7c0110deff80b0f5ebd26))
+
+### Bug Fixes
+
+* the windows installer builds from wsl, and the check reads msi files on linux ([d95d16f](https://github.com/Aliendreamer/readerCompanion/commit/d95d16ffd5d7f55e4118f1c61758e3bacf131bba))
 
 ## 0.1.0 (2026-11-21)
 
