@@ -20,6 +20,7 @@
   "ignores": [
     "**/node_modules/**",
     ".claude/**",
-    "LICENSE.md" // the license's own text, kept verbatim
+    "LICENSE.md", // the license's own text, kept verbatim
+    "CHANGELOG.md" // written by commit-and-tag-version: long lines, and Features/Bug Fixes headings per version
   ]
 }
