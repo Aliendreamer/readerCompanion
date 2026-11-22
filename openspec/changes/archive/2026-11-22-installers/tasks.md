@@ -6,13 +6,13 @@
   and `--contents` list the version, the WebKitGTK dependency, `/opt/readercompanion` and the launcher
 - [x] 1.2 `pnpm installer:appimage` (`appimagetool`, exact release pinned, checksum checked) — check: the AppImage
   extracts and holds the app
-- [ ] 1.3 User check: install the `.deb`, start from the menu, remove; run the AppImage
+- [x] 1.3 User check: install the `.deb`, start from the menu, remove; run the AppImage
 
 ## 2. Windows
 
 - [x] 2.1 WiX (exact version in `dotnet-tools.json`) source in `installer/windows/`: per-user install, Start-menu
   shortcut, upgrade code, version from MinVer; `pnpm installer:windows`
-- [ ] 2.2 User check on Windows: install, start, upgrade from an older MSI, uninstall; the library is kept
+- [x] 2.2 User check on Windows: install, start, upgrade from an older MSI, uninstall; the library is kept
 
 ## 3. Checks and docs
 
