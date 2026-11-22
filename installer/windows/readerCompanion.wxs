@@ -1,6 +1,6 @@
 <!-- The Windows installer (WiX 5). Installs for the current user, without an administrator prompt: a per-user package
-     puts ProgramFiles64Folder under %LocalAppData%\Programs. Built by scripts/installer-msi.sh with -d Version=x.y.z
-     and -bindpath App=<the win-x64 package folder>. -->
+     puts ProgramFiles64Folder under %LocalAppData%\Programs. Built by scripts/installer-msi.sh with -d Version=x.y.z,
+     -d IconFile=<the .ico, full path> and -bindpath App=<the win-x64 package folder, full path>. -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <!-- UpgradeCode never changes: it is how a newer version finds and replaces an older one. -->
   <Package Name="readerCompanion" Manufacturer="Aliendreamer" Version="$(Version)" Scope="perUser"
@@ -8,7 +8,7 @@
     <MajorUpgrade DowngradeErrorMessage="A newer version of readerCompanion is already installed." />
     <MediaTemplate EmbedCab="yes" />
 
-    <Icon Id="AppIcon" SourceFile="..\..\assets\logo\readercompanion.ico" />
+    <Icon Id="AppIcon" SourceFile="$(IconFile)" />
     <Property Id="ARPPRODUCTICON" Value="AppIcon" />
     <Property Id="ARPURLINFOABOUT" Value="https://github.com/Aliendreamer/readerCompanion" />
 

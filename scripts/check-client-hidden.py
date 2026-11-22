@@ -3,13 +3,14 @@
 
 Fails when any file under the given folders is named like the client file, or holds the client ID or secret as
 plain text (UTF-8 or UTF-16, as .NET stores strings). Installers are compressed, so they are unpacked and searched
-too: .deb (dpkg-deb), .AppImage (its own --appimage-extract) and .msi (WiX's msi decompile, on Windows).
+too: .deb (dpkg-deb), .AppImage (its own --appimage-extract) and .msi (msitools' msiextract).
 
 Usage: python3 scripts/check-client-hidden.py [--client google-oauth-client.json] artifacts
 """
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -39,8 +40,10 @@ def unpack(installer, into):
         subprocess.run([os.path.abspath(installer), "--appimage-extract"], cwd=into, check=True,
                        stdout=subprocess.DEVNULL, env={**os.environ, "APPIMAGE_EXTRACT_AND_RUN": "1"})
     elif lower.endswith(".msi"):
-        subprocess.run(["dotnet", "tool", "run", "wix", "msi", "decompile", installer, "-x", into,
-                        "-o", os.path.join(into, "decompiled.wxs")], check=True, stdout=subprocess.DEVNULL)
+        # msitools' msiextract: WiX can open an MSI only on Windows.
+        if shutil.which("msiextract") is None:
+            sys.exit("checking an .msi needs msiextract: sudo apt install msitools")
+        subprocess.run(["msiextract", "-C", into, installer], check=True, stdout=subprocess.DEVNULL)
     else:
         return False
     return True

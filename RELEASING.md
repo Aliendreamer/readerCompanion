@@ -38,7 +38,7 @@ git tag. Unsigned for now.
   anyway) until the MSI is signed with a code-signing certificate.
 
 Uninstalling never removes the library, settings or Drive link (the data folder). Run `pnpm package:check` before
-uploading: it unpacks each installer and searches it too.
+uploading: it unpacks each installer and searches it too (an MSI with `msiextract`: `sudo apt install msitools`).
 
 ## Google Drive client
 
